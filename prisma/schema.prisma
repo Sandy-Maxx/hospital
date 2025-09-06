@@ -1,0 +1,294 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  password       String
+  role           String // ADMIN, DOCTOR, NURSE, RECEPTIONIST
+  department     String?
+  specialization String?
+  isActive       Boolean   @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  appointments       Appointment[]
+  consultations      Consultation[]
+  prescriptions      Prescription[]
+  sessionAssignments DoctorSessionAssignment[]
+  availabilityRules  DoctorAvailability[]
+
+  @@map("users")
+}
+
+model Patient {
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String    @unique
+  dateOfBirth      DateTime?
+  gender           String? // MALE, FEMALE, OTHER
+  address          String?
+  idProof          String?
+  idNumber         String?
+  emergencyContact String?
+  bloodGroup       String?
+  allergies        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  appointments  Appointment[]
+  consultations Consultation[]
+  prescriptions Prescription[]
+  vitals        Vital[]
+  bills         Bill[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id                String    @id @default(cuid())
+  patientId         String
+  doctorId          String
+  dateTime          DateTime
+  type              String    @default("CONSULTATION") // CONSULTATION, FOLLOW_UP, EMERGENCY, ROUTINE_CHECKUP
+  status            String    @default("SCHEDULED") // SCHEDULED, ARRIVED, WAITING, IN_CONSULTATION, COMPLETED, CANCELLED, NO_SHOW
+  notes             String?
+  tokenNumber       String? // Format: S1-001, S2-015, etc.
+  sessionId         String?
+  priority          String    @default("NORMAL") // EMERGENCY, HIGH, NORMAL, LOW
+  estimatedDuration Int?      @default(30) // in minutes
+  actualStartTime   DateTime?
+  actualEndTime     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  patient      Patient             @relation(fields: [patientId], references: [id])
+  doctor       User                @relation(fields: [doctorId], references: [id])
+  session      AppointmentSession? @relation(fields: [sessionId], references: [id])
+  consultation Consultation?
+
+  @@map("appointments")
+}
+
+model Consultation {
+  id             String    @id @default(cuid())
+  appointmentId  String    @unique
+  patientId      String
+  doctorId       String
+  chiefComplaint String?
+  history        String?
+  examination    String?
+  diagnosis      String?
+  treatment      String?
+  notes          String?
+  followUpDate   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  appointment  Appointment   @relation(fields: [appointmentId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  doctor       User          @relation(fields: [doctorId], references: [id])
+  prescription Prescription?
+
+  @@map("consultations")
+}
+
+model Prescription {
+  id             String   @id @default(cuid())
+  consultationId String?  @unique
+  patientId      String
+  doctorId       String
+  medicines      String // JSON string of medicine objects
+  instructions   String?
+  symptoms       String? // SOAP - Subjective
+  diagnosis      String? // SOAP - Assessment
+  notes          String? // SOAP - Plan
+  vitals         String? // SOAP - Objective (JSON)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  consultation Consultation? @relation(fields: [consultationId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  doctor       User          @relation(fields: [doctorId], references: [id])
+
+  @@map("prescriptions")
+}
+
+model AppointmentSession {
+  id            String   @id @default(cuid())
+  date          DateTime
+  name          String // "Morning", "Afternoon", "Evening"
+  shortCode     String // "S1", "S2", "S3"
+  startTime     String // "09:00"
+  endTime       String // "13:00"
+  maxTokens     Int      @default(50)
+  currentTokens Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  appointments      Appointment[]
+  doctorAssignments DoctorSessionAssignment[]
+
+  @@unique([date, shortCode])
+  @@map("appointment_sessions")
+}
+
+model HospitalSettings {
+  id             String  @id @default(cuid())
+  name           String  @default("MediCare Hospital")
+  tagline        String  @default("Your Health, Our Priority")
+  logo           String?
+  primaryColor   String  @default("#2563eb")
+  secondaryColor String  @default("#1e40af")
+  phone          String  @default("+1 (555) 123-4567")
+  email          String  @default("info@medicare.com")
+  address        String  @default("123 Health Street, Medical City, MC 12345")
+  vision         String  @default("To be the leading healthcare provider")
+  mission        String  @default("We are committed to providing comprehensive healthcare")
+
+  // Appointment Settings
+  tokenPrefix            String  @default("T")
+  sessionPrefix          String  @default("S")
+  defaultSessionDuration Int     @default(240) // 4 hours in minutes
+  maxTokensPerSession    Int     @default(50)
+  allowPublicBooking     Boolean @default(true)
+  requirePatientDetails  Boolean @default(true)
+  autoAssignTokens       Boolean @default(true)
+  enableCarryForward     Boolean @default(true)
+
+  // Business Hours
+  businessStartTime String @default("09:00")
+  businessEndTime   String @default("17:00")
+  lunchBreakStart   String @default("13:00")
+  lunchBreakEnd     String @default("14:00")
+
+  // Social Media
+  socialFacebook  String?
+  socialTwitter   String?
+  socialInstagram String?
+  socialLinkedin  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hospital_settings")
+}
+
+model Medicine {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  genericName  String?
+  category     String?
+  dosageForm   String? // tablet, syrup, injection, etc.
+  strength     String?
+  manufacturer String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("medicines")
+}
+
+model Vital {
+  id            String   @id @default(cuid())
+  patientId     String
+  temperature   Float?
+  bloodPressure String? // "120/80"
+  heartRate     Int?
+  weight        Float?
+  height        Float?
+  bmi           Float?
+  notes         String?
+  recordedAt    DateTime @default(now())
+  recordedBy    String?
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("vitals")
+}
+
+model Bill {
+  id            String   @id @default(cuid())
+  patientId     String
+  appointmentId String?
+  amount        Float
+  discount      Float    @default(0)
+  tax           Float    @default(0)
+  totalAmount   Float
+  paymentMethod String // CASH, UPI, CARD, CHEQUE
+  paymentStatus String   @default("PENDING") // PENDING, PAID, PARTIAL, REFUNDED
+  items         String // JSON string of billing items
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("bills")
+}
+
+model DoctorSessionAssignment {
+  id        String @id @default(cuid())
+  doctorId  String
+  sessionId String
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  doctor  User             @relation(fields: [doctorId], references: [id])
+  session AppointmentSession @relation(fields: [sessionId], references: [id])
+
+  @@unique([doctorId, sessionId])
+  @@map("doctor_session_assignments")
+}
+
+model DoctorAvailability {
+  id          String    @id @default(cuid())
+  doctorId    String
+  type        String    // UNAVAILABLE, LEAVE, HOLIDAY, CUSTOM
+  startDate   DateTime
+  endDate     DateTime?
+  startTime   String?   // For time-specific unavailability
+  endTime     String?
+  weekdays    String?   // JSON array of weekdays [1,2,3] for recurring
+  reason      String?
+  isRecurring Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  doctor User @relation(fields: [doctorId], references: [id])
+
+  @@map("doctor_availability")
+}
+
+// Enums replaced with string fields with comments for valid values
+// UserRole: ADMIN, DOCTOR, RECEPTIONIST
+// Gender: MALE, FEMALE, OTHER  
+// AppointmentType: CONSULTATION, FOLLOW_UP, EMERGENCY, WALK_IN
+// AppointmentStatus: SCHEDULED, ARRIVED, WAITING, IN_CONSULTATION, COMPLETED, CANCELLED, NO_SHOW
+// PaymentMethod: CASH, UPI, CARD, CHEQUE
+// PaymentStatus: PENDING, PAID, PARTIAL, REFUNDED

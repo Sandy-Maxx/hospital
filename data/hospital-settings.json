@@ -1,0 +1,68 @@
+{
+  "name": "MediCare",
+  "tagline": "Your Health, Our Priority",
+  "logo": "/uploads/logo-1757082394226.png",
+  "primaryColor": "#3b24eb",
+  "secondaryColor": "#5f1eae",
+  "phone": "1234567890",
+  "email": "info@medicare.com",
+  "address": "kalyan",
+  "vision": "To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.qqqqqqqqqqq",
+  "mission": "We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.qqqqqqqqqq",
+  "tokenPrefix": "MED",
+  "sessionPrefix": "S",
+  "defaultSessionDuration": 240,
+  "maxTokensPerSession": 50,
+  "allowPublicBooking": true,
+  "requirePatientDetails": true,
+  "autoAssignTokens": true,
+  "enableCarryForward": true,
+  "businessStartTime": "09:00",
+  "businessEndTime": "17:00",
+  "lunchBreakStart": "13:00",
+  "lunchBreakEnd": "14:00",
+  "sessionTemplates": [
+    {
+      "id": "1",
+      "name": "Morning",
+      "shortCode": "M",
+      "startTime": "09:00",
+      "endTime": "13:00",
+      "maxTokens": 50,
+      "isActive": true
+    },
+    {
+      "id": "2",
+      "name": "Afternoon",
+      "shortCode": "N",
+      "startTime": "14:00",
+      "endTime": "17:00",
+      "maxTokens": 40,
+      "isActive": true
+    },
+    {
+      "id": "3",
+      "name": "Evening",
+      "shortCode": "E",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "maxTokens": 30,
+      "isActive": true
+    },
+    {
+      "id": "1757128986770",
+      "name": "Late Eve",
+      "shortCode": "S4",
+      "startTime": "09:00",
+      "endTime": "13:00",
+      "maxTokens": 50,
+      "isActive": true
+    }
+  ],
+  "socialMedia": {
+    "facebook": "",
+    "twitter": "",
+    "instagram": "",
+    "linkedin": ""
+  }
+}
