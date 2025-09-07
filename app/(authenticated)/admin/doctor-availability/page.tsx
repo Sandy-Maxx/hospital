@@ -90,7 +90,8 @@ export default function DoctorAvailabilityPage() {
       const response = await fetch('/api/doctors')
       if (response.ok) {
         const data = await response.json()
-        setDoctors(data)
+        const list = Array.isArray(data) ? data : (data.doctors || [])
+        setDoctors(list)
       }
     } catch (error) {
       toast.error('Failed to load doctors')
@@ -199,10 +200,16 @@ export default function DoctorAvailabilityPage() {
 
     setLoading(true)
     try {
+      const payload = {
+        sessionId: sessionAssignment.sessionId,
+        doctorIds: sessionAssignment.selectedDoctors
+      }
+      console.log('Sending payload:', payload)
+      
       const response = await fetch('/api/sessions/assign-doctors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sessionAssignment),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
@@ -214,7 +221,8 @@ export default function DoctorAvailabilityPage() {
         loadSessions()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Failed to assign doctors')
+        console.error('API Error:', error)
+        toast.error(typeof error.error === 'string' ? error.error : 'Failed to assign doctors')
       }
     } catch (error) {
       toast.error('Something went wrong')

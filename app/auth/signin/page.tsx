@@ -106,11 +106,28 @@ export default function SignIn() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setEmail('admin@hospital.com')
-                setPassword('admin123')
+              onClick={async () => {
+                setIsLoading(true)
+                try {
+                  const result = await signIn('credentials', {
+                    email: 'admin@hospital.com',
+                    password: 'admin123',
+                    redirect: false,
+                  })
+                  if (result?.error) {
+                    toast.error('Admin login failed')
+                  } else if (result?.ok) {
+                    toast.success('Admin login successful')
+                    window.location.href = '/dashboard'
+                  }
+                } catch (error) {
+                  toast.error('Login failed')
+                } finally {
+                  setIsLoading(false)
+                }
               }}
               className="w-full text-left justify-start"
+              disabled={isLoading}
             >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -120,11 +137,28 @@ export default function SignIn() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setEmail('doctor@hospital.com')
-                setPassword('doctor123')
+              onClick={async () => {
+                setIsLoading(true)
+                try {
+                  const result = await signIn('credentials', {
+                    email: 'doctor@hospital.com',
+                    password: 'doctor123',
+                    redirect: false,
+                  })
+                  if (result?.error) {
+                    toast.error('Doctor login failed')
+                  } else if (result?.ok) {
+                    toast.success('Doctor login successful')
+                    window.location.href = '/doctor'
+                  }
+                } catch (error) {
+                  toast.error('Login failed')
+                } finally {
+                  setIsLoading(false)
+                }
               }}
               className="w-full text-left justify-start"
+              disabled={isLoading}
             >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -134,11 +168,28 @@ export default function SignIn() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setEmail('reception@hospital.com')
-                setPassword('reception123')
+              onClick={async () => {
+                setIsLoading(true)
+                try {
+                  const result = await signIn('credentials', {
+                    email: 'reception@hospital.com',
+                    password: 'reception123',
+                    redirect: false,
+                  })
+                  if (result?.error) {
+                    toast.error('Receptionist login failed')
+                  } else if (result?.ok) {
+                    toast.success('Receptionist login successful')
+                    window.location.href = '/receptionist'
+                  }
+                } catch (error) {
+                  toast.error('Login failed')
+                } finally {
+                  setIsLoading(false)
+                }
               }}
               className="w-full text-left justify-start"
+              disabled={isLoading}
             >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>

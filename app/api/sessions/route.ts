@@ -31,6 +31,17 @@ async function ensureSessionsExist(date: Date) {
   const settings = loadHospitalSettings()
   const activeTemplates = settings.sessionTemplates?.filter((template: any) => template.isActive) || []
   
+  // First, clean up any sessions that don't match current templates
+  const validShortCodes = activeTemplates.map((t: any) => t.shortCode)
+  await prisma.appointmentSession.deleteMany({
+    where: {
+      date: date,
+      shortCode: {
+        notIn: validShortCodes
+      }
+    }
+  })
+  
   const createdSessions = []
   
   for (const template of activeTemplates) {
@@ -55,6 +66,18 @@ async function ensureSessionsExist(date: Date) {
         }
       })
       createdSessions.push(newSession)
+    } else {
+      // Update existing session with current template values
+      await prisma.appointmentSession.update({
+        where: { id: existingSession.id },
+        data: {
+          name: template.name,
+          startTime: template.startTime,
+          endTime: template.endTime,
+          maxTokens: template.maxTokens,
+          isActive: template.isActive
+        }
+      })
     }
   }
   
@@ -109,9 +132,32 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
               }
+            },
+            session: {
+              select: {
+                id: true,
+                name: true,
+                shortCode: true,
+                date: true,
+                startTime: true,
+                endTime: true,
+              }
             }
           },
           orderBy: { createdAt: 'asc' }
+        },
+        doctorAssignments: {
+          where: { isActive: true },
+          include: {
+            doctor: {
+              select: {
+                id: true,
+                name: true,
+                department: true,
+                specialization: true,
+              }
+            }
+          }
         }
       },
       orderBy: [

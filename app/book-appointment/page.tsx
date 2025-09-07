@@ -67,7 +67,7 @@ export default function PublicBookAppointment() {
   const loadSessions = async (date: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/sessions/simple?date=${date}&active=true`)
+      const response = await fetch(`/api/sessions?date=${date}`)
       if (response.ok) {
         const data = await response.json()
         setSessions(data.sessions || [])

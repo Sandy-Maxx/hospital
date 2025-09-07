@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     })
 
-    return NextResponse.json(doctors)
+    return NextResponse.json({ doctors })
   } catch (error) {
     console.error('Error fetching doctors:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

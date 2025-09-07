@@ -3,14 +3,72 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import fs from 'fs'
+import path from 'path'
 
 const appointmentSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   doctorId: z.string().min(1, 'Doctor is required'),
+  sessionId: z.string().min(1, 'Session is required'),
   dateTime: z.string().min(1, 'Date and time is required'),
   type: z.enum(['CONSULTATION', 'FOLLOW_UP', 'EMERGENCY', 'ROUTINE_CHECKUP']).default('CONSULTATION'),
   notes: z.string().optional(),
 })
+
+// Load hospital settings
+function loadHospitalSettings() {
+  try {
+    const settingsPath = path.join(process.cwd(), 'data', 'hospital-settings.json')
+    const settingsData = fs.readFileSync(settingsPath, 'utf8')
+    return JSON.parse(settingsData)
+  } catch (error) {
+    console.error('Error loading hospital settings:', error)
+    return {
+      tokenPrefix: 'T',
+      sessionPrefix: 'S'
+    }
+  }
+}
+
+// Generate token number for appointment
+async function generateTokenNumber(sessionId: string): Promise<string> {
+  const session = await prisma.appointmentSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      appointments: {
+        where: {
+          status: { notIn: ['CANCELLED'] }
+        },
+        orderBy: { tokenNumber: 'desc' },
+        take: 1
+      }
+    }
+  })
+
+  if (!session) {
+    throw new Error('Session not found')
+  }
+
+  // Load hospital settings for token prefix
+  const settings = loadHospitalSettings()
+  const tokenPrefix = settings.tokenPrefix || 'T'
+
+  // Generate next token number
+  const lastToken = session.appointments[0]?.tokenNumber
+  let nextNumber = 1
+
+  if (lastToken) {
+    // Extract number from token (e.g., "MED-M-015" -> 15)
+    const match = lastToken.match(/-(\d+)$/)
+    if (match) {
+      nextNumber = parseInt(match[1]) + 1
+    }
+  }
+
+  // Format: {tokenPrefix}-{sessionShortCode}-{number}
+  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, '0')}`
+  return tokenNumber
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -159,10 +217,12 @@ export async function POST(request: NextRequest) {
       data: {
         patientId: validatedData.patientId,
         doctorId: validatedData.doctorId,
+        sessionId: validatedData.sessionId,
         dateTime: new Date(validatedData.dateTime),
         type: validatedData.type,
         notes: validatedData.notes,
-        tokenNumber: `T-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+        tokenNumber: await generateTokenNumber(validatedData.sessionId),
+        status: 'SCHEDULED',
       },
       include: {
         patient: {
@@ -180,7 +240,20 @@ export async function POST(request: NextRequest) {
             name: true,
           },
         },
+        session: {
+          select: {
+            id: true,
+            name: true,
+            shortCode: true,
+          }
+        }
       },
+    })
+
+    // Update session currentTokens to keep counts accurate
+    await prisma.appointmentSession.update({
+      where: { id: validatedData.sessionId },
+      data: { currentTokens: { increment: 1 } }
     })
 
     return NextResponse.json(appointment, { status: 201 })

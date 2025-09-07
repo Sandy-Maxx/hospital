@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users, Calendar, Stethoscope, FileText, User, Phone, Search } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Calendar, Clock, User, FileText, Search, Plus, Users, CheckCircle, AlertCircle, XCircle, DollarSign, Stethoscope, Phone } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
+import PatientChartModal from '@/components/charts/patient-chart-modal'
 import PrescriptionForm from '@/components/prescriptions/prescription-form'
 import MedicalTimeline from '@/components/timeline/medical-timeline'
 import toast from 'react-hot-toast'
@@ -49,13 +50,16 @@ interface Consultation {
 export default function DoctorDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [consultations, setConsultations] = useState<Consultation[]>([])
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [activeTab, setActiveTab] = useState('appointments')
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [consultations, setConsultations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showPatientChart, setShowPatientChart] = useState(false)
+  const [showRevenueChart, setShowRevenueChart] = useState(false)
+  const [weeklyPatientCount, setWeeklyPatientCount] = useState(0)
+  const [weeklyRevenue, setWeeklyRevenue] = useState(0)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('appointments')
 
   // Consultation form state
   const [symptoms, setSymptoms] = useState('')
@@ -66,6 +70,39 @@ export default function DoctorDashboard() {
     fetchAppointments()
     fetchConsultations()
   }, [])
+
+  useEffect(() => {
+    calculateWeeklyPatientCount()
+    calculateWeeklyRevenue()
+  }, [appointments])
+
+  const calculateWeeklyPatientCount = () => {
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    
+    const weeklyCount = appointments.filter(apt => 
+      new Date(apt.createdAt) >= oneWeekAgo && 
+      apt.status === 'COMPLETED'
+    ).length
+    
+    setWeeklyPatientCount(weeklyCount)
+  }
+
+  const calculateWeeklyRevenue = async () => {
+    try {
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+      
+      const response = await fetch(`/api/bills?startDate=${oneWeekAgo.toISOString()}&doctorId=${session?.user?.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const totalRevenue = data.bills?.reduce((sum: number, bill: any) => sum + bill.totalAmount, 0) || 0
+        setWeeklyRevenue(totalRevenue)
+      }
+    } catch (error) {
+      console.error('Error calculating weekly revenue:', error)
+    }
+  }
 
   const fetchAppointments = async () => {
     try {
@@ -97,6 +134,10 @@ export default function DoctorDashboard() {
 
   const startConsultation = async (appointmentId: string, patientId: string) => {
     console.log('Start consultation called with:', { appointmentId, patientId })
+    
+    // Redirect to queue management page
+    router.push('/queue')
+    return
     
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
@@ -205,14 +246,14 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
               <Calendar className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                <p className="text-2xl font-bold text-gray-900">{todayAppointments.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{appointments.length}</p>
               </div>
             </div>
           </CardContent>
@@ -246,13 +287,35 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setShowPatientChart(true)}>
           <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Consultations</p>
-                <p className="text-2xl font-bold text-gray-900">{consultations.length}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-purple-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Patients (This Week)</p>
+                  <p className="text-2xl font-bold text-gray-900">{weeklyPatientCount}</p>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                Click to view chart
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setShowRevenueChart(true)}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <DollarSign className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Weekly Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{weeklyRevenue.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                Click to view chart
               </div>
             </div>
           </CardContent>
@@ -512,3 +575,75 @@ export default function DoctorDashboard() {
     </div>
   )
 }
+
+{/* Patient Chart Modal */}
+{showPatientChart && (
+  <PatientChartModal
+    isOpen={showPatientChart}
+    onClose={() => setShowPatientChart(false)}
+    weeklyCount={weeklyPatientCount}
+    appointments={appointments}
+  />
+)}
+
+{/* Revenue Chart Modal */}
+{showRevenueChart && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <DollarSign className="w-6 h-6 mr-2 text-green-600" />
+            Revenue Analytics
+          </h2>
+          <p className="text-gray-600 mt-1">Track your consultation revenue trends</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowRevenueChart(false)}>
+          <XCircle className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <DollarSign className="h-8 w-8 text-green-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Weekly Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">₹{weeklyRevenue.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-blue-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Avg per Patient</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{weeklyPatientCount > 0 ? Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString() : '0'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="p-4 bg-green-50 rounded-lg">
+        <h3 className="font-semibold text-green-900 mb-2">Revenue Summary</h3>
+        <p className="text-green-800 text-sm">
+          You have generated <strong>₹{weeklyRevenue.toLocaleString()}</strong> in revenue this week
+          from <strong>{weeklyPatientCount}</strong> completed consultations.
+          {weeklyPatientCount > 0 && (
+            <>
+              {' '}Your average consultation value is{' '}
+              <strong>₹{Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString()}</strong>.
+            </>
+          )}
+        </p>
+      </div>
+    </div>
+  </div>
+)}

@@ -6,9 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, User, Phone, Plus, Search, RefreshCw, Users, CheckCircle, AlertCircle, UserCheck, Edit3 } from 'lucide-react'
+import { Calendar, Clock, Users, Phone, User, UserCheck, Search, CheckCircle, AlertCircle, XCircle, Printer, Download, RefreshCw, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils'
+import TokenPrint from '@/components/appointments/token-print'
 import toast from 'react-hot-toast'
+
+interface Doctor {
+  id: string
+  name: string
+  department: string
+}
 
 interface Appointment {
   id: string
@@ -17,12 +25,12 @@ interface Appointment {
   type: string
   priority: string
   notes?: string
+  createdAt: string
   patient: {
     id: string
     firstName: string
     lastName: string
     phone: string
-    email?: string
   }
   session: {
     id: string
@@ -34,6 +42,7 @@ interface Appointment {
   doctor?: {
     id: string
     name: string
+    department: string
   }
 }
 
@@ -71,15 +80,19 @@ const priorityColors = {
   LOW: 'bg-gray-500 text-white',
 }
 
-export default function ReceptionistDashboard() {
+export default function Receptionist() {
   const { data: session } = useSession()
+  const [appointments, setAppointments] = useState<Appointment[]>([]) // deprecated, keep if needed elsewhere
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
+  const [hospitalSettings, setHospitalSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [doctors, setDoctors] = useState<{id: string, name: string}[]>([])
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [searchTerm, setSearchTerm] = useState('')
   const [editingAppointment, setEditingAppointment] = useState<string | null>(null)
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedDoctorId, setSelectedDoctorId] = useState('')
+  const [printingToken, setPrintingToken] = useState<string | null>(null)
 
   const fetchSessions = async () => {
     try {
@@ -98,17 +111,37 @@ export default function ReceptionistDashboard() {
     }
   }
 
+  const fetchHospitalSettings = async () => {
+    try {
+      // Use API route which persists settings to the filesystem
+      const response = await fetch('/api/settings/hospital')
+      if (response.ok) {
+        const settings = await response.json()
+        setHospitalSettings(settings)
+      }
+    } catch (error) {
+      console.error('Failed to fetch hospital settings:', error)
+    }
+  }
+
   useEffect(() => {
     fetchSessions()
     fetchDoctors()
+    fetchHospitalSettings()
   }, [])
+
+  // Refresh sessions when date changes
+  useEffect(() => {
+    fetchSessions()
+  }, [selectedDate])
 
   const fetchDoctors = async () => {
     try {
       const response = await fetch('/api/doctors')
       if (response.ok) {
         const data = await response.json()
-        setDoctors(data.doctors || [])
+        const list = Array.isArray(data) ? data : (data.doctors || [])
+        setDoctors(list)
       }
     } catch (error) {
       console.error('Error fetching doctors:', error)
@@ -189,17 +222,7 @@ export default function ReceptionistDashboard() {
         )
         break
       case 'WAITING':
-        actions.push(
-          <Button
-            key="consultation"
-            size="sm"
-            variant="default"
-            className="bg-purple-600 hover:bg-purple-700"
-            onClick={() => updateAppointmentStatus(appointment.id, 'IN_CONSULTATION')}
-          >
-            Start Consultation
-          </Button>
-        )
+        // Receptionist should not start consultation; allow sending back to Arrived only
         actions.push(
           <Button
             key="back-arrived"
@@ -236,8 +259,8 @@ export default function ReceptionistDashboard() {
         break
     }
 
-    // Doctor assignment/reassignment for all non-completed appointments
-    if (!['COMPLETED', 'CANCELLED'].includes(appointment.status)) {
+    // Doctor assignment allowed only when status is ARRIVED
+    if (appointment.status === 'ARRIVED') {
       if (editingAppointment === appointment.id) {
         actions.push(
           <div key="doctor-select" className="flex items-center space-x-2">
@@ -358,6 +381,12 @@ export default function ReceptionistDashboard() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
+          <Link href="/patients/new">
+            <Button variant="outline">
+              <Plus className="w-4 h-4 mr-2" />
+              Register Patient
+            </Button>
+          </Link>
           <Link href="/book-appointment">
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -406,6 +435,15 @@ export default function ReceptionistDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Token Print Modal */}
+      {selectedAppointment && hospitalSettings && (
+        <TokenPrint
+          appointment={selectedAppointment}
+          hospitalSettings={hospitalSettings}
+          onClose={() => setSelectedAppointment(null)}
+        />
+      )}
 
       {/* Filters */}
       <Card>
@@ -570,6 +608,15 @@ export default function ReceptionistDashboard() {
                               <Badge className={statusColors[appointment.status as keyof typeof statusColors]}>
                                 {appointment.status.replace('_', ' ')}
                               </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedAppointment(appointment)}
+                                className="ml-2"
+                              >
+                                <Printer className="w-4 h-4 mr-1" />
+                                Print Token
+                              </Button>
                             </div>
                           </div>
                           

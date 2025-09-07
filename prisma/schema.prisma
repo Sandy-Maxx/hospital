@@ -28,7 +28,15 @@ model User {
   consultations      Consultation[]
   prescriptions      Prescription[]
   sessionAssignments DoctorSessionAssignment[]
-  availabilityRules  DoctorAvailability[]
+  doctorAvailability DoctorAvailability[]
+  doctorBills        Bill[] @relation("DoctorBills")
+  createdBills       Bill[] @relation("CreatedBills")
+  consultationFees   DoctorConsultationFee[] @relation("DoctorFees")
+
+  // Audit log back-relations
+  assignmentLogsFrom AppointmentAssignmentLog[] @relation("FromDoctor")
+  assignmentLogsTo   AppointmentAssignmentLog[] @relation("ToDoctor")
+  assignmentLogsBy   AppointmentAssignmentLog[] @relation("ChangedByUser")
 
   @@map("users")
 }
@@ -51,12 +59,11 @@ model Patient {
   updatedAt        DateTime  @updatedAt
 
   // Relations
-  appointments  Appointment[]
-  consultations Consultation[]
-  prescriptions Prescription[]
-  vitals        Vital[]
-  bills         Bill[]
-
+  appointments    Appointment[]
+  prescriptions   Prescription[]
+  bills           Bill[]
+  vitals          Vital[]
+  consultations   Consultation[]
   @@map("patients")
 }
 
@@ -78,10 +85,12 @@ model Appointment {
   updatedAt         DateTime  @updatedAt
 
   // Relations
-  patient      Patient             @relation(fields: [patientId], references: [id])
-  doctor       User                @relation(fields: [doctorId], references: [id])
-  session      AppointmentSession? @relation(fields: [sessionId], references: [id])
-  consultation Consultation?
+  patient       Patient       @relation(fields: [patientId], references: [id])
+  doctor        User          @relation(fields: [doctorId], references: [id])
+  session       AppointmentSession? @relation(fields: [sessionId], references: [id])
+  bills         Bill[]
+  consultation  Consultation?
+  assignmentLogs AppointmentAssignmentLog[]
 
   @@map("appointments")
 }
@@ -128,6 +137,7 @@ model Prescription {
   consultation Consultation? @relation(fields: [consultationId], references: [id])
   patient      Patient       @relation(fields: [patientId], references: [id])
   doctor       User          @relation(fields: [doctorId], references: [id])
+  bills         Bill[]
 
   @@map("prescriptions")
 }
@@ -152,6 +162,79 @@ model AppointmentSession {
   @@unique([date, shortCode])
   @@map("appointment_sessions")
 }
+
+model Bill {
+  id              String   @id @default(cuid())
+  billNumber      String   @unique
+  patientId       String
+  prescriptionId  String?
+  appointmentId   String?
+  doctorId        String
+  
+  // Bill Details
+  consultationFee Float?
+  totalAmount     Float
+  cgst            Float?
+  sgst            Float?
+  igst            Float?
+  discountAmount  Float?
+  finalAmount     Float
+  
+  // Payment Details
+  paymentStatus   String @default("PENDING") // PENDING, PARTIAL, PAID, CANCELLED, REFUNDED
+  paymentMethod   String?
+  paidAmount      Float?
+  balanceAmount   Float?
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String
+  
+  // Relations
+  patient         Patient      @relation(fields: [patientId], references: [id])
+  prescription    Prescription? @relation(fields: [prescriptionId], references: [id])
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id])
+  doctor          User         @relation("DoctorBills", fields: [doctorId], references: [id])
+  createdByUser   User         @relation("CreatedBills", fields: [createdBy], references: [id])
+  billItems       BillItem[]
+  
+  @@map("bills")
+}
+
+model BillItem {
+  id          String  @id @default(cuid())
+  billId      String
+  itemType    String // CONSULTATION, MEDICINE, LAB_TEST, THERAPY, PROCEDURE, OTHER
+  itemName    String
+  quantity    Int     @default(1)
+  unitPrice   Float?
+  totalPrice  Float?
+  gstRate     Float?
+  
+  // Relations
+  bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  @@map("bill_items")
+}
+
+model DoctorConsultationFee {
+  id            String  @id @default(cuid())
+  doctorId      String
+  consultationType String @default("GENERAL") // GENERAL, SPECIALIST, EMERGENCY
+  fee           Float
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  doctor        User    @relation("DoctorFees", fields: [doctorId], references: [id])
+  
+  @@unique([doctorId, consultationType])
+  @@map("doctor_consultation_fees")
+}
+
 
 model HospitalSettings {
   id             String  @id @default(cuid())
@@ -228,25 +311,6 @@ model Vital {
   @@map("vitals")
 }
 
-model Bill {
-  id            String   @id @default(cuid())
-  patientId     String
-  appointmentId String?
-  amount        Float
-  discount      Float    @default(0)
-  tax           Float    @default(0)
-  totalAmount   Float
-  paymentMethod String // CASH, UPI, CARD, CHEQUE
-  paymentStatus String   @default("PENDING") // PENDING, PAID, PARTIAL, REFUNDED
-  items         String // JSON string of billing items
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  patient Patient @relation(fields: [patientId], references: [id])
-
-  @@map("bills")
-}
 
 model DoctorSessionAssignment {
   id        String @id @default(cuid())
@@ -283,6 +347,25 @@ model DoctorAvailability {
   doctor User @relation(fields: [doctorId], references: [id])
 
   @@map("doctor_availability")
+}
+
+// Audit log for appointment doctor reassignment
+model AppointmentAssignmentLog {
+  id             String   @id @default(cuid())
+  appointmentId  String
+  fromDoctorId   String?
+  toDoctorId     String
+  changedBy      String
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  appointment    Appointment @relation(fields: [appointmentId], references: [id])
+  fromDoctor     User?       @relation("FromDoctor", fields: [fromDoctorId], references: [id])
+  toDoctor       User        @relation("ToDoctor", fields: [toDoctorId], references: [id])
+  changedByUser  User        @relation("ChangedByUser", fields: [changedBy], references: [id])
+
+  @@map("appointment_assignment_logs")
 }
 
 // Enums replaced with string fields with comments for valid values

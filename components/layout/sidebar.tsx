@@ -52,7 +52,7 @@ const menuItems = {
   ],
   RECEPTIONIST: [
     { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: UserPlus, label: 'Patient Registration', href: '/patients/register' },
+    { icon: UserPlus, label: 'Patient Registration', href: '/patients/new' },
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
     { icon: Clock, label: 'Doctor Schedules', href: '/admin/doctor-availability' },
     { icon: ClipboardList, label: 'Queue Management', href: '/queue' },

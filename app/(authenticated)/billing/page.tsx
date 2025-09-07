@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { CreditCard, Plus, Receipt, Search } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { CreditCard, Plus, Receipt, Search, FileText, Download, Printer, QrCode, Eye } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import BillForm from '@/components/billing/bill-form'
 import toast from 'react-hot-toast'
 
 interface Bill {
@@ -35,10 +37,13 @@ const paymentStatusColors = {
 
 export default function Billing() {
   const [bills, setBills] = useState<Bill[]>([])
+  const [prescriptions, setPrescriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateBill, setShowCreateBill] = useState(false)
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<'bills' | 'prescriptions'>('prescriptions')
 
   const fetchBills = async () => {
     try {
@@ -62,9 +67,34 @@ export default function Billing() {
     }
   }
 
+  const fetchPrescriptions = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        date: selectedDate,
+      })
+
+      const response = await fetch(`/api/prescriptions/pending-billing?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPrescriptions(data.prescriptions || [])
+      } else {
+        toast.error('Failed to fetch prescriptions')
+      }
+    } catch (error) {
+      toast.error('Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    fetchBills()
-  }, [selectedDate, statusFilter])
+    if (activeTab === 'bills') {
+      fetchBills()
+    } else {
+      fetchPrescriptions()
+    }
+  }, [selectedDate, statusFilter, activeTab])
 
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.totalAmount, 0)
   const paidBills = bills.filter(bill => bill.paymentStatus === 'PAID')
@@ -80,13 +110,22 @@ export default function Billing() {
           </h1>
           <p className="text-gray-600 mt-2">Manage patient bills and payment records</p>
         </div>
-        <Button 
-          className="flex items-center"
-          onClick={() => setShowCreateBill(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Bill
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant={activeTab === 'prescriptions' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('prescriptions')}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Pending Prescriptions ({prescriptions.length})
+          </Button>
+          <Button 
+            variant={activeTab === 'bills' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('bills')}
+          >
+            <Receipt className="w-4 h-4 mr-2" />
+            Bills ({bills.length})
+          </Button>
+        </div>
       </div>
 
       {/* Revenue Stats */}
@@ -163,107 +202,209 @@ export default function Billing() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Status
               </label>
-              <Select
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-40"
+                className="w-40 p-2 border border-gray-300 rounded-md"
               >
                 <option value="">All Status</option>
                 <option value="PAID">Paid</option>
                 <option value="PENDING">Pending</option>
                 <option value="PARTIAL">Partial</option>
                 <option value="REFUNDED">Refunded</option>
-              </Select>
+              </select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Bills List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Bills for {formatDate(selectedDate)}
-          </CardTitle>
-          <CardDescription>
-            {bills.length} bills found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-          ) : bills.length === 0 ? (
-            <div className="text-center py-8">
-              <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No bills found for this date</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {bills.map((bill) => (
-                <div
-                  key={bill.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                          <Receipt className="w-6 h-6 text-primary-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {bill.patient.firstName} {bill.patient.lastName}
-                          </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span>Bill #{bill.id.slice(-8)}</span>
-                            <span>{bill.patient.phone}</span>
-                            <span>{formatDate(bill.createdAt)}</span>
+      {/* Content based on active tab */}
+      {activeTab === 'prescriptions' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Pending Prescriptions for Billing
+            </CardTitle>
+            <CardDescription>
+              {prescriptions.length} prescriptions awaiting billing
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : prescriptions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No pending prescriptions for billing</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {prescriptions.map((prescription) => (
+                  <div
+                    key={prescription.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <FileText className="w-6 h-6 text-blue-600" />
                           </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {prescription.patient.firstName} {prescription.patient.lastName}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                              <span>Dr. {prescription.doctor.name}</span>
+                              <span>{prescription.patient.phone}</span>
+                              <span>{formatDate(prescription.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <Button
+                          onClick={() => setSelectedPrescription(prescription)}
+                          className="mb-2"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Bill
+                        </Button>
+                        <div className="text-sm text-gray-500">
+                          {prescription.doctor.department}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">
-                        ₹{bill.totalAmount.toLocaleString()}
-                      </div>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          paymentStatusColors[bill.paymentStatus as keyof typeof paymentStatusColors]
-                        }`}>
-                          {bill.paymentStatus}
-                        </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                          {bill.paymentMethod}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Subtotal:</span>
-                        <span className="ml-2 font-medium">₹{bill.amount.toLocaleString()}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Discount:</span>
-                        <span className="ml-2 font-medium">₹{bill.discount.toLocaleString()}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Tax:</span>
-                        <span className="ml-2 font-medium">₹{bill.tax.toLocaleString()}</span>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Medicines:</span>
+                          <span className="ml-2 font-medium">
+                            {prescription.medicines ? JSON.parse(prescription.medicines || '[]').length || prescription.medicines.split('\n').filter(Boolean).length : 0} items
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Lab Tests:</span>
+                          <span className="ml-2 font-medium">
+                            {prescription.labTests ? JSON.parse(prescription.labTests || '[]').length || prescription.labTests.split('\n').filter(Boolean).length : 0} tests
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Therapies:</span>
+                          <span className="ml-2 font-medium">
+                            {prescription.therapies ? JSON.parse(prescription.therapies || '[]').length || prescription.therapies.split('\n').filter(Boolean).length : 0} sessions
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Bills for {formatDate(selectedDate)}
+            </CardTitle>
+            <CardDescription>
+              {bills.length} bills found
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : bills.length === 0 ? (
+              <div className="text-center py-8">
+                <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No bills found for this date</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {bills.map((bill) => (
+                  <div
+                    key={bill.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                            <Receipt className="w-6 h-6 text-primary-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {bill.patient.firstName} {bill.patient.lastName}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                              <span>Bill #{bill.id.slice(-8)}</span>
+                              <span>{bill.patient.phone}</span>
+                              <span>{formatDate(bill.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          ₹{bill.totalAmount.toLocaleString()}
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            paymentStatusColors[bill.paymentStatus as keyof typeof paymentStatusColors]
+                          }`}>
+                            {bill.paymentStatus}
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                            {bill.paymentMethod}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Subtotal:</span>
+                          <span className="ml-2 font-medium">₹{bill.amount.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Discount:</span>
+                          <span className="ml-2 font-medium">₹{bill.discount.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Tax:</span>
+                          <span className="ml-2 font-medium">₹{bill.tax.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bill Form Modal */}
+      {selectedPrescription && (
+        <BillForm
+          prescription={selectedPrescription}
+          onClose={() => setSelectedPrescription(null)}
+          onSuccess={() => {
+            fetchPrescriptions()
+            fetchBills()
+          }}
+        />
+      )}
     </div>
   )
 }

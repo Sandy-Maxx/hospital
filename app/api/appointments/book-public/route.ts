@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import fs from 'fs'
+import path from 'path'
 
 const bookingSchema = z.object({
   // Patient information
@@ -18,6 +20,21 @@ const bookingSchema = z.object({
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'EMERGENCY']).default('NORMAL'),
   notes: z.string().optional(),
 })
+
+// Load hospital settings
+function loadHospitalSettings() {
+  try {
+    const settingsPath = path.join(process.cwd(), 'data', 'hospital-settings.json')
+    const settingsData = fs.readFileSync(settingsPath, 'utf8')
+    return JSON.parse(settingsData)
+  } catch (error) {
+    console.error('Error loading hospital settings:', error)
+    return {
+      tokenPrefix: 'T',
+      sessionPrefix: 'S'
+    }
+  }
+}
 
 // Generate next token number for session
 async function generateTokenNumber(sessionId: string): Promise<string> {
@@ -38,24 +55,24 @@ async function generateTokenNumber(sessionId: string): Promise<string> {
     throw new Error('Session not found')
   }
 
-  // Check if session is full
-  if (session.currentTokens >= session.maxTokens) {
-    throw new Error('Session is full')
-  }
+  // Load hospital settings for token prefix
+  const settings = loadHospitalSettings()
+  const tokenPrefix = settings.tokenPrefix || 'T'
 
   // Generate next token number
   const lastToken = session.appointments[0]?.tokenNumber
   let nextNumber = 1
 
   if (lastToken) {
-    // Extract number from token (e.g., "S1-015" -> 15)
+    // Extract number from token (e.g., "MED-M-015" -> 15)
     const match = lastToken.match(/-(\d+)$/)
     if (match) {
       nextNumber = parseInt(match[1]) + 1
     }
   }
 
-  const tokenNumber = `${session.shortCode}-${nextNumber.toString().padStart(3, '0')}`
+  // Format: {tokenPrefix}-{sessionShortCode}-{number}
+  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, '0')}`
   return tokenNumber
 }
 

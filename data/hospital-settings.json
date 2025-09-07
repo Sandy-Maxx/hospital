@@ -12,13 +12,13 @@
   "tokenPrefix": "MED",
   "sessionPrefix": "S",
   "defaultSessionDuration": 240,
-  "maxTokensPerSession": 50,
+  "maxTokensPerSession": 100,
   "allowPublicBooking": true,
   "requirePatientDetails": true,
   "autoAssignTokens": true,
   "enableCarryForward": true,
   "businessStartTime": "09:00",
-  "businessEndTime": "17:00",
+  "businessEndTime": "22:00",
   "lunchBreakStart": "13:00",
   "lunchBreakEnd": "14:00",
   "sessionTemplates": [
@@ -28,7 +28,7 @@
       "shortCode": "M",
       "startTime": "09:00",
       "endTime": "13:00",
-      "maxTokens": 50,
+      "maxTokens": 100,
       "isActive": true
     },
     {
@@ -52,10 +52,10 @@
     {
       "id": "1757128986770",
       "name": "Late Eve",
-      "shortCode": "S4",
-      "startTime": "09:00",
-      "endTime": "13:00",
-      "maxTokens": 50,
+      "shortCode": "LE",
+      "startTime": "20:00",
+      "endTime": "22:00",
+      "maxTokens": 20,
       "isActive": true
     }
   ],

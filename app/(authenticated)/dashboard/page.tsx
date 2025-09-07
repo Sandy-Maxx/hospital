@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Calendar, Clock, CreditCard, Activity, TrendingUp } from 'lucide-react'
+import ReceptionistDashboard from '@/app/(authenticated)/receptionist/page'
 
 const stats = [
   {
@@ -84,6 +85,11 @@ export default function Dashboard() {
     }
   }
 
+  // Role-aware dashboard: Receptionist sees the sessions dashboard here
+  if (session?.user?.role === 'RECEPTIONIST') {
+    return <ReceptionistDashboard />
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -152,22 +158,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              {session?.user?.role === 'RECEPTIONIST' && (
-                <>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Users className="w-6 h-6 text-primary-600 mb-2" />
-                    <p className="font-medium">Register Patient</p>
-                    <p className="text-sm text-gray-500">Add new patient</p>
-                  </button>
-                  <Link href="/book-appointment">
-                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors w-full">
-                      <Calendar className="w-6 h-6 text-green-600 mb-2" />
-                      <p className="font-medium">Book Appointment</p>
-                      <p className="text-sm text-gray-500">Schedule visit</p>
-                    </button>
-                  </Link>
-                </>
-              )}
+              {/* Other roles (Doctor/Admin) see default quick actions */}
               {session?.user?.role === 'DOCTOR' && (
                 <>
                   <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">

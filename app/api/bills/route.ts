@@ -6,17 +6,31 @@ import { z } from 'zod'
 
 const billSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
+  prescriptionId: z.string().optional(),
   appointmentId: z.string().optional(),
+  doctorId: z.string().min(1, 'Doctor is required'),
+  consultationFee: z.number().min(0).optional(),
   items: z.array(z.object({
-    description: z.string(),
-    quantity: z.number().min(1),
-    rate: z.number().min(0),
-    amount: z.number().min(0),
+    itemType: z.enum(['CONSULTATION', 'MEDICINE', 'LAB_TEST', 'THERAPY', 'PROCEDURE', 'OTHER']),
+    itemName: z.string(),
+    quantity: z.number().min(1).default(1),
+    unitPrice: z.number().min(0).optional(),
+    gstRate: z.number().min(0).max(100).optional(),
   })),
-  discount: z.number().min(0).default(0),
-  tax: z.number().min(0).default(0),
-  paymentMethod: z.enum(['CASH', 'UPI', 'CARD', 'CHEQUE']),
+  discountAmount: z.number().min(0).default(0),
+  paymentMethod: z.string().optional(),
+  notes: z.string().optional(),
 })
+
+// Generate bill number
+function generateBillNumber(): string {
+  const now = new Date()
+  const year = now.getFullYear().toString().slice(-2)
+  const month = (now.getMonth() + 1).toString().padStart(2, '0')
+  const day = now.getDate().toString().padStart(2, '0')
+  const time = now.getTime().toString().slice(-6)
+  return `BILL-${year}${month}${day}-${time}`
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,21 +111,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = billSchema.parse(body)
 
-    // Calculate total amount
-    const subtotal = validatedData.items.reduce((sum, item) => sum + item.amount, 0)
-    const totalAmount = subtotal - validatedData.discount + validatedData.tax
+    // Generate bill number
+    const billNumber = generateBillNumber()
+
+    // Calculate amounts
+    let totalAmount = validatedData.consultationFee || 0
+    let cgst = 0
+    let sgst = 0
 
     const bill = await prisma.bill.create({
       data: {
+        billNumber,
         patientId: validatedData.patientId,
+        prescriptionId: validatedData.prescriptionId,
         appointmentId: validatedData.appointmentId,
-        items: JSON.stringify(validatedData.items),
-        discount: validatedData.discount,
-        tax: validatedData.tax,
+        doctorId: validatedData.doctorId,
+        consultationFee: validatedData.consultationFee,
+        totalAmount: 0, // Will be updated after items are created
+        cgst: 0,
+        sgst: 0,
+        discountAmount: validatedData.discountAmount,
+        finalAmount: 0, // Will be calculated
         paymentMethod: validatedData.paymentMethod,
-        amount: subtotal,
-        totalAmount,
-        paymentStatus: 'PAID',
+        notes: validatedData.notes,
+        createdBy: session.user.id || '',
       },
       include: {
         patient: {
@@ -124,7 +147,61 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(bill, { status: 201 })
+    // Create bill items
+    const billItems = await Promise.all(
+      validatedData.items.map(async (item) => {
+        const itemTotal = (item.unitPrice || 0) * item.quantity
+        const gstAmount = item.gstRate ? (itemTotal * item.gstRate) / 100 : 0
+        
+        totalAmount += itemTotal
+        cgst += gstAmount / 2
+        sgst += gstAmount / 2
+
+        return prisma.billItem.create({
+          data: {
+            billId: bill.id,
+            itemType: item.itemType,
+            itemName: item.itemName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: itemTotal,
+            gstRate: item.gstRate,
+          }
+        })
+      })
+    )
+
+    // Calculate final amount
+    const finalAmount = totalAmount + cgst + sgst - validatedData.discountAmount
+
+    // Update bill with calculated amounts
+    const updatedBill = await prisma.bill.update({
+      where: { id: bill.id },
+      data: {
+        totalAmount,
+        cgst,
+        sgst,
+        finalAmount,
+      },
+      include: {
+        patient: {
+          select: {
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        doctor: {
+          select: {
+            name: true,
+            department: true,
+          },
+        },
+        billItems: true,
+      },
+    })
+
+    return NextResponse.json(updatedBill, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 })
