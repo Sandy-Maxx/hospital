@@ -44,15 +44,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { patientId, consultationId, medicines, labTests, therapies, symptoms, diagnosis, notes, vitals } = body
+    const { patientId, consultationId, appointmentId, medicines, labTests, therapies, symptoms, diagnosis, notes, vitals } = body
 
-    // Find the doctor ID from session
-    const doctor = await prisma.user.findUnique({
-      where: { email: session.user.email! }
-    })
-
-    if (!doctor) {
-      return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
+    // Determine doctor for this prescription
+    let doctorId: string | null = null
+    if (appointmentId) {
+      const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } })
+      if (!appt) return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
+      doctorId = appt.doctorId
+    } else {
+      const doctor = await prisma.user.findUnique({ where: { email: session.user.email! } })
+      if (!doctor) return NextResponse.json({ error: 'Doctor not found' }, { status: 404 })
+      doctorId = doctor.id
     }
 
     // Validate required fields
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Prepare prescription data
     const prescriptionCreateData: any = {
       patientId,
-      doctorId: doctor.id,
+      doctorId: doctorId!,
       symptoms,
       diagnosis,
       notes,
@@ -84,9 +87,41 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Only include consultationId if it's provided
-    if (consultationId) {
-      prescriptionCreateData.consultationId = consultationId
+    // Link to consultation by appointment if provided (create or reuse)
+    let finalConsultationId = consultationId || null
+    if (!finalConsultationId && appointmentId) {
+      // upsert consultation for appointment
+      const existing = await prisma.consultation.findUnique({ where: { appointmentId: appointmentId } })
+      if (existing) {
+        finalConsultationId = existing.id
+        await prisma.consultation.update({
+          where: { id: existing.id },
+          data: {
+            chiefComplaint: symptoms || existing.chiefComplaint,
+            history: '',
+            examination: (vitals ? JSON.stringify(vitals) : existing.examination),
+            diagnosis: diagnosis || existing.diagnosis,
+            treatment: notes || existing.treatment,
+          },
+        })
+      } else {
+        const create = await prisma.consultation.create({
+          data: {
+            appointmentId: appointmentId,
+            patientId: patientId,
+            doctorId: doctorId!,
+            chiefComplaint: symptoms || '',
+            history: '',
+            examination: vitals ? JSON.stringify(vitals) : null,
+            diagnosis: diagnosis || '',
+            treatment: notes || '',
+          },
+        })
+        finalConsultationId = create.id
+      }
+    }
+    if (finalConsultationId) {
+      prescriptionCreateData.consultationId = finalConsultationId
     }
 
     const prescription = await prisma.prescription.create({
@@ -101,6 +136,72 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ prescription }, { status: 201 })
   } catch (error) {
     console.error('Error creating prescription:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+    const body = await request.json()
+    const data: any = {}
+
+    if (typeof body.symptoms === 'string') data.symptoms = body.symptoms
+    if (typeof body.diagnosis === 'string') data.diagnosis = body.diagnosis
+    if (typeof body.notes === 'string') data.notes = body.notes
+    if (body.vitals) data.vitals = JSON.stringify(body.vitals)
+
+    if (body.medicines || body.labTests || body.therapies || body.status !== undefined) {
+      // Merge with existing medicines JSON to avoid clobbering when only status is sent
+      const existing = await prisma.prescription.findUnique({ where: { id }, select: { medicines: true } })
+      let current: any = {}
+      try { current = existing?.medicines ? JSON.parse(existing.medicines) : {} } catch {}
+
+      const payload: any = { ...current }
+      if (body.medicines) payload.medicines = body.medicines
+      if (body.labTests) payload.labTests = body.labTests
+      if (body.therapies) payload.therapies = body.therapies
+      if (body.status !== undefined) payload.status = body.status
+
+      data.medicines = JSON.stringify(payload)
+    }
+
+    const updated = await prisma.prescription.update({
+      where: { id },
+      data,
+      include: { patient: true, doctor: true, consultation: true }
+    })
+
+    return NextResponse.json({ prescription: updated })
+  } catch (error) {
+    console.error('Error updating prescription:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+    await prisma.prescription.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting prescription:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -272,7 +272,7 @@ export default function Appointments() {
                             </span>
                             <span className="flex items-center">
                               <User className="w-4 h-4 mr-1" />
-                              Dr. {appointment.doctor.name}
+{appointment.doctor.name}
                             </span>
                             <span className="flex items-center">
                               <Phone className="w-4 h-4 mr-1" />
@@ -294,9 +294,27 @@ export default function Appointments() {
                     </div>
                   </div>
                   
-                  {appointment.notes && (
+{appointment.notes && (session?.user?.role !== 'NURSE') && (
                     <div className="mt-3 text-sm text-gray-600">
-                      <strong>Notes:</strong> {appointment.notes}
+                      <strong>Notes:</strong>{' '}
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(appointment.notes)
+                          if (parsed?.soapNotes || parsed?.quickNotes) {
+                            return (
+                              <span>
+                                {parsed.soapNotes?.subjective && (
+                                  <><em>S:</em> {parsed.soapNotes.subjective} </>
+                                )}
+                                {parsed.soapNotes?.assessment && (
+                                  <><em>A:</em> {parsed.soapNotes.assessment} </>
+                                )}
+                              </span>
+                            )
+                          }
+                        } catch {}
+                        return appointment.notes
+                      })()}
                     </div>
                   )}
                   

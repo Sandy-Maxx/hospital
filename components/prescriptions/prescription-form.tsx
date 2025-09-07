@@ -68,6 +68,7 @@ interface PrescriptionFormProps {
   onSuccess?: (prescription: any) => void
   onCancel?: () => void
   consultationData?: ConsultationData
+  existing?: any
 }
 
 // Common medicines database for autocomplete
@@ -113,7 +114,8 @@ export default function PrescriptionForm({
   consultationId, 
   onSuccess, 
   onCancel,
-  consultationData 
+  consultationData,
+  existing
 }: PrescriptionFormProps) {
   const [medicines, setMedicines] = useState<Medicine[]>([
     {
@@ -129,11 +131,25 @@ export default function PrescriptionForm({
   const [labTests, setLabTests] = useState<LabTest[]>([])
   const [therapies, setTherapies] = useState<Therapy[]>([])
   const [activeTab, setActiveTab] = useState<'medicines' | 'labs' | 'therapies'>('medicines')
+
+  // Prefill when editing
+useEffect(() => {
+    if (existing) {
+      try {
+        const parsed = existing.medicines ? JSON.parse(existing.medicines) : {}
+        if (Array.isArray(parsed.medicines)) setMedicines(parsed.medicines.map((m: any, idx: number) => ({ id: String(idx+1), ...m })))
+        if (Array.isArray(parsed.labTests)) setLabTests(parsed.labTests)
+        if (Array.isArray(parsed.therapies)) setTherapies(parsed.therapies)
+        setActiveTab('medicines')
+      } catch {}
+    }
+  }, [existing])
   const [availableLabTests, setAvailableLabTests] = useState<string[]>(COMMON_LAB_TESTS)
   const [customTestInput, setCustomTestInput] = useState<{ [key: string]: boolean }>({})
   
   const [searchResults, setSearchResults] = useState<{ [key: string]: string[] }>({})
   const [loading, setLoading] = useState(false)
+
 
   useEffect(() => {
     fetchLabTests()
@@ -288,8 +304,8 @@ export default function PrescriptionForm({
 
     setLoading(true)
     try {
-      const response = await fetch('/api/prescriptions', {
-        method: 'POST',
+const response = await fetch(existing?.id ? `/api/prescriptions?id=${existing.id}` : '/api/prescriptions', {
+method: existing?.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPatient.id,
@@ -300,7 +316,8 @@ export default function PrescriptionForm({
           symptoms: consultationData?.soapNotes?.subjective || '',
           diagnosis: consultationData?.soapNotes?.assessment || '',
           notes: consultationData?.soapNotes?.plan || '',
-          vitals: consultationData?.quickNotes?.vitalSigns || null
+          vitals: consultationData?.quickNotes?.vitalSigns || null,
+          appointmentId: consultationData?.appointmentId || null
         })
       })
 
@@ -348,7 +365,7 @@ export default function PrescriptionForm({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Tab Navigation */}
+{/* Tab Navigation */}
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('medicines')}
@@ -492,7 +509,8 @@ export default function PrescriptionForm({
         ))}
 
             {/* Add Medicine Button */}
-            <Button
+<Button
+              type="button"
               variant="outline"
               onClick={addMedicine}
               className="w-full"
@@ -600,7 +618,8 @@ export default function PrescriptionForm({
               ))
             )}
             
-            <Button
+<Button
+              type="button"
               variant="outline"
               onClick={addLabTest}
               className="w-full"
@@ -701,7 +720,8 @@ export default function PrescriptionForm({
               ))
             )}
             
-            <Button
+<Button
+              type="button"
               variant="outline"
               onClick={addTherapy}
               className="w-full"

@@ -520,7 +520,7 @@ export default function Receptionist() {
                     </CardTitle>
                     <CardDescription>
                       {session.startTime} - {session.endTime}
-                      {session.doctor && ` • Dr. ${session.doctor.name}`}
+{session.doctor && ` • ${session.doctor.name}`}
                       <br />
                       {session.currentTokens} of {session.maxTokens} appointments
                     </CardDescription>
@@ -589,15 +589,10 @@ export default function Receptionist() {
                                     {appointment.doctor && (
                                       <span className="flex items-center text-blue-600">
                                         <UserCheck className="w-4 h-4 mr-1" />
-                                        Dr. {appointment.doctor.name}
+{appointment.doctor.name}
                                       </span>
                                     )}
                                   </div>
-                                  {appointment.notes && (
-                                    <p className="text-sm text-gray-600 mt-2">
-                                      <strong>Notes:</strong> {appointment.notes}
-                                    </p>
-                                  )}
                                 </div>
                               </div>
                             </div>

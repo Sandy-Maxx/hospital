@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import SoapForm, { SoapNotes, Vitals } from '@/components/soap/soap-form'
 import { Clock, User, Phone, Activity, AlertCircle, UserCheck } from 'lucide-react'
 import { formatTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -50,6 +52,9 @@ export default function Queue() {
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [doctors, setDoctors] = useState<any[]>([])
+  const [soapOpen, setSoapOpen] = useState<{ [id: string]: boolean }>({})
+  const [soapNotes, setSoapNotes] = useState<{ [id: string]: { subjective: string; objective: string; assessment: string; plan: string } }>({})
+  const [vitals, setVitals] = useState<{ [id: string]: { temperature?: string; bloodPressure?: string; pulse?: string; respiratoryRate?: string; oxygenSaturation?: string } }>({})
 
   const fetchQueue = async () => {
     try {
@@ -72,7 +77,9 @@ export default function Queue() {
 
   useEffect(() => {
     fetchQueue()
-    fetchDoctors()
+    if (session?.user?.role && session.user.role !== 'NURSE') {
+      fetchDoctors()
+    }
     // Refresh queue every 30 seconds
     const interval = setInterval(fetchQueue, 30000)
     return () => clearInterval(interval)
@@ -127,6 +134,30 @@ export default function Queue() {
       }
     } catch (error) {
       console.error('Error reassigning doctor:', error)
+      toast.error('Something went wrong')
+    }
+  }
+
+  const saveSoap = async (appointmentId: string) => {
+    try {
+      const notes = soapNotes[appointmentId] || { subjective: '', objective: '', assessment: '', plan: '' }
+      const vit = vitals[appointmentId] || {}
+      const response = await fetch(`/api/appointments/${appointmentId}/soap`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          soapNotes: notes,
+          quickNotes: { vitalSigns: vit }
+        })
+      })
+      if (response.ok) {
+        toast.success('SOAP saved for this appointment')
+        setSoapOpen(prev => ({ ...prev, [appointmentId]: false }))
+      } else {
+        const err = await response.json()
+        toast.error(err.error || 'Failed to save SOAP')
+      }
+    } catch (e) {
       toast.error('Something went wrong')
     }
   }
@@ -342,7 +373,7 @@ export default function Queue() {
                             </span>
                             <span className="flex items-center">
                               <User className="w-4 h-4 mr-1" />
-                              Dr. {item.doctor.name}
+{item.doctor.name}
                             </span>
                             <span className="flex items-center">
                               <Phone className="w-4 h-4 mr-1" />
@@ -361,9 +392,22 @@ export default function Queue() {
                         </div>
                         <div className="flex space-x-2">
                           {getStatusActions(item)}
+{session?.user.role === 'NURSE' && (
+                            <Button
+                              key={`soap-${item.id}`}
+                              size="sm"
+                              onClick={() => {
+                                const url = `/prescriptions?patientId=${item.patient.id}&appointmentId=${item.id}&consultation=true`
+                                window.location.href = url
+                              }}
+                            >
+                              SOAP
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
+
                   </div>
                 )
               })}

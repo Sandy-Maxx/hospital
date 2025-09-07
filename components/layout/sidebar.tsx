@@ -59,6 +59,12 @@ const menuItems = {
     { icon: CreditCard, label: 'Billing', href: '/billing' },
     { icon: Users, label: 'Patients', href: '/patients' },
   ],
+  NURSE: [
+    { icon: Home, label: 'Dashboard', href: '/dashboard' },
+    { icon: ClipboardList, label: 'Queue', href: '/queue' },
+    { icon: Users, label: 'Patients', href: '/patients' },
+    { icon: Calendar, label: 'Appointments', href: '/appointments' },
+  ],
 }
 
 export function Sidebar({ className }: SidebarProps) {

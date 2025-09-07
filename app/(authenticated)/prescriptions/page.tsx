@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Pill, Search, FileText, Calendar, User, Plus, Stethoscope, ClipboardList, Activity } from 'lucide-react'
 import PrescriptionForm from '@/components/prescriptions/prescription-form'
+import ConsultationNotes from '@/components/soap/consultation-notes'
+import PrescriptionViewModal from '@/components/prescriptions/prescription-view-modal'
 import toast from 'react-hot-toast'
-
 interface Patient {
   id: string
   firstName: string
@@ -37,8 +38,11 @@ interface Prescription {
 
 export default function PrescriptionsPage() {
   const { data: session } = useSession()
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+  const [viewOpen, setViewOpen] = useState<{ [id: string]: boolean }>({})
+  const [editing, setEditing] = useState<{ id: string | null, data: any | null }>({ id: null, data: null })
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -63,6 +67,8 @@ export default function PrescriptionsPage() {
     },
     commonDiagnoses: [] as string[]
   })
+  const [soapFilledBy, setSoapFilledBy] = useState<{ name?: string, at?: string } | null>(null)
+  const [soapEditedBy, setSoapEditedBy] = useState<Array<{ name?: string, at?: string }>>([])
 
   useEffect(() => {
     fetchPrescriptions()
@@ -89,6 +95,52 @@ export default function PrescriptionsPage() {
     }
   }, [searchParams])
 
+  // Prefill SOAP/QuickNotes from appointment.notes when in consultation mode
+  useEffect(() => {
+    if (consultationMode && appointmentId) {
+      fetch(`/api/appointments/${appointmentId}`).then(async (res) => {
+        if (res.ok) {
+          const data = await res.json()
+          try {
+            const rawNotes = data?.appointment?.notes
+            if (rawNotes) {
+              const parsed = JSON.parse(rawNotes)
+if (parsed?.soapNotes) {
+                  setSoapNotes({
+                    subjective: parsed.soapNotes.subjective || '',
+                    objective: parsed.soapNotes.objective || '',
+                    assessment: parsed.soapNotes.assessment || '',
+                    plan: parsed.soapNotes.plan || ''
+                  })
+                }
+                if (parsed?.quickNotes) {
+                  setQuickNotes({
+                    commonSymptoms: parsed.quickNotes.commonSymptoms || [],
+                    vitalSigns: {
+                      temperature: parsed.quickNotes.vitalSigns?.temperature || '',
+                      bloodPressure: parsed.quickNotes.vitalSigns?.bloodPressure || '',
+                      pulse: parsed.quickNotes.vitalSigns?.pulse || '',
+                      respiratoryRate: parsed.quickNotes.vitalSigns?.respiratoryRate || '',
+                      oxygenSaturation: parsed.quickNotes.vitalSigns?.oxygenSaturation || ''
+                    },
+                    commonDiagnoses: parsed.quickNotes.commonDiagnoses || []
+                  })
+                }
+                if (parsed?.filledBy) {
+                  setSoapFilledBy({ name: parsed.filledBy.name, at: parsed.filledBy.at })
+                }
+                if (Array.isArray(parsed?.editedBy)) {
+                  setSoapEditedBy(parsed.editedBy.map((e: any) => ({ name: e.name, at: e.at })))
+                } else {
+                  setSoapEditedBy([])
+                }
+            }
+          } catch {}
+        }
+      })
+    }
+  }, [consultationMode, appointmentId])
+
   // Separate effect to handle patient selection when patients list changes
   useEffect(() => {
     const patientId = searchParams.get('patientId')
@@ -100,6 +152,26 @@ export default function PrescriptionsPage() {
         console.log('Auto-selecting patient from list:', patient)
         setSelectedPatient(patient)
       }
+    }
+
+    // Handle edit by id from URL
+    const editId = searchParams.get('editId')
+    if (editId) {
+      // Load the prescription and open edit form
+      fetch(`/api/prescriptions/${editId}`).then(async (res) => {
+        if (res.ok) {
+          const data = await res.json()
+          const pres = data.prescription
+          setShowNewPrescription(true)
+          setSelectedPatient(pres.patient)
+          setEditing({ id: pres.id, data: pres })
+          // Also enable consultation mode to show SOAP and load appointment notes if present
+          if (pres.consultation?.appointmentId) {
+            setConsultationMode(true)
+            setAppointmentId(pres.consultation.appointmentId)
+          }
+        }
+      })
     }
   }, [patients, searchParams, selectedPatient])
 
@@ -207,6 +279,8 @@ export default function PrescriptionsPage() {
         <Button
           onClick={() => setShowNewPrescription(true)}
           className="bg-blue-600 hover:bg-blue-700"
+          disabled={session?.user?.role === 'NURSE'}
+          title={session?.user?.role === 'NURSE' ? 'Nurses cannot create prescriptions' : ''}
         >
           <Plus className="w-4 h-4 mr-2" />
           {consultationMode ? 'Complete Consultation' : 'New Prescription'}
@@ -311,209 +385,78 @@ export default function PrescriptionsPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {consultationMode && (
+{selectedPatient && showNewPrescription && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Stethoscope className="w-5 h-5 mr-2" />
-                      Consultation Notes
-                    </CardTitle>
-                    <CardDescription>
-                      SOAP notes and clinical observations for {selectedPatient?.firstName} {selectedPatient?.lastName}
-                    </CardDescription>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="flex items-center">
+                          <Stethoscope className="w-5 h-5 mr-2" />
+                          Consultation Notes
+                        </CardTitle>
+                        <CardDescription>
+                          SOAP notes and clinical observations for {selectedPatient?.firstName} {selectedPatient?.lastName}
+                        </CardDescription>
+                      </div>
+                      <div className="text-xs text-gray-500 text-right">
+                        {soapFilledBy && (
+                          <div>Filled by {soapFilledBy.name || '—'}</div>
+                        )}
+                        {soapEditedBy && soapEditedBy.length > 0 && (
+                          <div>Edited by {soapEditedBy.map(e => e.name).filter(Boolean).join(', ')}</div>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* SOAP Notes */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <ClipboardList className="w-4 h-4 inline mr-1" />
-                            Subjective (Patient's complaints)
-                          </label>
-                          <textarea
-                            value={soapNotes.subjective}
-                            onChange={(e) => setSoapNotes(prev => ({...prev, subjective: e.target.value}))}
-                            className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
-                            rows={4}
-                            placeholder="Patient's symptoms, concerns, and history..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Activity className="w-4 h-4 inline mr-1" />
-                            Objective (Clinical findings)
-                          </label>
-                          <textarea
-                            value={soapNotes.objective}
-                            onChange={(e) => setSoapNotes(prev => ({...prev, objective: e.target.value}))}
-                            className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
-                            rows={4}
-                            placeholder="Physical examination findings, vital signs..."
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Assessment (Diagnosis)
-                          </label>
-                          <textarea
-                            value={soapNotes.assessment}
-                            onChange={(e) => setSoapNotes(prev => ({...prev, assessment: e.target.value}))}
-                            className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
-                            rows={4}
-                            placeholder="Clinical diagnosis and assessment..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Plan (Treatment plan)
-                          </label>
-                          <textarea
-                            value={soapNotes.plan}
-                            onChange={(e) => setSoapNotes(prev => ({...prev, plan: e.target.value}))}
-                            className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
-                            rows={4}
-                            placeholder="Treatment plan, follow-up instructions..."
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Selection Tools */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Common Symptoms</label>
-                        <div className="space-y-2">
-                          {['Fever', 'Headache', 'Cough', 'Sore throat', 'Nausea', 'Fatigue', 'Body ache', 'Dizziness'].map(symptom => (
-                            <label key={symptom} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={quickNotes.commonSymptoms.includes(symptom)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setQuickNotes(prev => ({
-                                      ...prev,
-                                      commonSymptoms: [...prev.commonSymptoms, symptom]
-                                    }))
-                                  } else {
-                                    setQuickNotes(prev => ({
-                                      ...prev,
-                                      commonSymptoms: prev.commonSymptoms.filter(s => s !== symptom)
-                                    }))
-                                  }
-                                }}
-                                className="mr-2"
-                              />
-                              <span className="text-sm">{symptom}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Vital Signs</label>
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            placeholder="Temperature (°F)"
-                            value={quickNotes.vitalSigns.temperature}
-                            onChange={(e) => setQuickNotes(prev => ({
-                              ...prev,
-                              vitalSigns: {...prev.vitalSigns, temperature: e.target.value}
-                            }))}
-                            className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Blood Pressure"
-                            value={quickNotes.vitalSigns.bloodPressure}
-                            onChange={(e) => setQuickNotes(prev => ({
-                              ...prev,
-                              vitalSigns: {...prev.vitalSigns, bloodPressure: e.target.value}
-                            }))}
-                            className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Pulse (bpm)"
-                            value={quickNotes.vitalSigns.pulse}
-                            onChange={(e) => setQuickNotes(prev => ({
-                              ...prev,
-                              vitalSigns: {...prev.vitalSigns, pulse: e.target.value}
-                            }))}
-                            className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Respiratory Rate"
-                            value={quickNotes.vitalSigns.respiratoryRate}
-                            onChange={(e) => setQuickNotes(prev => ({
-                              ...prev,
-                              vitalSigns: {...prev.vitalSigns, respiratoryRate: e.target.value}
-                            }))}
-                            className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
-                          />
-                          <input
-                            type="text"
-                            placeholder="O2 Saturation (%)"
-                            value={quickNotes.vitalSigns.oxygenSaturation}
-                            onChange={(e) => setQuickNotes(prev => ({
-                              ...prev,
-                              vitalSigns: {...prev.vitalSigns, oxygenSaturation: e.target.value}
-                            }))}
-                            className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Common Diagnoses</label>
-                        <div className="space-y-2">
-                          {['Upper Respiratory Infection', 'Hypertension', 'Diabetes Type 2', 'Gastritis', 'Migraine', 'Anxiety', 'Back Pain', 'Allergic Rhinitis'].map(diagnosis => (
-                            <label key={diagnosis} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={quickNotes.commonDiagnoses.includes(diagnosis)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setQuickNotes(prev => ({
-                                      ...prev,
-                                      commonDiagnoses: [...prev.commonDiagnoses, diagnosis]
-                                    }))
-                                  } else {
-                                    setQuickNotes(prev => ({
-                                      ...prev,
-                                      commonDiagnoses: prev.commonDiagnoses.filter(d => d !== diagnosis)
-                                    }))
-                                  }
-                                }}
-                                className="mr-2"
-                              />
-                              <span className="text-sm">{diagnosis}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <ConsultationNotes
+                      soapNotes={soapNotes}
+                      quickNotes={quickNotes}
+                      onChangeSoap={setSoapNotes}
+                      onChangeQuick={setQuickNotes}
+                    />
                   </CardContent>
                 </Card>
               )}
               
-              <PrescriptionForm
-                selectedPatient={selectedPatient}
-                onSuccess={handlePrescriptionSuccess}
-                onCancel={() => setShowNewPrescription(false)}
-                consultationData={consultationMode ? {
-                  soapNotes,
-                  quickNotes,
-                  appointmentId
-                } : undefined}
-              />
+{session?.user?.role !== 'NURSE' ? (
+<PrescriptionForm
+                  selectedPatient={selectedPatient}
+                  onSuccess={handlePrescriptionSuccess}
+                  onCancel={() => setShowNewPrescription(false)}
+                  consultationData={{
+                    soapNotes,
+                    quickNotes,
+                    appointmentId
+                  }}
+                  existing={editing.id ? editing.data : undefined}
+                />
+              ) : (
+                <div className="flex justify-end">
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={async () => {
+                      if (!appointmentId || !selectedPatient?.id) return
+                      try {
+                        const res = await fetch(`/api/appointments/${appointmentId}/soap`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ soapNotes, quickNotes })
+                        })
+                        if (res.ok) {
+                          toast.success('SOAP saved')
+                        } else {
+                          const err = await res.json(); toast.error(err.error || 'Failed to save SOAP')
+                        }
+                      } catch {
+                        toast.error('Failed to save SOAP')
+                      }
+                    }}
+                  >
+                    Save SOAP
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -544,10 +487,11 @@ export default function PrescriptionsPage() {
                     <p>No prescriptions found</p>
                   </div>
                 ) : (
-                  filteredPrescriptions.map((prescription) => {
+filteredPrescriptions.map((prescription) => {
                     const medicines = parseMedicines(prescription.medicines)
                     const medicinesArray = Array.isArray(medicines) ? medicines : []
-                    return (
+                    const isCompleted = (medicines && typeof medicines === 'object' && medicines.status === 'COMPLETED')
+return (
                       <div key={prescription.id} className="p-6 border border-gray-200 rounded-lg">
                         <div className="flex items-center justify-between mb-4">
                           <div>
@@ -560,7 +504,7 @@ export default function PrescriptionsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-gray-600">
-                              Dr. {prescription.doctor.name}
+                              {prescription.doctor.name}
                             </p>
                             <p className="text-sm text-gray-500">
                               {new Date(prescription.createdAt).toLocaleDateString()}
@@ -600,6 +544,45 @@ export default function PrescriptionsPage() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Actions */}
+                        <div className="mt-4 flex items-center space-x-2">
+<Button variant="outline" size="sm" onClick={() => setViewOpen(prev => ({ ...prev, [prescription.id]: true }))}>View</Button>
+<Button variant="outline" size="sm" disabled={isCompleted} title={isCompleted ? 'Prescription is completed' : ''} onClick={() => {
+                          const params = new URLSearchParams({ editId: prescription.id })
+                          if (prescription.patient?.id) params.set('patientId', prescription.patient.id)
+                          if (prescription.consultation?.appointmentId) {
+                            params.set('appointmentId', prescription.consultation.appointmentId)
+                            params.set('consultation', 'true')
+                          }
+                          router.push(`/prescriptions?${params.toString()}`)
+                        }}>Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={async () => {
+                            if (!confirm('Delete this prescription?')) return
+                            const res = await fetch(`/api/prescriptions?id=${prescription.id}`, { method: 'DELETE' })
+                            if (res.ok) { toast.success('Deleted'); fetchPrescriptions() } else { toast.error('Delete failed') }
+                          }}>Delete</Button>
+<Button className={`size-sm ${isCompleted ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`} size="sm" disabled={isCompleted} onClick={async () => {
+                            if (isCompleted) return
+                            // If appointment exists, mark it complete consistently
+                            const apptId = prescription.consultation?.appointmentId
+                            if (apptId) {
+                              const res = await fetch(`/api/appointments/${apptId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'COMPLETED' }) })
+                              // also mark prescription payload COMPLETE for UI consistency
+                              await fetch(`/api/prescriptions?id=${prescription.id}`, {
+                                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'COMPLETED' })
+                              })
+                              if (res.ok) { toast.success('Appointment marked complete'); fetchPrescriptions(); return }
+                            }
+                            // mark complete by setting status in medicines JSON
+                            const res = await fetch(`/api/prescriptions?id=${prescription.id}`, {
+                              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'COMPLETED' })
+                            })
+                            if (res.ok) { toast.success('Marked complete'); fetchPrescriptions() } else { toast.error('Update failed') }
+                          }}>{isCompleted ? 'Completed' : 'Mark Complete'}</Button>
+                        </div>
+
                       </div>
                     )
                   })
@@ -607,8 +590,13 @@ export default function PrescriptionsPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+</Card>
       )}
+
+      {/* View Modal(s) */}
+      {Object.entries(viewOpen).map(([id, open]) => (
+        <PrescriptionViewModal key={id} id={id} open={!!open} onClose={() => setViewOpen(prev => ({ ...prev, [id]: false }))} />
+      ))}
     </div>
   )
 }

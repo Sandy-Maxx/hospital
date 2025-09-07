@@ -38,7 +38,7 @@ const recentActivities = [
 ]
 
 export default function Dashboard() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
   const [weeklyPatients, setWeeklyPatients] = useState<number>(0)
@@ -121,6 +121,14 @@ export default function Dashboard() {
     return <ReceptionistDashboard />
   }
 
+if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -132,17 +140,23 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Patients (This Week) - opens modal on click */}
+        {/* Total Patients card: Nurses see only today's patients */}
         <Card className="cursor-pointer" onClick={() => setShowPatientModal(true)}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Patients (This Week)</p>
-                <p className="text-2xl font-bold text-gray-900">{weeklyPatients}</p>
-                <p className="text-sm text-gray-500 flex items-center mt-1">
-                  <TrendingUp className="w-4 h-4 mr-1" />
-                  Based on completed appointments
+                <p className="text-sm font-medium text-gray-600">
+                  {session?.user?.role === 'NURSE' ? `Today's Patients` : 'Total Patients (This Week)'}
                 </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {session?.user?.role === 'NURSE' ? todaysAppointments : weeklyPatients}
+                </p>
+                {session?.user?.role !== 'NURSE' && (
+                  <p className="text-sm text-gray-500 flex items-center mt-1">
+                    <TrendingUp className="w-4 h-4 mr-1" />
+                    Based on completed appointments
+                  </p>
+                )}
               </div>
               <div className="p-3 rounded-full bg-blue-50">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -168,36 +182,40 @@ export default function Dashboard() {
           </Card>
         </Link>
 
-        {/* Waiting Queue (static placeholder) */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Waiting Queue</p>
-                <p className="text-2xl font-bold text-gray-900">-</p>
-                <p className="text-sm text-gray-500">Implement from queue API if needed</p>
+        {/* Waiting Queue card hidden for nurses */}
+        {session?.user?.role !== 'NURSE' && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Waiting Queue</p>
+                  <p className="text-2xl font-bold text-gray-900">-</p>
+                  <p className="text-sm text-gray-500">Implement from queue API if needed</p>
+                </div>
+                <div className="p-3 rounded-full bg-yellow-50">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
               </div>
-              <div className="p-3 rounded-full bg-yellow-50">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* This Month's Revenue - opens modal on click */}
-        <Card className="cursor-pointer" onClick={() => setShowRevenueModal(true)}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">This Month's Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₹{monthlyRevenue.toLocaleString()}</p>
+        {/* This Month's Revenue - hidden for nurses */}
+        {session?.user?.role !== 'NURSE' && (
+          <Card className="cursor-pointer" onClick={() => setShowRevenueModal(true)}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">This Month's Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{monthlyRevenue.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-full bg-purple-50">
+                  <CreditCard className="w-6 h-6 text-purple-600" />
+                </div>
               </div>
-              <div className="p-3 rounded-full bg-purple-50">
-                <CreditCard className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

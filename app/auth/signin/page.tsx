@@ -196,6 +196,37 @@ export default function SignIn() {
                 <span>Login as Receptionist</span>
               </div>
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                setIsLoading(true)
+                try {
+                  const result = await signIn('credentials', {
+                    email: 'nurse.mary@hospital.com',
+                    password: 'nurse123',
+                    redirect: false,
+                  })
+                  if (result?.error) {
+                    toast.error('Nurse login failed')
+                  } else if (result?.ok) {
+                    toast.success('Nurse login successful')
+                    window.location.href = '/dashboard'
+                  }
+                } catch (error) {
+                  toast.error('Login failed')
+                } finally {
+                  setIsLoading(false)
+                }
+              }}
+              className="w-full text-left justify-start"
+              disabled={isLoading}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span>Login as Nurse</span>
+              </div>
+            </Button>
           </div>
         </div>
       </div>
