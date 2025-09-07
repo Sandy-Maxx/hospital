@@ -246,9 +246,9 @@ export default function TokenPrint({ appointment, hospitalSettings, onClose }: T
             <span className="text-sm font-semibold text-gray-700">Scan for Details</span>
           </div>
           {qrUrl ? (
-            <img src={qrUrl} alt="QR Code" style={{ width: 128, height: 128 }} />
+            <img src={qrUrl} alt="QR Code" className="mx-auto block" style={{ width: 128, height: 128 }} />
           ) : (
-            <div className="text-xs text-gray-500">Generating QR...</div>
+            <div className="text-xs text-gray-500 text-center">Generating QR...</div>
           )}
         </div>
 

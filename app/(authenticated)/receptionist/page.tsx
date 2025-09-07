@@ -568,8 +568,8 @@ export default function Receptionist() {
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                                  <span className="text-primary-600 font-medium text-sm">
+                                <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 border border-blue-200">
+                                  <span className="text-blue-700 font-semibold tracking-wide text-xs whitespace-nowrap">
                                     {appointment.tokenNumber}
                                   </span>
                                 </div>
