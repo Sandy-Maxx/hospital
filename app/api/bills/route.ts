@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get('patientId')
     const date = searchParams.get('date')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
     const status = searchParams.get('status')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -53,7 +55,14 @@ export async function GET(request: NextRequest) {
       where.patientId = patientId
     }
     
-    if (date) {
+    if (from && to) {
+      const startDate = new Date(from)
+      const endDate = new Date(to)
+      where.createdAt = {
+        gte: startDate,
+        lt: endDate,
+      }
+    } else if (date) {
       const startDate = new Date(date)
       const endDate = new Date(date)
       endDate.setDate(endDate.getDate() + 1)
@@ -81,6 +90,13 @@ export async function GET(request: NextRequest) {
               phone: true,
             },
           },
+          doctor: {
+            select: {
+              name: true,
+              department: true,
+            }
+          },
+          billItems: true,
         },
       }),
       prisma.bill.count({ where }),
@@ -147,9 +163,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create bill items
+// Create bill items (only include those with a user-entered rate)
+    const itemsToCreate = validatedData.items.filter((item) => typeof item.unitPrice === 'number' && item.unitPrice > 0)
+
     const billItems = await Promise.all(
-      validatedData.items.map(async (item) => {
+      itemsToCreate.map(async (item) => {
         const itemTotal = (item.unitPrice || 0) * item.quantity
         const gstAmount = item.gstRate ? (itemTotal * item.gstRate) / 100 : 0
         
@@ -207,6 +225,114 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.errors }, { status: 400 })
     }
     console.error('Error creating bill:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+    const body = await request.json()
+    const updateSchema = z.object({
+      items: z.array(z.object({
+        itemType: z.enum(['CONSULTATION', 'MEDICINE', 'LAB_TEST', 'THERAPY', 'PROCEDURE', 'OTHER']),
+        itemName: z.string(),
+        quantity: z.number().min(1),
+        unitPrice: z.number().min(0),
+        gstRate: z.number().min(0).max(100).optional(),
+      })),
+      discountAmount: z.number().min(0).default(0),
+      paymentMethod: z.string().optional(),
+      notes: z.string().optional(),
+    })
+
+    const data = updateSchema.parse(body)
+
+    // Recalculate totals
+    let totalAmount = 0
+    let cgst = 0
+    let sgst = 0
+
+    // Replace bill items
+    await prisma.billItem.deleteMany({ where: { billId: id } })
+
+    await Promise.all(
+      data.items.map(async (item) => {
+        const line = (item.unitPrice || 0) * item.quantity
+        const gstAmount = item.gstRate ? (line * item.gstRate) / 100 : 0
+        totalAmount += line
+        cgst += gstAmount / 2
+        sgst += gstAmount / 2
+        await prisma.billItem.create({
+          data: {
+            billId: id,
+            itemType: item.itemType,
+            itemName: item.itemName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: line,
+            gstRate: item.gstRate,
+          },
+        })
+      })
+    )
+
+    const finalAmount = totalAmount + cgst + sgst - data.discountAmount
+
+    const updatedBill = await prisma.bill.update({
+      where: { id },
+      data: {
+        totalAmount,
+        cgst,
+        sgst,
+        discountAmount: data.discountAmount,
+        finalAmount,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+      },
+      include: {
+        patient: {
+          select: { firstName: true, lastName: true, phone: true },
+        },
+        doctor: { select: { name: true, department: true } },
+        billItems: true,
+      },
+    })
+
+    return NextResponse.json(updatedBill)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 })
+    }
+    console.error('Error updating bill:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+    }
+    // Delete items then bill
+    await prisma.billItem.deleteMany({ where: { billId: id } })
+    await prisma.bill.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting bill:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

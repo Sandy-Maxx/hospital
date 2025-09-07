@@ -86,101 +86,137 @@ export default function BillForm({ prescription, onClose, onSuccess }: BillFormP
 
     const items: BillItem[] = []
 
-    // Add consultation fee
-    if (consultationFee > 0) {
+    // Some deployments store the entire prescription bundle (medicines, labTests, therapies)
+    // inside the "medicines" string as JSON. Detect and support that.
+    let bundle: any = null
+    try {
+      if (typeof (prescription as any).medicines === 'string') {
+        const parsed = JSON.parse((prescription as any).medicines as string)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && (parsed.medicines || parsed.labTests || parsed.therapies)) {
+          bundle = parsed
+        }
+      }
+    } catch {}
+
+    const resolveArray = (val: any, bundleKey: 'medicines' | 'labTests' | 'therapies'): any[] => {
+      // If value is already an array
+      if (Array.isArray(val)) return val
+      // If value is a JSON string of an array
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val)
+          if (Array.isArray(parsed)) return parsed
+        } catch {
+          // Fallback: newline separated string -> map to objects with name
+          return val
+            .split('\n')
+            .filter((l: string) => l.trim())
+            .map((l: string) => ({ name: l.trim() }))
+        }
+      }
+      // If combined bundle contains this key
+      if (bundle && Array.isArray(bundle[bundleKey])) return bundle[bundleKey]
+      return []
+    }
+
+    // Medicines
+    const meds = resolveArray((prescription as any).medicines, 'medicines')
+    const parseIntSafe = (s: any) => {
+      if (typeof s === 'number') return Math.floor(s)
+      if (typeof s === 'string') {
+        const m = s.match(/\d+(?:\.\d+)?/)
+        return m ? Math.floor(parseFloat(m[0])) : 0
+      }
+      return 0
+    }
+    const freqToPerDay = (s: any) => {
+      const str = (s || '').toString().toLowerCase()
+      if (str.includes('once')) return 1
+      if (str.includes('twice') || str.includes('two')) return 2
+      if (str.includes('thrice') || str.includes('three')) return 3
+      if (str.includes('four')) return 4
+      if (str.includes('every 6')) return 4
+      if (str.includes('every 8')) return 3
+      if (str.includes('every 12')) return 2
+      if (str.includes('every')) return 1
+      return 1
+    }
+    const durationToDays = (s: any) => {
+      const str = (s || '').toString().toLowerCase()
+      const num = parseIntSafe(str) || 1
+      if (str.includes('day')) return num
+      if (str.includes('week')) return num * 7
+      if (str.includes('month')) return num * 30
+      return num
+    }
+
+    meds.forEach((medicine: any) => {
+      const name = medicine?.name || medicine?.itemName || 'Medicine'
+      const dosageText = medicine?.dosage || ''
+      const dosageCount = parseIntSafe(dosageText) || 1
+      const frequencyPerDay = freqToPerDay(medicine?.frequency)
+      const days = durationToDays(medicine?.duration)
+      const qty = Math.max(1, dosageCount * frequencyPerDay * days)
+      const dosage = dosageText ? ` - ${dosageText}` : ''
       items.push({
-        itemType: 'CONSULTATION',
-        itemName: `Consultation - ${prescription.doctor.name}`,
+        itemType: 'MEDICINE',
+        itemName: `${name}${dosage}`,
+        quantity: qty,
+        unitPrice: null,
+        gstRate: 12,
+      })
+    })
+
+    // Lab Tests
+    const labs = resolveArray((prescription as any).labTests, 'labTests')
+    labs.forEach((test: any) => {
+      const name = test?.name || test?.itemName || String(test)
+      items.push({
+        itemType: 'LAB_TEST',
+        itemName: name,
         quantity: 1,
-        unitPrice: consultationFee,
-        gstRate: 18
+        unitPrice: null,
+        gstRate: 5,
       })
-    }
+    })
 
-    // Parse medicines
-    try {
-      const medicines = JSON.parse(prescription.medicines || '[]')
-      medicines.forEach((medicine: any) => {
-        items.push({
-          itemType: 'MEDICINE',
-          itemName: `${medicine.name} - ${medicine.dosage}`,
-          quantity: parseInt(medicine.quantity) || 1,
-          unitPrice: null,
-          gstRate: 12
-        })
+    // Therapies
+    const thers = resolveArray((prescription as any).therapies, 'therapies')
+    thers.forEach((therapy: any) => {
+      const name = therapy?.name || therapy?.itemName || String(therapy)
+      const qty = parseInt(therapy?.sessions) || 1
+      items.push({
+        itemType: 'THERAPY',
+        itemName: name,
+        quantity: qty,
+        unitPrice: null,
+        gstRate: 18,
       })
-    } catch (e) {
-      // Handle string format
-      if (prescription.medicines) {
-        const medicineLines = prescription.medicines.split('\n').filter(line => line.trim())
-        medicineLines.forEach(line => {
-          items.push({
-            itemType: 'MEDICINE',
-            itemName: line.trim(),
-            quantity: 1,
-            unitPrice: null,
-            gstRate: 12
-          })
-        })
-      }
-    }
-
-    // Parse lab tests
-    try {
-      const labTests = JSON.parse(prescription.labTests || '[]')
-      labTests.forEach((test: any) => {
-        items.push({
-          itemType: 'LAB_TEST',
-          itemName: test.name || test,
-          quantity: 1,
-          unitPrice: null,
-          gstRate: 5
-        })
-      })
-    } catch (e) {
-      if (prescription.labTests) {
-        const testLines = prescription.labTests.split('\n').filter(line => line.trim())
-        testLines.forEach(line => {
-          items.push({
-            itemType: 'LAB_TEST',
-            itemName: line.trim(),
-            quantity: 1,
-            unitPrice: null,
-            gstRate: 5
-          })
-        })
-      }
-    }
-
-    // Parse therapies
-    try {
-      const therapies = JSON.parse(prescription.therapies || '[]')
-      therapies.forEach((therapy: any) => {
-        items.push({
-          itemType: 'THERAPY',
-          itemName: therapy.name || therapy,
-          quantity: parseInt(therapy.sessions) || 1,
-          unitPrice: null,
-          gstRate: 18
-        })
-      })
-    } catch (e) {
-      if (prescription.therapies) {
-        const therapyLines = prescription.therapies.split('\n').filter(line => line.trim())
-        therapyLines.forEach(line => {
-          items.push({
-            itemType: 'THERAPY',
-            itemName: line.trim(),
-            quantity: 1,
-            unitPrice: null,
-            gstRate: 18
-          })
-        })
-      }
-    }
+    })
 
     setBillItems(items)
   }
+
+  // Keep consultation item synced with the current consultationFee
+  useEffect(() => {
+    if (!prescription) return
+    setBillItems((prev) => {
+      const consultIndex = prev.findIndex((i) => i.itemType === 'CONSULTATION')
+      const consultItem: BillItem = {
+        itemType: 'CONSULTATION',
+        itemName: `Consultation - ${prescription.doctor.name}`,
+        quantity: 1,
+        unitPrice: consultationFee || 0,
+        gstRate: 18,
+      }
+      if (consultIndex >= 0) {
+        const next = [...prev]
+        next[consultIndex] = consultItem
+        return next
+      }
+      return [consultItem, ...prev]
+    })
+  }, [consultationFee, prescription])
 
   const addBillItem = () => {
     setBillItems([...billItems, {
@@ -242,7 +278,8 @@ export default function BillForm({ prescription, onClose, onSuccess }: BillFormP
         appointmentId: prescription.consultation?.appointment?.id,
         doctorId: prescription.doctorId,
         consultationFee,
-        items: billItems.filter(item => item.itemName.trim() !== ''),
+        // Only include items where the user has entered a rate
+        items: billItems.filter(item => item.itemName.trim() !== '' && item.unitPrice !== null && item.unitPrice > 0),
         discountAmount,
         paymentMethod,
         notes
@@ -338,85 +375,101 @@ export default function BillForm({ prescription, onClose, onSuccess }: BillFormP
                 </Button>
               </div>
               <CardDescription>
-                Items with blank prices will be omitted from the final bill
+                All prescription items are listed. Enter Unit Price only for items to be billed. Items without a price will NOT be added to the bill.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {billItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
-                    <div className="col-span-2">
-                      <Label className="text-xs">Type</Label>
-                      <select
-                        value={item.itemType}
-                        onChange={(e) => updateBillItem(index, 'itemType', e.target.value)}
-                        className="w-full p-1 text-sm border border-gray-300 rounded"
-                      >
-                        <option value="CONSULTATION">Consultation</option>
-                        <option value="MEDICINE">Medicine</option>
-                        <option value="LAB_TEST">Lab Test</option>
-                        <option value="THERAPY">Therapy</option>
-                        <option value="PROCEDURE">Procedure</option>
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-                    <div className="col-span-4">
-                      <Label className="text-xs">Item Name</Label>
-                      <Input
-                        value={item.itemName}
-                        onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
-                        className="text-sm"
-                        placeholder="Enter item name"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Label className="text-xs">Qty</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateBillItem(index, 'quantity', Number(e.target.value))}
-                        className="text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Unit Price (₹)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPrice || ''}
-                        onChange={(e) => updateBillItem(index, 'unitPrice', e.target.value ? Number(e.target.value) : null)}
-                        className="text-sm"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">GST Rate (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={item.gstRate || ''}
-                        onChange={(e) => updateBillItem(index, 'gstRate', e.target.value ? Number(e.target.value) : null)}
-                        className="text-sm"
-                        placeholder="18"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeBillItem(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left border">Type</th>
+                      <th className="px-3 py-2 text-left border">Item</th>
+                      <th className="px-3 py-2 text-center border">Qty</th>
+                      <th className="px-3 py-2 text-right border">Unit Price (₹)</th>
+                      <th className="px-3 py-2 text-right border">GST %</th>
+                      <th className="px-3 py-2 text-right border">Line Total (₹)</th>
+                      <th className="px-3 py-2 text-center border">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {billItems.map((item, index) => {
+                      const lineTotal = item.unitPrice ? (item.unitPrice * item.quantity) : 0
+                      return (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 border">
+                            <select
+                              value={item.itemType}
+                              onChange={(e) => updateBillItem(index, 'itemType', e.target.value)}
+                              className="w-full p-1 border border-gray-300 rounded"
+                            >
+                              <option value="CONSULTATION">Consultation</option>
+                              <option value="MEDICINE">Medicine</option>
+                              <option value="LAB_TEST">Lab Test</option>
+                              <option value="THERAPY">Therapy</option>
+                              <option value="PROCEDURE">Procedure</option>
+                              <option value="OTHER">Other</option>
+                            </select>
+                          </td>
+                          <td className="px-3 py-2 border">
+                            <Input
+                              value={item.itemName}
+                              onChange={(e) => updateBillItem(index, 'itemName', e.target.value)}
+                              className="text-sm"
+                              placeholder="Enter item name"
+                            />
+                          </td>
+                          <td className="px-3 py-2 border text-center">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateBillItem(index, 'quantity', Number(e.target.value))}
+                              className="text-sm text-center"
+                            />
+                          </td>
+                          <td className="px-3 py-2 border text-right">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice ?? ''}
+                              onChange={(e) => updateBillItem(index, 'unitPrice', e.target.value ? Number(e.target.value) : null)}
+                              className="text-sm text-right"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="px-3 py-2 border text-right">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={item.gstRate ?? ''}
+                              onChange={(e) => updateBillItem(index, 'gstRate', e.target.value ? Number(e.target.value) : null)}
+                              className="text-sm text-right"
+                              placeholder="18"
+                            />
+                          </td>
+                          <td className="px-3 py-2 border text-right">
+                            {lineTotal > 0 ? lineTotal.toFixed(2) : '-'}
+                          </td>
+                          <td className="px-3 py-2 border text-center">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeBillItem(index)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>

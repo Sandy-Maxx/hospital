@@ -1,45 +1,14 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Calendar, Clock, CreditCard, Activity, TrendingUp } from 'lucide-react'
 import ReceptionistDashboard from '@/app/(authenticated)/receptionist/page'
-
-const stats = [
-  {
-    title: 'Total Patients',
-    value: '1,234',
-    change: '+12%',
-    icon: Users,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    title: 'Today\'s Appointments',
-    value: '45',
-    change: '+5%',
-    icon: Calendar,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-  },
-  {
-    title: 'Waiting Queue',
-    value: '8',
-    change: '-2',
-    icon: Clock,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
-  },
-  {
-    title: 'Today\'s Revenue',
-    value: '₹25,400',
-    change: '+18%',
-    icon: CreditCard,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-  },
-]
+import PatientChartModal from '@/components/charts/patient-chart-modal'
+import RevenueChartModal from '@/components/charts/revenue-chart-modal'
 
 const recentActivities = [
   {
@@ -70,6 +39,68 @@ const recentActivities = [
 
 export default function Dashboard() {
   const { data: session } = useSession()
+  const router = useRouter()
+
+  const [weeklyPatients, setWeeklyPatients] = useState<number>(0)
+  const [appointmentsForCharts, setAppointmentsForCharts] = useState<any[]>([])
+  const [todaysAppointments, setTodaysAppointments] = useState<number>(0)
+  const [monthlyRevenue, setMonthlyRevenue] = useState<number>(0)
+  const [billsForCharts, setBillsForCharts] = useState<any[]>([])
+
+  const [showPatientModal, setShowPatientModal] = useState(false)
+  const [showRevenueModal, setShowRevenueModal] = useState(false)
+
+  useEffect(() => {
+    // Fetch weekly completed appointments for patient count and chart data (fetch from start of year for charts)
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    const day = startOfWeek.getDay() || 7
+    startOfWeek.setHours(0,0,0,0)
+    startOfWeek.setDate(startOfWeek.getDate() - (day - 1))
+
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
+    const to = new Date(now)
+
+    const paramsWeek = new URLSearchParams({ from: startOfWeek.toISOString(), to: to.toISOString(), status: 'COMPLETED', limit: '10000' })
+    const paramsYear = new URLSearchParams({ from: startOfYear.toISOString(), to: to.toISOString(), status: 'COMPLETED', limit: '100000' })
+
+    fetch(`/api/appointments?${paramsWeek.toString()}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        setWeeklyPatients((data.appointments || []).length)
+      }
+    })
+
+    fetch(`/api/appointments?${paramsYear.toString()}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        setAppointmentsForCharts(data.appointments || [])
+      }
+    })
+
+    // Today's appointments count
+    const todayStr = new Date().toISOString().split('T')[0]
+    const paramsToday = new URLSearchParams({ date: todayStr, limit: '10000' })
+    fetch(`/api/appointments?${paramsToday.toString()}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        setTodaysAppointments((data.appointments || []).length)
+      }
+    })
+
+    // Monthly revenue and bills for charts
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const billParamsMonth = new URLSearchParams({ from: startOfMonth.toISOString(), to: to.toISOString(), limit: '100000' })
+    fetch(`/api/bills?${billParamsMonth.toString()}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        const bills = data.bills || []
+        setBillsForCharts(bills)
+        const total = bills.reduce((sum: number, b: any) => sum + (typeof b.finalAmount === 'number' ? b.finalAmount : (b.totalAmount || 0)), 0)
+        setMonthlyRevenue(total)
+      }
+    })
+  }, [])
 
   const getDashboardTitle = () => {
     const role = session?.user?.role
@@ -101,28 +132,72 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-sm text-gray-500 flex items-center mt-1">
-                      <TrendingUp className="w-4 h-4 mr-1" />
-                      {stat.change} from last week
-                    </p>
-                  </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
+        {/* Total Patients (This Week) - opens modal on click */}
+        <Card className="cursor-pointer" onClick={() => setShowPatientModal(true)}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Patients (This Week)</p>
+                <p className="text-2xl font-bold text-gray-900">{weeklyPatients}</p>
+                <p className="text-sm text-gray-500 flex items-center mt-1">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  Based on completed appointments
+                </p>
+              </div>
+              <div className="p-3 rounded-full bg-blue-50">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Today's Appointments - navigates to appointments page */}
+        <Link href="/appointments" className="block">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
+                  <p className="text-2xl font-bold text-gray-900">{todaysAppointments}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+                <div className="p-3 rounded-full bg-green-50">
+                  <Calendar className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Waiting Queue (static placeholder) */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Waiting Queue</p>
+                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="text-sm text-gray-500">Implement from queue API if needed</p>
+              </div>
+              <div className="p-3 rounded-full bg-yellow-50">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* This Month's Revenue - opens modal on click */}
+        <Card className="cursor-pointer" onClick={() => setShowRevenueModal(true)}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">This Month's Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">₹{monthlyRevenue.toLocaleString()}</p>
+              </div>
+              <div className="p-3 rounded-full bg-purple-50">
+                <CreditCard className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -158,39 +233,50 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              {/* Other roles (Doctor/Admin) see default quick actions */}
               {session?.user?.role === 'DOCTOR' && (
                 <>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <Link href="/queue" className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <Clock className="w-6 h-6 text-yellow-600 mb-2" />
                     <p className="font-medium">View Queue</p>
                     <p className="text-sm text-gray-500">Patient waiting list</p>
-                  </button>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  </Link>
+                  <Link href="/doctor" className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <Activity className="w-6 h-6 text-purple-600 mb-2" />
                     <p className="font-medium">Start Consultation</p>
                     <p className="text-sm text-gray-500">Begin patient care</p>
-                  </button>
+                  </Link>
                 </>
               )}
               {session?.user?.role === 'ADMIN' && (
                 <>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <Link href="/staff" className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <Users className="w-6 h-6 text-blue-600 mb-2" />
                     <p className="font-medium">Manage Staff</p>
                     <p className="text-sm text-gray-500">Add/edit users</p>
-                  </button>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  </Link>
+                  <Link href="/reports" className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <TrendingUp className="w-6 h-6 text-green-600 mb-2" />
                     <p className="font-medium">View Reports</p>
                     <p className="text-sm text-gray-500">Analytics & insights</p>
-                  </button>
+                  </Link>
                 </>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+      {/* Modals */}
+      <PatientChartModal
+        isOpen={showPatientModal}
+        onClose={() => setShowPatientModal(false)}
+        weeklyCount={weeklyPatients}
+        appointments={appointmentsForCharts}
+      />
+      <RevenueChartModal
+        isOpen={showRevenueModal}
+        onClose={() => setShowRevenueModal(false)}
+        bills={billsForCharts}
+      />
     </div>
   )
 }

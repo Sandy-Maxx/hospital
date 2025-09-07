@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
     const doctorId = searchParams.get('doctorId')
     const patientId = searchParams.get('patientId')
     const status = searchParams.get('status')
@@ -87,8 +89,16 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     const where: any = {}
-    
-    if (date) {
+
+    // Date filtering: supports either single-day (date) or range (from,to)
+    if (from && to) {
+      const startDate = new Date(from)
+      const endDate = new Date(to)
+      where.dateTime = {
+        gte: startDate,
+        lt: endDate,
+      }
+    } else if (date) {
       const startDate = new Date(date)
       const endDate = new Date(date)
       endDate.setDate(endDate.getDate() + 1)

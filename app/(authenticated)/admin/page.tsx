@@ -1,13 +1,27 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Settings, FileText, Activity, TrendingUp, UserPlus } from 'lucide-react'
+import { Users, Settings, FileText, Activity, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
+
+  const [activePatients, setActivePatients] = useState<number>(0)
+
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    const params = new URLSearchParams({ date: todayStr, status: 'ARRIVED,WAITING,IN_CONSULTATION,SCHEDULED', limit: '10000' })
+    fetch(`/api/appointments?${params.toString()}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        const unique = new Set((data.appointments || []).map((a: any) => a.patientId))
+        setActivePatients(unique.size)
+      }
+    })
+  }, [])
 
   const stats = [
     {
@@ -17,22 +31,15 @@ export default function AdminDashboard() {
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
+      href: '/staff',
     },
     {
       title: 'Active Patients',
-      value: '1,234',
-      change: '+12% from last month',
+      value: String(activePatients),
+      change: 'Currently active today',
       icon: UserPlus,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-    },
-    {
-      title: 'Monthly Revenue',
-      value: '$125,000',
-      change: '+8% from last month',
-      icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
     },
     {
       title: 'System Health',
@@ -96,8 +103,8 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon
-          return (
-            <Card key={index}>
+          const CardInner = (
+            <Card className={stat.href ? 'hover:shadow-lg transition-shadow cursor-pointer' : ''}>
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className={`p-2 rounded-lg ${stat.bgColor}`}>
@@ -111,6 +118,11 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+          )
+          return stat.href ? (
+            <Link key={index} href={stat.href}>{CardInner}</Link>
+          ) : (
+            <div key={index}>{CardInner}</div>
           )
         })}
       </div>

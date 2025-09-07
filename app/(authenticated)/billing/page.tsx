@@ -6,26 +6,41 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { CreditCard, Plus, Receipt, Search, FileText, Download, Printer, QrCode, Eye } from 'lucide-react'
+import { CreditCard, Plus, Receipt, Search, FileText, Download, Printer, QrCode, Eye, Pencil, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import BillForm from '@/components/billing/bill-form'
+import BillPrint from '@/components/billing/bill-print'
+import EditBillForm from '@/components/billing/edit-bill-form'
 import toast from 'react-hot-toast'
 
 interface Bill {
   id: string
-  amount: number
-  discount: number
-  tax: number
+  billNumber: string
   totalAmount: number
+  cgst?: number
+  sgst?: number
+  discountAmount?: number
+  finalAmount?: number
   paymentMethod: string
   paymentStatus: string
-  items: any[]
   createdAt: string
   patient: {
     firstName: string
     lastName: string
     phone: string
   }
+  doctor?: {
+    name: string
+    department?: string
+  }
+  billItems?: Array<{
+    itemType: string
+    itemName: string
+    quantity: number
+    unitPrice: number
+    totalPrice: number
+    gstRate?: number
+  }>
 }
 
 const paymentStatusColors = {
@@ -44,6 +59,10 @@ export default function Billing() {
   const [showCreateBill, setShowCreateBill] = useState(false)
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'bills' | 'prescriptions'>('prescriptions')
+  const [viewBill, setViewBill] = useState<Bill | null>(null)
+  const [showBillModal, setShowBillModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [billsCount, setBillsCount] = useState<number>(0)
 
   const fetchBills = async () => {
     try {
@@ -57,6 +76,7 @@ export default function Billing() {
       if (response.ok) {
         const data = await response.json()
         setBills(data.bills)
+        if (data.pagination?.total !== undefined) setBillsCount(data.pagination.total)
       } else {
         toast.error('Failed to fetch bills')
       }
@@ -65,6 +85,22 @@ export default function Billing() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchBillsCount = async () => {
+    try {
+      const params = new URLSearchParams({
+        date: selectedDate,
+        ...(statusFilter && { status: statusFilter }),
+        page: '1',
+        limit: '1'
+      })
+      const response = await fetch(`/api/bills?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.pagination?.total !== undefined) setBillsCount(data.pagination.total)
+      }
+    } catch {}
   }
 
   const fetchPrescriptions = async () => {
@@ -93,8 +129,15 @@ export default function Billing() {
       fetchBills()
     } else {
       fetchPrescriptions()
+      // keep bills count updated even when not on the bills tab
+      fetchBillsCount()
     }
   }, [selectedDate, statusFilter, activeTab])
+
+  // Initial prefetch counts
+  useEffect(() => {
+    fetchBillsCount()
+  }, [])
 
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.totalAmount, 0)
   const paidBills = bills.filter(bill => bill.paymentStatus === 'PAID')
@@ -123,7 +166,7 @@ export default function Billing() {
             onClick={() => setActiveTab('bills')}
           >
             <Receipt className="w-4 h-4 mr-2" />
-            Bills ({bills.length})
+            Bills ({billsCount})
           </Button>
         </div>
       </div>
@@ -355,7 +398,7 @@ export default function Billing() {
                       
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-900">
-                          ₹{bill.totalAmount.toLocaleString()}
+                          ₹{(bill.finalAmount ?? bill.totalAmount ?? 0).toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -369,26 +412,62 @@ export default function Billing() {
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Subtotal:</span>
-                          <span className="ml-2 font-medium">₹{bill.amount.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Discount:</span>
-                          <span className="ml-2 font-medium">₹{bill.discount.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Tax:</span>
-                          <span className="ml-2 font-medium">₹{bill.tax.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
+
+                                  <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Subtotal:</span>
+                    <span className="ml-2 font-medium">₹{(bill.totalAmount || 0).toLocaleString()}</span>
                   </div>
-                ))}
+                  <div>
+                    <span className="text-gray-500">Discount:</span>
+                    <span className="ml-2 font-medium">₹{(bill.discountAmount || 0).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Tax (CGST+SGST):</span>
+                    <span className="ml-2 font-medium">₹{(((bill.cgst || 0) + (bill.sgst || 0)) || 0).toLocaleString()}</span>
+                </div>
               </div>
+
+              {/* Actions */}
+              <div className="mt-4 flex justify-end space-x-2">
+                <button
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  onClick={() => { setViewBill(bill as any); setShowBillModal(true) }}
+                >
+                  <Eye className="inline w-4 h-4 mr-1" /> View/Print
+                </button>
+                <button
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  onClick={() => { setViewBill(bill as any); setShowEditModal(true) }}
+                >
+                  <Pencil className="inline w-4 h-4 mr-1" /> Edit
+                </button>
+                <button
+                  className="px-3 py-2 text-sm border border-red-300 text-red-700 rounded-md hover:bg-red-50"
+                  onClick={async () => {
+                    const ok = typeof window !== 'undefined' ? window.confirm('Delete this bill? This cannot be undone.') : true
+                    if (!ok) return
+                    try {
+                      const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'DELETE' })
+                      if (res.ok) {
+                        toast.success('Bill deleted')
+                        fetchBills()
+                      } else {
+                        toast.error('Failed to delete bill')
+                      }
+                    } catch {
+                      toast.error('Failed to delete bill')
+                    }
+                  }}
+                >
+                  <Trash2 className="inline w-4 h-4 mr-1" /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
             )}
           </CardContent>
         </Card>
@@ -405,6 +484,15 @@ export default function Billing() {
           }}
         />
       )}
+      {/* Bill Print Modal */}
+      <BillPrint isOpen={showBillModal} onClose={() => setShowBillModal(false)} bill={viewBill} />
+      {/* Edit Bill Modal */}
+      <EditBillForm
+        isOpen={showEditModal}
+        bill={viewBill as any}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => { setShowEditModal(false); fetchBills(); }}
+      />
     </div>
   )
 }

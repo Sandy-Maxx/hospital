@@ -13,7 +13,7 @@ interface PatientChartModalProps {
 }
 
 export default function PatientChartModal({ isOpen, onClose, weeklyCount, appointments }: PatientChartModalProps) {
-  const [viewType, setViewType] = useState<'week' | 'month' | 'year'>('week')
+  const [viewType, setViewType] = useState<'day' | 'week' | 'month' | 'quarter' | 'year'>('week')
 
   if (!isOpen) return null
 
@@ -21,7 +21,23 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
     const now = new Date()
     let data: { label: string; count: number }[] = []
 
-    if (viewType === 'week') {
+    if (viewType === 'day') {
+      // Today by hour (0-23)
+      const startOfDay = new Date(now)
+      startOfDay.setHours(0, 0, 0, 0)
+      for (let h = 0; h < 24; h++) {
+        const hourStart = new Date(startOfDay)
+        hourStart.setHours(h)
+        const hourEnd = new Date(startOfDay)
+        hourEnd.setHours(h + 1)
+        const hourLabel = `${h.toString().padStart(2, '0')}:00`
+        const hourCount = appointments.filter(apt => {
+          const aptDate = new Date(apt.createdAt)
+          return aptDate >= hourStart && aptDate < hourEnd && apt.status === 'COMPLETED'
+        }).length
+        data.push({ label: hourLabel, count: hourCount })
+      }
+    } else if (viewType === 'week') {
       // Last 7 days
       for (let i = 6; i >= 0; i--) {
         const date = new Date(now)
@@ -50,6 +66,27 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
           label: `Week ${4 - i}`, 
           count: weekCount 
         })
+      }
+    } else if (viewType === 'quarter') {
+      // Last 4 quarters
+      const currentQuarter = Math.floor(now.getMonth() / 3) + 1
+      let year = now.getFullYear()
+      for (let i = 3; i >= 0; i--) {
+        let q = currentQuarter - i
+        let qYear = year
+        if (q <= 0) {
+          q += 4
+          qYear = year - 1
+        }
+        const startMonth = (q - 1) * 3
+        const startDate = new Date(qYear, startMonth, 1)
+        const endDate = new Date(qYear, startMonth + 3, 1)
+        const label = `Q${q} ${qYear}`
+        const qCount = appointments.filter(apt => {
+          const aptDate = new Date(apt.createdAt)
+          return aptDate >= startDate && aptDate < endDate && apt.status === 'COMPLETED'
+        }).length
+        data.push({ label, count: qCount })
       }
     } else {
       // Last 12 months
@@ -93,6 +130,13 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
         {/* View Type Selector */}
         <div className="flex space-x-2 mb-6">
           <Button
+            variant={viewType === 'day' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewType('day')}
+          >
+            Daily
+          </Button>
+          <Button
             variant={viewType === 'week' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewType('week')}
@@ -105,6 +149,13 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
             onClick={() => setViewType('month')}
           >
             Monthly
+          </Button>
+          <Button
+            variant={viewType === 'quarter' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewType('quarter')}
+          >
+            Quarterly
           </Button>
           <Button
             variant={viewType === 'year' ? 'default' : 'outline'}

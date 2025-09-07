@@ -572,78 +572,76 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
       )}
+      {/* Modals */}
+      {showPatientChart && (
+        <PatientChartModal
+          isOpen={showPatientChart}
+          onClose={() => setShowPatientChart(false)}
+          weeklyCount={weeklyPatientCount}
+          appointments={appointments}
+        />
+      )}
+
+      {showRevenueChart && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                  <DollarSign className="w-6 h-6 mr-2 text-green-600" />
+                  Revenue Analytics
+                </h2>
+                <p className="text-gray-600 mt-1">Track your consultation revenue trends</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowRevenueChart(false)}>
+                <XCircle className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <DollarSign className="h-8 w-8 text-green-600" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-600">Weekly Revenue</p>
+                      <p className="text-2xl font-bold text-gray-900">₹{weeklyRevenue.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <Users className="h-8 w-8 text-blue-600" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-600">Avg per Patient</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        ₹{weeklyPatientCount > 0 ? Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString() : '0'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="p-4 bg-green-50 rounded-lg">
+              <h3 className="font-semibold text-green-900 mb-2">Revenue Summary</h3>
+              <p className="text-green-800 text-sm">
+                You have generated <strong>₹{weeklyRevenue.toLocaleString()}</strong> in revenue this week
+                from <strong>{weeklyPatientCount}</strong> completed consultations.
+                {weeklyPatientCount > 0 && (
+                  <>
+                    {' '}Your average consultation value is{' '}
+                    <strong>₹{Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString()}</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-{/* Patient Chart Modal */}
-{showPatientChart && (
-  <PatientChartModal
-    isOpen={showPatientChart}
-    onClose={() => setShowPatientChart(false)}
-    weeklyCount={weeklyPatientCount}
-    appointments={appointments}
-  />
-)}
-
-{/* Revenue Chart Modal */}
-{showRevenueChart && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <DollarSign className="w-6 h-6 mr-2 text-green-600" />
-            Revenue Analytics
-          </h2>
-          <p className="text-gray-600 mt-1">Track your consultation revenue trends</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setShowRevenueChart(false)}>
-          <XCircle className="w-4 h-4" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <DollarSign className="h-8 w-8 text-green-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Weekly Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₹{weeklyRevenue.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Avg per Patient</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ₹{weeklyPatientCount > 0 ? Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString() : '0'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="p-4 bg-green-50 rounded-lg">
-        <h3 className="font-semibold text-green-900 mb-2">Revenue Summary</h3>
-        <p className="text-green-800 text-sm">
-          You have generated <strong>₹{weeklyRevenue.toLocaleString()}</strong> in revenue this week
-          from <strong>{weeklyPatientCount}</strong> completed consultations.
-          {weeklyPatientCount > 0 && (
-            <>
-              {' '}Your average consultation value is{' '}
-              <strong>₹{Math.round(weeklyRevenue / weeklyPatientCount).toLocaleString()}</strong>.
-            </>
-          )}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
