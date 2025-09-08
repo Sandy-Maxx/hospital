@@ -14,68 +14,62 @@ interface Props {
 // Distinct patients per time bucket
 export default function PatientsDistinctChartModal({ isOpen, onClose, appointments }: Props) {
   const [viewType, setViewType] = useState<'day' | 'week' | 'month' | 'quarter' | 'year'>('week')
+  const [durationValue, setDurationValue] = useState<number>(1)
+  const [durationUnit, setDurationUnit] = useState<'day' | 'week' | 'month' | 'quarter' | 'year'>('week')
   if (!isOpen) return null
+
+  const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+  const addMonths = (d: Date, n: number) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x }
+  const addYears = (d: Date, n: number) => { const x = new Date(d); x.setFullYear(x.getFullYear() + n); return x }
+
+  const rangeStart = () => {
+    const now = new Date()
+    switch (durationUnit) {
+      case 'day': return addDays(now, -durationValue)
+      case 'week': return addDays(now, -7 * durationValue)
+      case 'month': return addMonths(now, -durationValue)
+      case 'quarter': return addMonths(now, -3 * durationValue)
+      case 'year': return addYears(now, -durationValue)
+    }
+  }
 
   const getChartData = () => {
     const now = new Date()
+    const start = rangeStart()
     const buckets: { label: string; ids: Set<string> }[] = []
 
-    const pushBucket = (label: string, filter: (d: Date) => boolean) => {
+    let cursor = new Date(start)
+    while (cursor < now) {
+      let next: Date
+      let label = ''
+      if (viewType === 'day') {
+        next = addDays(cursor, 1)
+        label = cursor.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+      } else if (viewType === 'week') {
+        next = addDays(cursor, 7)
+        label = `Wk of ${cursor.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`
+      } else if (viewType === 'month') {
+        next = addMonths(cursor, 1)
+        label = cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      } else if (viewType === 'quarter') {
+        next = addMonths(cursor, 3)
+        const q = Math.floor(cursor.getMonth() / 3) + 1
+        label = `Q${q} ${cursor.getFullYear()}`
+      } else {
+        next = addYears(cursor, 1)
+        label = `${cursor.getFullYear()}`
+      }
+
       const ids = new Set<string>()
       for (const apt of appointments) {
         const d = new Date(apt.createdAt || apt.dateTime)
-        if (filter(d)) {
+        if (d >= cursor && d < (next < now ? next : now)) {
           const pid = apt.patient?.id
           if (pid) ids.add(pid)
         }
       }
       buckets.push({ label, ids })
-    }
-
-    if (viewType === 'day') {
-      const startOfDay = new Date(now)
-      startOfDay.setHours(0, 0, 0, 0)
-      for (let h = 0; h < 24; h++) {
-        const hourStart = new Date(startOfDay)
-        hourStart.setHours(h)
-        const hourEnd = new Date(startOfDay)
-        hourEnd.setHours(h + 1)
-        pushBucket(`${h.toString().padStart(2, '0')}:00`, (d) => d >= hourStart && d < hourEnd)
-      }
-    } else if (viewType === 'week') {
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(now)
-        date.setDate(date.getDate() - i)
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
-        pushBucket(dayName, (d) => d.toDateString() === date.toDateString())
-      }
-    } else if (viewType === 'month') {
-      for (let i = 3; i >= 0; i--) {
-        const startDate = new Date(now)
-        startDate.setDate(startDate.getDate() - (i + 1) * 7)
-        const endDate = new Date(now)
-        endDate.setDate(endDate.getDate() - i * 7)
-        pushBucket(`Week ${4 - i}`, (d) => d >= startDate && d < endDate)
-      }
-    } else if (viewType === 'quarter') {
-      const currentQuarter = Math.floor(now.getMonth() / 3) + 1
-      let year = now.getFullYear()
-      for (let i = 3; i >= 0; i--) {
-        let q = currentQuarter - i
-        let qYear = year
-        if (q <= 0) { q += 4; qYear = year - 1 }
-        const startMonth = (q - 1) * 3
-        const startDate = new Date(qYear, startMonth, 1)
-        const endDate = new Date(qYear, startMonth + 3, 1)
-        pushBucket(`Q${q} ${qYear}`, (d) => d >= startDate && d < endDate)
-      }
-    } else {
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(now)
-        date.setMonth(date.getMonth() - i)
-        const monthName = date.toLocaleDateString('en-US', { month: 'short' })
-        pushBucket(monthName, (d) => d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear())
-      }
+      cursor = next
     }
 
     return buckets.map((b) => ({ label: b.label, count: b.ids.size }))
@@ -101,12 +95,30 @@ export default function PatientsDistinctChartModal({ isOpen, onClose, appointmen
           </Button>
         </div>
 
-        <div className="flex space-x-2 mb-6">
-          <Button variant={viewType === 'day' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('day')}>Daily</Button>
-          <Button variant={viewType === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('week')}>Weekly</Button>
-          <Button variant={viewType === 'month' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('month')}>Monthly</Button>
-          <Button variant={viewType === 'quarter' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('quarter')}>Quarterly</Button>
-          <Button variant={viewType === 'year' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('year')}>Yearly</Button>
+        <div className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="flex space-x-2">
+            <Button variant={viewType === 'day' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('day')}>Daily</Button>
+            <Button variant={viewType === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('week')}>Weekly</Button>
+            <Button variant={viewType === 'month' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('month')}>Monthly</Button>
+            <Button variant={viewType === 'quarter' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('quarter')}>Quarterly</Button>
+            <Button variant={viewType === 'year' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('year')}>Yearly</Button>
+          </div>
+          <div className="flex items-center space-x-2 ml-auto">
+            <div>
+              <label className="block text-xs text-gray-600">Duration</label>
+              <input type="number" min={1} value={durationValue} onChange={(e) => setDurationValue(parseInt(e.target.value || '1'))} className="w-20 p-1 border rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600">Unit</label>
+              <select value={durationUnit} onChange={(e) => setDurationUnit(e.target.value as any)} className="p-1 border rounded">
+                <option value="day">Days</option>
+                <option value="week">Weeks</option>
+                <option value="month">Months</option>
+                <option value="quarter">Quarters</option>
+                <option value="year">Years</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <Card>

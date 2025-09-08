@@ -14,94 +14,59 @@ interface PatientChartModalProps {
 
 export default function PatientChartModal({ isOpen, onClose, weeklyCount, appointments }: PatientChartModalProps) {
   const [viewType, setViewType] = useState<'day' | 'week' | 'month' | 'quarter' | 'year'>('week')
+  const [durationValue, setDurationValue] = useState<number>(1)
+  const [durationUnit, setDurationUnit] = useState<'day' | 'week' | 'month' | 'quarter' | 'year'>('week')
 
   if (!isOpen) return null
 
+  const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+  const addMonths = (d: Date, n: number) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x }
+  const addYears = (d: Date, n: number) => { const x = new Date(d); x.setFullYear(x.getFullYear() + n); return x }
+
+  const rangeStart = () => {
+    const now = new Date()
+    switch (durationUnit) {
+      case 'day': return addDays(now, -durationValue)
+      case 'week': return addDays(now, -7 * durationValue)
+      case 'month': return addMonths(now, -durationValue)
+      case 'quarter': return addMonths(now, -3 * durationValue)
+      case 'year': return addYears(now, -durationValue)
+    }
+  }
+
   const getChartData = () => {
     const now = new Date()
-    let data: { label: string; count: number }[] = []
+    const start = rangeStart()
+    const data: { label: string; count: number }[] = []
 
-    if (viewType === 'day') {
-      // Today by hour (0-23)
-      const startOfDay = new Date(now)
-      startOfDay.setHours(0, 0, 0, 0)
-      for (let h = 0; h < 24; h++) {
-        const hourStart = new Date(startOfDay)
-        hourStart.setHours(h)
-        const hourEnd = new Date(startOfDay)
-        hourEnd.setHours(h + 1)
-        const hourLabel = `${h.toString().padStart(2, '0')}:00`
-        const hourCount = appointments.filter(apt => {
-          const aptDate = new Date(apt.createdAt)
-          return aptDate >= hourStart && aptDate < hourEnd && apt.status === 'COMPLETED'
-        }).length
-        data.push({ label: hourLabel, count: hourCount })
+    const countInRange = (from: Date, to: Date) => appointments.filter(apt => {
+      const aptDate = new Date(apt.dateTime || apt.createdAt)
+      return aptDate >= from && aptDate < to && apt.status === 'COMPLETED'
+    }).length
+
+    let cursor = new Date(start)
+    while (cursor < now) {
+      let next: Date
+      let label = ''
+      if (viewType === 'day') {
+        next = addDays(cursor, 1)
+        label = cursor.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+      } else if (viewType === 'week') {
+        next = addDays(cursor, 7)
+        label = `Wk of ${cursor.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`
+      } else if (viewType === 'month') {
+        next = addMonths(cursor, 1)
+        label = cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      } else if (viewType === 'quarter') {
+        next = addMonths(cursor, 3)
+        const q = Math.floor(cursor.getMonth() / 3) + 1
+        label = `Q${q} ${cursor.getFullYear()}`
+      } else {
+        next = addYears(cursor, 1)
+        label = `${cursor.getFullYear()}`
       }
-    } else if (viewType === 'week') {
-      // Last 7 days
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(now)
-        date.setDate(date.getDate() - i)
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
-        const dayCount = appointments.filter(apt => {
-          const aptDate = new Date(apt.createdAt)
-          return aptDate.toDateString() === date.toDateString() && apt.status === 'COMPLETED'
-        }).length
-        data.push({ label: dayName, count: dayCount })
-      }
-    } else if (viewType === 'month') {
-      // Last 4 weeks
-      for (let i = 3; i >= 0; i--) {
-        const startDate = new Date(now)
-        startDate.setDate(startDate.getDate() - (i + 1) * 7)
-        const endDate = new Date(now)
-        endDate.setDate(endDate.getDate() - i * 7)
-        
-        const weekCount = appointments.filter(apt => {
-          const aptDate = new Date(apt.createdAt)
-          return aptDate >= startDate && aptDate < endDate && apt.status === 'COMPLETED'
-        }).length
-        
-        data.push({ 
-          label: `Week ${4 - i}`, 
-          count: weekCount 
-        })
-      }
-    } else if (viewType === 'quarter') {
-      // Last 4 quarters
-      const currentQuarter = Math.floor(now.getMonth() / 3) + 1
-      let year = now.getFullYear()
-      for (let i = 3; i >= 0; i--) {
-        let q = currentQuarter - i
-        let qYear = year
-        if (q <= 0) {
-          q += 4
-          qYear = year - 1
-        }
-        const startMonth = (q - 1) * 3
-        const startDate = new Date(qYear, startMonth, 1)
-        const endDate = new Date(qYear, startMonth + 3, 1)
-        const label = `Q${q} ${qYear}`
-        const qCount = appointments.filter(apt => {
-          const aptDate = new Date(apt.createdAt)
-          return aptDate >= startDate && aptDate < endDate && apt.status === 'COMPLETED'
-        }).length
-        data.push({ label, count: qCount })
-      }
-    } else {
-      // Last 12 months
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(now)
-        date.setMonth(date.getMonth() - i)
-        const monthName = date.toLocaleDateString('en-US', { month: 'short' })
-        const monthCount = appointments.filter(apt => {
-          const aptDate = new Date(apt.createdAt)
-          return aptDate.getMonth() === date.getMonth() && 
-                 aptDate.getFullYear() === date.getFullYear() && 
-                 apt.status === 'COMPLETED'
-        }).length
-        data.push({ label: monthName, count: monthCount })
-      }
+      data.push({ label, count: countInRange(cursor, next < now ? next : now) })
+      cursor = next
     }
 
     return data
@@ -127,43 +92,31 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
           </Button>
         </div>
 
-        {/* View Type Selector */}
-        <div className="flex space-x-2 mb-6">
-          <Button
-            variant={viewType === 'day' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewType('day')}
-          >
-            Daily
-          </Button>
-          <Button
-            variant={viewType === 'week' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewType('week')}
-          >
-            Weekly
-          </Button>
-          <Button
-            variant={viewType === 'month' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewType('month')}
-          >
-            Monthly
-          </Button>
-          <Button
-            variant={viewType === 'quarter' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewType('quarter')}
-          >
-            Quarterly
-          </Button>
-          <Button
-            variant={viewType === 'year' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewType('year')}
-          >
-            Yearly
-          </Button>
+        {/* View Type & Duration */}
+        <div className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="flex space-x-2">
+            <Button variant={viewType === 'day' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('day')}>Daily</Button>
+            <Button variant={viewType === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('week')}>Weekly</Button>
+            <Button variant={viewType === 'month' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('month')}>Monthly</Button>
+            <Button variant={viewType === 'quarter' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('quarter')}>Quarterly</Button>
+            <Button variant={viewType === 'year' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('year')}>Yearly</Button>
+          </div>
+          <div className="flex items-center space-x-2 ml-auto">
+            <div>
+              <label className="block text-xs text-gray-600">Duration</label>
+              <input type="number" min={1} value={durationValue} onChange={(e) => setDurationValue(parseInt(e.target.value || '1'))} className="w-20 p-1 border rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600">Unit</label>
+              <select value={durationUnit} onChange={(e) => setDurationUnit(e.target.value as any)} className="p-1 border rounded">
+                <option value="day">Days</option>
+                <option value="week">Weeks</option>
+                <option value="month">Months</option>
+                <option value="quarter">Quarters</option>
+                <option value="year">Years</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -173,9 +126,7 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-blue-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">
-                    {viewType === 'week' ? 'This Week' : viewType === 'month' ? 'This Month' : 'This Year'}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Selected Period</p>
                   <p className="text-2xl font-bold text-gray-900">{totalPatients}</p>
                 </div>
               </div>
@@ -187,7 +138,7 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
               <div className="flex items-center">
                 <TrendingUp className="h-8 w-8 text-green-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Peak Day</p>
+                  <p className="text-sm font-medium text-gray-600">Peak Bucket</p>
                   <p className="text-2xl font-bold text-gray-900">{maxCount}</p>
                 </div>
               </div>
@@ -199,10 +150,8 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
               <div className="flex items-center">
                 <Users className="h-8 w-8 text-purple-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Daily Average</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {Math.round(totalPatients / chartData.length)}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Average per bucket</p>
+                  <p className="text-2xl font-bold text-gray-900">{Math.round(totalPatients / Math.max(chartData.length, 1))}</p>
                 </div>
               </div>
             </CardContent>
@@ -213,11 +162,7 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
         <Card>
           <CardHeader>
             <CardTitle>Patient Consultation Trends</CardTitle>
-            <CardDescription>
-              {viewType === 'week' && 'Daily consultations over the past week'}
-              {viewType === 'month' && 'Weekly consultations over the past month'}
-              {viewType === 'year' && 'Monthly consultations over the past year'}
-            </CardDescription>
+            <CardDescription>Distribution based on selected duration and frequency</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-64 flex items-end justify-between space-x-2">
@@ -225,17 +170,9 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
                 <div key={index} className="flex flex-col items-center flex-1">
                   <div className="w-full flex flex-col items-center">
                     <div className="text-xs text-gray-600 mb-1">{item.count}</div>
-                    <div
-                      className="w-full bg-blue-500 rounded-t transition-all duration-300 hover:bg-blue-600"
-                      style={{
-                        height: `${Math.max((item.count / maxCount) * 200, 4)}px`,
-                        minHeight: '4px'
-                      }}
-                    />
+                    <div className="w-full bg-blue-500 rounded-t transition-all duration-300 hover:bg-blue-600" style={{ height: `${Math.max((item.count / maxCount) * 200, 4)}px`, minHeight: '4px' }} />
                   </div>
-                  <div className="text-xs text-gray-500 mt-2 text-center">
-                    {item.label}
-                  </div>
+                  <div className="text-xs text-gray-500 mt-2 text-center">{item.label}</div>
                 </div>
               ))}
             </div>
@@ -245,15 +182,7 @@ export default function PatientChartModal({ isOpen, onClose, weeklyCount, appoin
         {/* Summary */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <h3 className="font-semibold text-blue-900 mb-2">Summary</h3>
-          <p className="text-blue-800 text-sm">
-            You have completed <strong>{totalPatients}</strong> consultations in the selected period.
-            {totalPatients > 0 && (
-              <>
-                {' '}Your most productive {viewType === 'week' ? 'day' : viewType === 'month' ? 'week' : 'month'} had{' '}
-                <strong>{maxCount}</strong> consultations.
-              </>
-            )}
-          </p>
+          <p className="text-blue-800 text-sm">Completed consultations in selected period: <strong>{totalPatients}</strong></p>
         </div>
       </div>
     </div>

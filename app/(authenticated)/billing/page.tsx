@@ -11,6 +11,8 @@ import { formatDate } from '@/lib/utils'
 import BillForm from '@/components/billing/bill-form'
 import BillPrint from '@/components/billing/bill-print'
 import EditBillForm from '@/components/billing/edit-bill-form'
+import PrescriptionPrint from '@/components/prescriptions/prescription-print'
+import LabReportsUpload from '@/components/prescriptions/lab-reports-upload'
 import toast from 'react-hot-toast'
 
 interface Bill {
@@ -58,6 +60,8 @@ export default function Billing() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateBill, setShowCreateBill] = useState(false)
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
+  const [printPrescription, setPrintPrescription] = useState<{ id: string, open: boolean } | null>(null)
+  const [labUpload, setLabUpload] = useState<{ id: string, open: boolean, tests: { name: string }[] } | null>(null)
   const [activeTab, setActiveTab] = useState<'bills' | 'prescriptions'>('prescriptions')
   const [viewBill, setViewBill] = useState<Bill | null>(null)
   const [showBillModal, setShowBillModal] = useState(false)
@@ -309,15 +313,36 @@ export default function Billing() {
                       </div>
                       
                       <div className="text-right">
-                        <Button
-                          onClick={() => setSelectedPrescription(prescription)}
-                          className="mb-2"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Create Bill
-                        </Button>
-                        <div className="text-sm text-gray-500">
-                          {prescription.doctor.department}
+                        <div className="flex flex-col items-end gap-2">
+                          <Button
+                            onClick={() => setSelectedPrescription(prescription)}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Bill
+                          </Button>
+                          <div className="flex gap-2">
+                            <button
+                              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                              onClick={() => setPrintPrescription({ id: prescription.id, open: true })}
+                            >
+                              View/Print Prescription
+                            </button>
+                            <button
+                              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                              onClick={() => {
+                                try {
+                                  const meds = prescription.medicines ? JSON.parse(prescription.medicines) : {}
+                                  const tests = (meds.labTests || []).map((t:any) => ({ name: t.name }))
+                                  setLabUpload({ id: prescription.id, open: true, tests })
+                                } catch { setLabUpload({ id: prescription.id, open: true, tests: [] }) }
+                              }}
+                            >
+                              Upload Lab Reports
+                            </button>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {prescription.doctor.department}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -486,6 +511,14 @@ export default function Billing() {
       )}
       {/* Bill Print Modal */}
       <BillPrint isOpen={showBillModal} onClose={() => setShowBillModal(false)} bill={viewBill} />
+      {/* Prescription Print Modal */}
+      {printPrescription && (
+        <PrescriptionPrint open={printPrescription.open} onClose={() => setPrintPrescription(null)} id={printPrescription.id} />
+      )}
+      {/* Lab Reports Upload Modal */}
+      {labUpload && (
+        <LabReportsUpload open={labUpload.open} onClose={() => setLabUpload(null)} prescriptionId={labUpload.id} labTests={labUpload.tests} />
+      )}
       {/* Edit Bill Modal */}
       <EditBillForm
         isOpen={showEditModal}

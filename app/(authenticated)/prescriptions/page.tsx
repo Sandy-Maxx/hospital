@@ -10,6 +10,7 @@ import { Pill, Search, FileText, Calendar, User, Plus, Stethoscope, ClipboardLis
 import PrescriptionForm from '@/components/prescriptions/prescription-form'
 import ConsultationNotes from '@/components/soap/consultation-notes'
 import PrescriptionViewModal from '@/components/prescriptions/prescription-view-modal'
+import { formatDateTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
 interface Patient {
   id: string
@@ -67,8 +68,8 @@ const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
     },
     commonDiagnoses: [] as string[]
   })
-  const [soapFilledBy, setSoapFilledBy] = useState<{ name?: string, at?: string } | null>(null)
-  const [soapEditedBy, setSoapEditedBy] = useState<Array<{ name?: string, at?: string }>>([])
+  const [soapFilledBy, setSoapFilledBy] = useState<{ name?: string, at?: string, role?: string, id?: string } | null>(null)
+  const [soapEditedBy, setSoapEditedBy] = useState<Array<{ name?: string, at?: string, role?: string, id?: string }>>([])
 
   useEffect(() => {
     fetchPrescriptions()
@@ -97,49 +98,56 @@ const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
 
   // Prefill SOAP/QuickNotes from appointment.notes when in consultation mode
   useEffect(() => {
-    if (consultationMode && appointmentId) {
-      fetch(`/api/appointments/${appointmentId}`).then(async (res) => {
+    if ((consultationMode && appointmentId) || (editing.id && editing.data?.consultation?.appointmentId)) {
+      const targetAppointmentId = appointmentId || editing.data?.consultation?.appointmentId
+      console.log('Loading SOAP data for appointment:', targetAppointmentId)
+      
+      fetch(`/api/appointments/${targetAppointmentId}`).then(async (res) => {
         if (res.ok) {
           const data = await res.json()
           try {
             const rawNotes = data?.appointment?.notes
             if (rawNotes) {
               const parsed = JSON.parse(rawNotes)
-if (parsed?.soapNotes) {
-                  setSoapNotes({
-                    subjective: parsed.soapNotes.subjective || '',
-                    objective: parsed.soapNotes.objective || '',
-                    assessment: parsed.soapNotes.assessment || '',
-                    plan: parsed.soapNotes.plan || ''
-                  })
-                }
-                if (parsed?.quickNotes) {
-                  setQuickNotes({
-                    commonSymptoms: parsed.quickNotes.commonSymptoms || [],
-                    vitalSigns: {
-                      temperature: parsed.quickNotes.vitalSigns?.temperature || '',
-                      bloodPressure: parsed.quickNotes.vitalSigns?.bloodPressure || '',
-                      pulse: parsed.quickNotes.vitalSigns?.pulse || '',
-                      respiratoryRate: parsed.quickNotes.vitalSigns?.respiratoryRate || '',
-                      oxygenSaturation: parsed.quickNotes.vitalSigns?.oxygenSaturation || ''
-                    },
-                    commonDiagnoses: parsed.quickNotes.commonDiagnoses || []
-                  })
-                }
-                if (parsed?.filledBy) {
-                  setSoapFilledBy({ name: parsed.filledBy.name, at: parsed.filledBy.at })
-                }
-                if (Array.isArray(parsed?.editedBy)) {
-                  setSoapEditedBy(parsed.editedBy.map((e: any) => ({ name: e.name, at: e.at })))
-                } else {
-                  setSoapEditedBy([])
-                }
+              console.log('Loaded SOAP notes:', parsed)
+              
+              if (parsed?.soapNotes) {
+                setSoapNotes({
+                  subjective: parsed.soapNotes.subjective || '',
+                  objective: parsed.soapNotes.objective || '',
+                  assessment: parsed.soapNotes.assessment || '',
+                  plan: parsed.soapNotes.plan || ''
+                })
+              }
+              if (parsed?.quickNotes) {
+                setQuickNotes({
+                  commonSymptoms: parsed.quickNotes.commonSymptoms || [],
+                  vitalSigns: {
+                    temperature: parsed.quickNotes.vitalSigns?.temperature || '',
+                    bloodPressure: parsed.quickNotes.vitalSigns?.bloodPressure || '',
+                    pulse: parsed.quickNotes.vitalSigns?.pulse || '',
+                    respiratoryRate: parsed.quickNotes.vitalSigns?.respiratoryRate || '',
+                    oxygenSaturation: parsed.quickNotes.vitalSigns?.oxygenSaturation || ''
+                  },
+                  commonDiagnoses: parsed.quickNotes.commonDiagnoses || []
+                })
+              }
+              if (parsed?.filledBy) {
+                setSoapFilledBy({ name: parsed.filledBy.name, at: parsed.filledBy.at, role: parsed.filledBy.role, id: parsed.filledBy.id })
+              }
+              if (Array.isArray(parsed?.editedBy)) {
+                setSoapEditedBy(parsed.editedBy.map((e: any) => ({ name: e.name, at: e.at, role: e.role, id: e.id })))
+              } else {
+                setSoapEditedBy([])
+              }
             }
-          } catch {}
+          } catch (error) {
+            console.error('Error parsing appointment notes:', error)
+          }
         }
       })
     }
-  }, [consultationMode, appointmentId])
+  }, [consultationMode, appointmentId, editing.id])
 
   // Separate effect to handle patient selection when patients list changes
   useEffect(() => {
@@ -156,19 +164,48 @@ if (parsed?.soapNotes) {
 
     // Handle edit by id from URL
     const editId = searchParams.get('editId')
-    if (editId) {
+    if (editId && !editing.id) {
+      console.log('Loading prescription for edit:', editId)
       // Load the prescription and open edit form
       fetch(`/api/prescriptions/${editId}`).then(async (res) => {
         if (res.ok) {
           const data = await res.json()
           const pres = data.prescription
+          console.log('Loaded prescription for edit:', pres)
           setShowNewPrescription(true)
           setSelectedPatient(pres.patient)
           setEditing({ id: pres.id, data: pres })
           // Also enable consultation mode to show SOAP and load appointment notes if present
           if (pres.consultation?.appointmentId) {
+            console.log('Setting consultation mode for edit with appointment:', pres.consultation.appointmentId)
             setConsultationMode(true)
             setAppointmentId(pres.consultation.appointmentId)
+          } else {
+            // No appointment link: prefill SOAP and quick notes from the prescription itself
+            try {
+              const medsJson = pres.medicines ? (typeof pres.medicines === 'string' ? JSON.parse(pres.medicines) : pres.medicines) : {}
+              const soapFromJson = medsJson?.soapNotes || {}
+              setSoapNotes({
+                subjective: soapFromJson.subjective ?? pres.symptoms ?? '',
+                objective: soapFromJson.objective ?? '',
+                assessment: soapFromJson.assessment ?? pres.diagnosis ?? '',
+                plan: soapFromJson.plan ?? pres.notes ?? ''
+              })
+              const parsedVitals = pres.vitals ? (typeof pres.vitals === 'string' ? JSON.parse(pres.vitals) : pres.vitals) : undefined
+              setQuickNotes({
+                commonSymptoms: medsJson?.quickNotes?.commonSymptoms || [],
+                vitalSigns: {
+                  temperature: parsedVitals?.temperature || medsJson?.quickNotes?.vitalSigns?.temperature || '',
+                  bloodPressure: parsedVitals?.bloodPressure || medsJson?.quickNotes?.vitalSigns?.bloodPressure || '',
+                  pulse: parsedVitals?.pulse || medsJson?.quickNotes?.vitalSigns?.pulse || '',
+                  respiratoryRate: parsedVitals?.respiratoryRate || medsJson?.quickNotes?.vitalSigns?.respiratoryRate || '',
+                  oxygenSaturation: parsedVitals?.oxygenSaturation || medsJson?.quickNotes?.vitalSigns?.oxygenSaturation || ''
+                },
+                commonDiagnoses: medsJson?.quickNotes?.commonDiagnoses || []
+              })
+            } catch (e) {
+              console.error('Error parsing prescription payload for quick notes:', e)
+            }
           }
         }
       })
@@ -218,6 +255,8 @@ if (parsed?.soapNotes) {
     setShowNewPrescription(false)
     setSelectedPatient(null)
     setConsultationMode(false)
+    setAppointmentId(null)
+    setEditing({ id: null, data: null })
     setSoapNotes({
       subjective: '',
       objective: '',
@@ -235,8 +274,13 @@ if (parsed?.soapNotes) {
       },
       commonDiagnoses: []
     })
+    setSoapFilledBy(null)
+    setSoapEditedBy([])
     fetchPrescriptions()
-    toast.success('Prescription created successfully')
+    toast.success('Prescription saved successfully')
+    
+    // Clear URL params
+    router.replace('/prescriptions')
   }
 
   const filteredPatients = patients.filter(patient =>
@@ -399,12 +443,16 @@ if (parsed?.soapNotes) {
                         </CardDescription>
                       </div>
                       <div className="text-xs text-gray-500 text-right">
-                        {soapFilledBy && (
-                          <div>Filled by {soapFilledBy.name || '—'}</div>
-                        )}
-                        {soapEditedBy && soapEditedBy.length > 0 && (
-                          <div>Edited by {soapEditedBy.map(e => e.name).filter(Boolean).join(', ')}</div>
-                        )}
+                        <div>
+                          Filled by {soapFilledBy?.name || soapFilledBy?.role || soapFilledBy?.id || '—'}{soapFilledBy?.at ? ` on ${formatDateTime(soapFilledBy.at)}` : ''}
+                        </div>
+                        <div>
+                          Edited by {(
+                            soapEditedBy && soapEditedBy.length > 0
+                              ? soapEditedBy.map(e => `${(e.name || e.role || e.id || '—')}${e.at ? ` on ${formatDateTime(e.at)}` : ''}`).join(', ')
+                              : '—'
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
@@ -414,6 +462,7 @@ if (parsed?.soapNotes) {
                       quickNotes={quickNotes}
                       onChangeSoap={setSoapNotes}
                       onChangeQuick={setQuickNotes}
+                      disabled={editing.id && editing.data && JSON.parse(editing.data.medicines || '{}')?.status === 'COMPLETED'}
                     />
                   </CardContent>
                 </Card>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -40,6 +40,8 @@ const menuItems = {
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
     { icon: CreditCard, label: 'Billing', href: '/billing' },
     { icon: Activity, label: 'Reports', href: '/reports' },
+    { icon: Activity, label: 'Marketing', href: '/marketing' },
+    { icon: Users, label: 'My Profile', href: '/profile' },
   ],
   DOCTOR: [
     { icon: Home, label: 'Dashboard', href: '/dashboard' },
@@ -49,6 +51,7 @@ const menuItems = {
     { icon: FileText, label: 'Prescriptions', href: '/prescriptions' },
     { icon: ClipboardList, label: 'Queue Management', href: '/queue' },
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
+    { icon: Users, label: 'My Profile', href: '/profile' },
   ],
   RECEPTIONIST: [
     { icon: Home, label: 'Dashboard', href: '/dashboard' },
@@ -58,12 +61,14 @@ const menuItems = {
     { icon: ClipboardList, label: 'Queue Management', href: '/queue' },
     { icon: CreditCard, label: 'Billing', href: '/billing' },
     { icon: Users, label: 'Patients', href: '/patients' },
+    { icon: Users, label: 'My Profile', href: '/profile' },
   ],
   NURSE: [
     { icon: Home, label: 'Dashboard', href: '/dashboard' },
     { icon: ClipboardList, label: 'Queue', href: '/queue' },
     { icon: Users, label: 'Patients', href: '/patients' },
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
+    { icon: Users, label: 'My Profile', href: '/profile' },
   ],
 }
 
@@ -71,6 +76,13 @@ export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { data: session } = useSession()
   const pathname = usePathname()
+  const [settings, setSettings] = useState<{ name?: string; logo?: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings').then(async (res) => {
+      if (res.ok) setSettings(await res.json())
+    }).catch(() => {})
+  }, [])
 
   if (!session?.user) return null
 
@@ -88,10 +100,14 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-semibold text-gray-900">HMS</span>
+            {settings?.logo ? (
+              <img src={settings.logo} alt="logo" className="w-8 h-8 object-contain rounded" />
+            ) : (
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <Stethoscope className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <span className="font-semibold text-gray-900">{settings?.name || 'Hospital'}</span>
           </div>
         )}
         <button

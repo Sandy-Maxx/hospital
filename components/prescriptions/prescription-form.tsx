@@ -133,15 +133,55 @@ export default function PrescriptionForm({
   const [activeTab, setActiveTab] = useState<'medicines' | 'labs' | 'therapies'>('medicines')
 
   // Prefill when editing
-useEffect(() => {
+  useEffect(() => {
     if (existing) {
+      console.log('Loading existing prescription:', existing)
       try {
         const parsed = existing.medicines ? JSON.parse(existing.medicines) : {}
-        if (Array.isArray(parsed.medicines)) setMedicines(parsed.medicines.map((m: any, idx: number) => ({ id: String(idx+1), ...m })))
-        if (Array.isArray(parsed.labTests)) setLabTests(parsed.labTests)
-        if (Array.isArray(parsed.therapies)) setTherapies(parsed.therapies)
+        console.log('Parsed medicines data:', parsed)
+        
+        // Handle new structure with nested properties
+        if (parsed.medicines && Array.isArray(parsed.medicines)) {
+          setMedicines(parsed.medicines.map((m: any, idx: number) => ({ 
+            id: String(idx + 1), 
+            ...m 
+          })))
+        } else if (Array.isArray(parsed)) {
+          // Handle old structure (direct array)
+          setMedicines(parsed.map((m: any, idx: number) => ({ 
+            id: String(idx + 1), 
+            ...m 
+          })))
+        } else {
+          // Fallback to default
+          setMedicines([{
+            id: '1',
+            name: '',
+            dosage: '',
+            frequency: '',
+            duration: '',
+            instructions: ''
+          }])
+        }
+        
+        if (parsed.labTests && Array.isArray(parsed.labTests)) {
+          setLabTests(parsed.labTests.map((t: any, idx: number) => ({ 
+            id: String(idx + 1), 
+            ...t 
+          })))
+        }
+        
+        if (parsed.therapies && Array.isArray(parsed.therapies)) {
+          setTherapies(parsed.therapies.map((t: any, idx: number) => ({ 
+            id: String(idx + 1), 
+            ...t 
+          })))
+        }
+        
         setActiveTab('medicines')
-      } catch {}
+      } catch (error) {
+        console.error('Error parsing existing prescription:', error)
+      }
     }
   }, [existing])
   const [availableLabTests, setAvailableLabTests] = useState<string[]>(COMMON_LAB_TESTS)
@@ -304,8 +344,24 @@ useEffect(() => {
 
     setLoading(true)
     try {
-const response = await fetch(existing?.id ? `/api/prescriptions?id=${existing.id}` : '/api/prescriptions', {
-method: existing?.id ? 'PUT' : 'POST',
+      // If linked to an appointment, persist SOAP (including checkbox selections) to the appointment notes
+      if (consultationData?.appointmentId) {
+        try {
+          await fetch(`/api/appointments/${consultationData.appointmentId}/soap`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              soapNotes: consultationData.soapNotes,
+              quickNotes: consultationData.quickNotes,
+            }),
+          })
+        } catch (e) {
+          console.warn('Failed to persist SOAP to appointment before saving prescription:', e)
+        }
+      }
+
+      const response = await fetch(existing?.id ? `/api/prescriptions?id=${existing.id}` : '/api/prescriptions', {
+        method: existing?.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: selectedPatient.id,
@@ -317,6 +373,8 @@ method: existing?.id ? 'PUT' : 'POST',
           diagnosis: consultationData?.soapNotes?.assessment || '',
           notes: consultationData?.soapNotes?.plan || '',
           vitals: consultationData?.quickNotes?.vitalSigns || null,
+          quickNotes: consultationData?.quickNotes || null,
+          soapNotes: consultationData?.soapNotes || null,
           appointmentId: consultationData?.appointmentId || null
         })
       })
@@ -325,19 +383,23 @@ method: existing?.id ? 'PUT' : 'POST',
         const data = await response.json()
         toast.success('Prescription saved successfully')
         
-        // Reset form
-        setMedicines([{
-          id: '1',
-          name: '',
-          dosage: '',
-          frequency: '',
-          duration: '',
-          instructions: ''
-        }])
-        setLabTests([])
-        setTherapies([])
+        // Reset form only for new prescriptions (not edits)
+        if (!existing?.id) {
+          setMedicines([{
+            id: '1',
+            name: '',
+            dosage: '',
+            frequency: '',
+            duration: '',
+            instructions: ''
+          }])
+          setLabTests([])
+          setTherapies([])
+        }
         
         onSuccess?.(data.prescription)
+        // Always redirect to prescriptions page after save
+        try { window.location.href = '/prescriptions' } catch {}
       } else {
         const errorData = await response.json()
         toast.error(errorData.error || 'Failed to save prescription')
@@ -412,6 +474,7 @@ method: existing?.id ? 'PUT' : 'POST',
                   size="sm"
                   onClick={() => removeMedicine(medicine.id)}
                   className="text-red-600 hover:text-red-700"
+                  disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -428,6 +491,7 @@ method: existing?.id ? 'PUT' : 'POST',
                   onChange={(e) => updateMedicine(medicine.id, 'name', e.target.value)}
                   placeholder="Enter medicine name"
                   className="mt-1"
+                  disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
                 />
                 {searchResults[medicine.id] && searchResults[medicine.id].length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
@@ -452,6 +516,7 @@ method: existing?.id ? 'PUT' : 'POST',
                   value={medicine.dosage}
                   onChange={(e) => updateMedicine(medicine.id, 'dosage', e.target.value)}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white"
+                  disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
                 >
                   <option value="">Select dosage</option>
                   {DOSAGE_OPTIONS.map(option => (
@@ -468,6 +533,7 @@ method: existing?.id ? 'PUT' : 'POST',
                   value={medicine.frequency}
                   onChange={(e) => updateMedicine(medicine.id, 'frequency', e.target.value)}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white"
+                  disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
                 >
                   <option value="">Select frequency</option>
                   {FREQUENCY_OPTIONS.map(option => (
@@ -484,6 +550,7 @@ method: existing?.id ? 'PUT' : 'POST',
                   value={medicine.duration}
                   onChange={(e) => updateMedicine(medicine.id, 'duration', e.target.value)}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white"
+                  disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
                 >
                   <option value="">Select duration</option>
                   {DURATION_OPTIONS.map(option => (
@@ -503,17 +570,22 @@ method: existing?.id ? 'PUT' : 'POST',
                 placeholder="e.g., Take with food, Avoid alcohol, etc."
                 className="w-full mt-1 p-2 border border-gray-300 rounded-md"
                 rows={2}
+                disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
               />
             </div>
           </div>
         ))}
 
             {/* Add Medicine Button */}
-<Button
+            <Button
               type="button"
               variant="outline"
-              onClick={addMedicine}
+              onClick={(e) => {
+                e.preventDefault()
+                addMedicine()
+              }}
               className="w-full"
+              disabled={existing && JSON.parse(existing.medicines || '{}')?.status === 'COMPLETED'}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Another Medicine

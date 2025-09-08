@@ -1,0 +1,114 @@
+[
+  {
+    "id": "cmp_1757350015338",
+    "name": "Campaign",
+    "message": "{{LAB_RESULTS_LINK}}{{HOSPITAL_NAME}}{{PRESCRIPTION_PASSCODE}}{{PRESCRIPTION_PASSCODE}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{PATIENT_NAME}}<h2>Appointment Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a friendly reminder for your upcoming appointment at our hospital. If you need to reschedule, please contact us.</p><p><ol><li>Regards,</li><li>Hospital Team</li></ol></p><ul><li>Health Tips</li></ul><ol><li style=\"text-align: left;\">Stay hydrated.</li></ol><ul><li>Exercise regularly.</li><li>Maintain a balanced diet.</li></ul><h2>Follow-up Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a reminder for your follow-up visit. Please book your appointment at your convenience.</p><p>Regards,<br>Hospital Team</p><h2>Lab Results Ready</h2><p>Dear {{PATIENT_NAME}},</p><p>Your lab results are available. Click the link to download: <a href=\"{{LAB_RESULTS_LINK}}\" target=\"_blank\">Download Reports</a><br>Passcode: <strong>{{PRESCRIPTION_PASSCODE}}</strong></p><p>If you face any issues, please contact us.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p>",
+    "messageHtml": "{{LAB_RESULTS_LINK}}{{HOSPITAL_NAME}}{{PRESCRIPTION_PASSCODE}}{{PRESCRIPTION_PASSCODE}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{PATIENT_NAME}}<h2>Appointment Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a friendly reminder for your upcoming appointment at our hospital. If you need to reschedule, please contact us.</p><p><ol><li>Regards,</li><li>Hospital Team</li></ol></p><ul><li>Health Tips</li></ul><ol><li style=\"text-align: left;\">Stay hydrated.</li></ol><ul><li>Exercise regularly.</li><li>Maintain a balanced diet.</li></ul><h2>Follow-up Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a reminder for your follow-up visit. Please book your appointment at your convenience.</p><p>Regards,<br>Hospital Team</p><h2>Lab Results Ready</h2><p>Dear {{PATIENT_NAME}},</p><p>Your lab results are available. Click the link to download: <a href=\"{{LAB_RESULTS_LINK}}\" target=\"_blank\">Download Reports</a><br>Passcode: <strong>{{PRESCRIPTION_PASSCODE}}</strong></p><p>If you face any issues, please contact us.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p>",
+    "channels": {
+      "email": true,
+      "sms": false,
+      "whatsapp": false,
+      "push": false
+    },
+    "audience": {
+      "selector": "ALL",
+      "period": "90d",
+      "gender": "",
+      "minAge": "20",
+      "maxAge": "80"
+    },
+    "scheduledAt": null,
+    "status": "SENT",
+    "createdAt": "2025-09-08T16:46:55.338Z",
+    "updatedAt": "2025-09-08T16:46:55.338Z",
+    "result": {
+      "sent": 11,
+      "failed": 0,
+      "total": 11
+    }
+  },
+  {
+    "id": "cmp_1757349471418",
+    "name": "24",
+    "message": "qqwrgwr{{PATIENT_NAME}}{{LAB_RESULTS_LINK}}{{PRESCRIPTION_PASSCODE}}{{HOSPITAL_NAME}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{DOCTOR_NAME}}{{PRESCRIPTION_PASSCODE}}{{HOSPITAL_NAME}}{{PATIENT_NAME}}<h2>Appointment Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a friendly reminder for your upcoming appointment at our hospital. If you need to r<b>eschedule, please contact us.</b></p><p><i>Regards,</i><br><u>Hospital Team</u></p><h1><h2><h2><div style=\"text-align: left;\"><span style=\"font-size: inherit; font-weight: inherit;\">Health Tips</span></div><ul><li>Stay hydrated.</li></ul></h2></h2></h1><ul><li>Exercise regularly.</li><li>Maintain a balanced diet.</li></ul><h2>Follow-up Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a reminder for your follow-up visit. Please book your appointment at your convenience.</p><p>Regards,<br>Hospital Team</p><h2>Lab Results Ready</h2><p>Dear {{PATIENT_NAME}},</p><p>Your lab results are available. Click the link to download: <a href=\"{{LAB_RESULTS_LINK}}\" target=\"_blank\">Download Reports</a><br>Passcode: <strong>{{PRESCRIPTION_PASSCODE}}</strong></p><p>If you face any issues, please contact us.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p>",
+    "messageHtml": "qqwrgwr{{PATIENT_NAME}}{{LAB_RESULTS_LINK}}{{PRESCRIPTION_PASSCODE}}{{HOSPITAL_NAME}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{DOCTOR_NAME}}{{PRESCRIPTION_PASSCODE}}{{HOSPITAL_NAME}}{{PATIENT_NAME}}<h2>Appointment Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a friendly reminder for your upcoming appointment at our hospital. If you need to r<b>eschedule, please contact us.</b></p><p><i>Regards,</i><br><u>Hospital Team</u></p><h1><h2><h2><div style=\"text-align: left;\"><span style=\"font-size: inherit; font-weight: inherit;\">Health Tips</span></div><ul><li>Stay hydrated.</li></ul></h2></h2></h1><ul><li>Exercise regularly.</li><li>Maintain a balanced diet.</li></ul><h2>Follow-up Reminder</h2><p>Dear {{PATIENT_NAME}},</p><p>This is a reminder for your follow-up visit. Please book your appointment at your convenience.</p><p>Regards,<br>Hospital Team</p><h2>Lab Results Ready</h2><p>Dear {{PATIENT_NAME}},</p><p>Your lab results are available. Click the link to download: <a href=\"{{LAB_RESULTS_LINK}}\" target=\"_blank\">Download Reports</a><br>Passcode: <strong>{{PRESCRIPTION_PASSCODE}}</strong></p><p>If you face any issues, please contact us.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p><p>Dear {{PATIENT_NAME}},</p><p>We have an important update regarding your recent visit.</p>",
+    "channels": {
+      "email": true,
+      "sms": false,
+      "whatsapp": false,
+      "push": false
+    },
+    "audience": {
+      "selector": "ALL",
+      "period": "90d",
+      "gender": "",
+      "minAge": "",
+      "maxAge": ""
+    },
+    "scheduledAt": null,
+    "status": "SENT",
+    "createdAt": "2025-09-08T16:37:51.418Z",
+    "updatedAt": "2025-09-08T16:37:51.418Z",
+    "result": {
+      "sent": 12,
+      "failed": 0,
+      "total": 12
+    }
+  },
+  {
+    "id": "cmp_1757348165379",
+    "name": "report send",
+    "message": "{{PATIENT_NAME}}{{HOSPITAL_NAME}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{LAB_RESULTS_LINK}}{{PRESCRIPTION_PASSCODE}}",
+    "messageHtml": "{{PATIENT_NAME}}{{HOSPITAL_NAME}}{{DOCTOR_NAME}}{{APPOINTMENT_DATE}}{{LAB_RESULTS_LINK}}{{PRESCRIPTION_PASSCODE}}",
+    "channels": {
+      "email": true,
+      "sms": true,
+      "whatsapp": false,
+      "push": false
+    },
+    "audience": {
+      "selector": "VISITED_LAST_PERIOD",
+      "period": "90d",
+      "gender": "",
+      "minAge": "20",
+      "maxAge": "90"
+    },
+    "scheduledAt": null,
+    "status": "SENT",
+    "createdAt": "2025-09-08T16:16:05.379Z",
+    "updatedAt": "2025-09-08T16:16:05.379Z",
+    "result": {
+      "sent": 8,
+      "failed": 0,
+      "total": 8
+    }
+  },
+  {
+    "id": "cmp_1757340015281",
+    "name": "Campaign",
+    "message": "<b>oworbvv oe ioqef&nbsp;</b><div><i>jqe iolQQE q</i>j <u>Q q qae</u></div><div><u>eat de wsadrrq ewe&nbsp; &nbsp;<font color=\"#103ec6\"><a href=\"http://localhost:3000/marketing\" style=\"\">http://localhost:3000/marketing</a>&nbsp;</font></u></div>",
+    "messageHtml": "<b>oworbvv oe ioqef&nbsp;</b><div><i>jqe iolQQE q</i>j <u>Q q qae</u></div><div><u>eat de wsadrrq ewe&nbsp; &nbsp;<font color=\"#103ec6\"><a href=\"http://localhost:3000/marketing\" style=\"\">http://localhost:3000/marketing</a>&nbsp;</font></u></div>",
+    "channels": {
+      "email": true,
+      "sms": false,
+      "whatsapp": false,
+      "push": true
+    },
+    "audience": {
+      "selector": "NO_VISIT_LAST_PERIOD",
+      "period": "90d",
+      "gender": "",
+      "minAge": "",
+      "maxAge": ""
+    },
+    "scheduledAt": "2025-09-08T19:30",
+    "status": "SENT",
+    "createdAt": "2025-09-08T14:00:15.281Z",
+    "updatedAt": "2025-09-08T14:00:15.281Z",
+    "result": {
+      "sent": 3,
+      "failed": 0,
+      "total": 3
+    }
+  }
+]

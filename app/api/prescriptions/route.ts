@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { patientId, consultationId, appointmentId, medicines, labTests, therapies, symptoms, diagnosis, notes, vitals } = body
+    const { patientId, consultationId, appointmentId, medicines, labTests, therapies, symptoms, diagnosis, notes, vitals, quickNotes, soapNotes } = body
 
     // Determine doctor for this prescription
     let doctorId: string | null = null
@@ -83,7 +83,9 @@ export async function POST(request: NextRequest) {
       medicines: JSON.stringify({
         medicines: medicines || [],
         labTests: labTests || [],
-        therapies: therapies || []
+        therapies: therapies || [],
+        ...(quickNotes ? { quickNotes } : {}),
+        ...(soapNotes ? { soapNotes } : {})
       })
     }
 
@@ -169,6 +171,8 @@ export async function PUT(request: NextRequest) {
       if (body.medicines) payload.medicines = body.medicines
       if (body.labTests) payload.labTests = body.labTests
       if (body.therapies) payload.therapies = body.therapies
+      if (body.quickNotes) payload.quickNotes = body.quickNotes
+      if (body.soapNotes) payload.soapNotes = body.soapNotes
       if (body.status !== undefined) payload.status = body.status
 
       data.medicines = JSON.stringify(payload)

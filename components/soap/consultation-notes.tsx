@@ -27,9 +27,10 @@ interface ConsultationNotesProps {
   quickNotes: QuickNotesState
   onChangeSoap: (next: SoapNotesState) => void
   onChangeQuick: (next: QuickNotesState) => void
+  disabled?: boolean
 }
 
-export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap, onChangeQuick }: ConsultationNotesProps) {
+export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap, onChangeQuick, disabled = false }: ConsultationNotesProps) {
   const toggleArrayItem = (arr: string[], value: string, checked: boolean) => {
     return checked ? [...arr, value] : arr.filter(v => v !== value)
   }
@@ -50,6 +51,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
               rows={4}
               placeholder="Patient's symptoms, concerns, and history..."
+              disabled={disabled}
             />
           </div>
           
@@ -64,6 +66,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
               rows={4}
               placeholder="Physical examination findings, vital signs..."
+              disabled={disabled}
             />
           </div>
         </div>
@@ -79,6 +82,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
               rows={4}
               placeholder="Clinical diagnosis and assessment..."
+              disabled={disabled}
             />
           </div>
           
@@ -92,6 +96,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500"
               rows={4}
               placeholder="Treatment plan, follow-up instructions..."
+              disabled={disabled}
             />
           </div>
         </div>
@@ -112,6 +117,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                     commonSymptoms: toggleArrayItem(quickNotes.commonSymptoms, symptom, e.target.checked)
                   })}
                   className="mr-2"
+                  disabled={disabled}
                 />
                 <span className="text-sm">{symptom}</span>
               </label>
@@ -131,6 +137,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                 vitalSigns: { ...quickNotes.vitalSigns, temperature: e.target.value }
               })}
               className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
+              disabled={disabled}
             />
             <input
               type="text"
@@ -141,6 +148,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                 vitalSigns: { ...quickNotes.vitalSigns, bloodPressure: e.target.value }
               })}
               className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
+              disabled={disabled}
             />
             <input
               type="text"
@@ -151,6 +159,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                 vitalSigns: { ...quickNotes.vitalSigns, pulse: e.target.value }
               })}
               className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
+              disabled={disabled}
             />
             <input
               type="text"
@@ -161,6 +170,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                 vitalSigns: { ...quickNotes.vitalSigns, respiratoryRate: e.target.value }
               })}
               className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
+              disabled={disabled}
             />
             <input
               type="text"
@@ -171,6 +181,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                 vitalSigns: { ...quickNotes.vitalSigns, oxygenSaturation: e.target.value }
               })}
               className="w-full p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 placeholder-gray-500"
+              disabled={disabled}
             />
           </div>
         </div>
@@ -188,6 +199,7 @@ export default function ConsultationNotes({ soapNotes, quickNotes, onChangeSoap,
                     commonDiagnoses: toggleArrayItem(quickNotes.commonDiagnoses, diagnosis, e.target.checked)
                   })}
                   className="mr-2"
+                  disabled={disabled}
                 />
                 <span className="text-sm">{diagnosis}</span>
               </label>
