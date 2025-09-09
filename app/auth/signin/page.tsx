@@ -1,45 +1,51 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Stethoscope } from 'lucide-react'
-import toast from 'react-hot-toast'
+import React, { useState } from "react";
+import { signIn, getSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Stethoscope } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function SignIn() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      })
+      });
 
       if (result?.error) {
-        toast.error('Invalid credentials')
+        toast.error("Invalid credentials");
       } else if (result?.ok) {
-        toast.success('Login successful')
+        toast.success("Login successful");
         // Force a page refresh to ensure session is properly loaded
-        window.location.href = '/dashboard'
+        window.location.href = "/dashboard";
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -51,9 +57,7 @@ export default function SignIn() {
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Hospital Management System
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 
         <Card>
@@ -87,43 +91,37 @@ export default function SignIn() {
                   placeholder="Enter your password"
                 />
               </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <div className="text-center">
-          <p className="text-sm text-gray-600 mb-3">
-            Quick Login:
-          </p>
+          <p className="text-sm text-gray-600 mb-3">Quick Login:</p>
           <div className="grid grid-cols-1 gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={async () => {
-                setIsLoading(true)
+                setIsLoading(true);
                 try {
-                  const result = await signIn('credentials', {
-                    email: 'admin@hospital.com',
-                    password: 'admin123',
+                  const result = await signIn("credentials", {
+                    email: "admin@hospital.com",
+                    password: "admin123",
                     redirect: false,
-                  })
+                  });
                   if (result?.error) {
-                    toast.error('Admin login failed')
+                    toast.error("Admin login failed");
                   } else if (result?.ok) {
-                    toast.success('Admin login successful')
-                    window.location.href = '/dashboard'
+                    toast.success("Admin login successful");
+                    window.location.href = "/dashboard";
                   }
                 } catch (error) {
-                  toast.error('Login failed')
+                  toast.error("Login failed");
                 } finally {
-                  setIsLoading(false)
+                  setIsLoading(false);
                 }
               }}
               className="w-full text-left justify-start"
@@ -138,23 +136,23 @@ export default function SignIn() {
               type="button"
               variant="outline"
               onClick={async () => {
-                setIsLoading(true)
+                setIsLoading(true);
                 try {
-                  const result = await signIn('credentials', {
-                    email: 'doctor@hospital.com',
-                    password: 'doctor123',
+                  const result = await signIn("credentials", {
+                    email: "doctor@hospital.com",
+                    password: "doctor123",
                     redirect: false,
-                  })
+                  });
                   if (result?.error) {
-                    toast.error('Doctor login failed')
+                    toast.error("Doctor login failed");
                   } else if (result?.ok) {
-                    toast.success('Doctor login successful')
-                    window.location.href = '/doctor'
+                    toast.success("Doctor login successful");
+                    window.location.href = "/doctor";
                   }
                 } catch (error) {
-                  toast.error('Login failed')
+                  toast.error("Login failed");
                 } finally {
-                  setIsLoading(false)
+                  setIsLoading(false);
                 }
               }}
               className="w-full text-left justify-start"
@@ -169,23 +167,23 @@ export default function SignIn() {
               type="button"
               variant="outline"
               onClick={async () => {
-                setIsLoading(true)
+                setIsLoading(true);
                 try {
-                  const result = await signIn('credentials', {
-                    email: 'reception@hospital.com',
-                    password: 'reception123',
+                  const result = await signIn("credentials", {
+                    email: "reception@hospital.com",
+                    password: "reception123",
                     redirect: false,
-                  })
+                  });
                   if (result?.error) {
-                    toast.error('Receptionist login failed')
+                    toast.error("Receptionist login failed");
                   } else if (result?.ok) {
-                    toast.success('Receptionist login successful')
-                    window.location.href = '/receptionist'
+                    toast.success("Receptionist login successful");
+                    window.location.href = "/receptionist";
                   }
                 } catch (error) {
-                  toast.error('Login failed')
+                  toast.error("Login failed");
                 } finally {
-                  setIsLoading(false)
+                  setIsLoading(false);
                 }
               }}
               className="w-full text-left justify-start"
@@ -200,23 +198,23 @@ export default function SignIn() {
               type="button"
               variant="outline"
               onClick={async () => {
-                setIsLoading(true)
+                setIsLoading(true);
                 try {
-                  const result = await signIn('credentials', {
-                    email: 'nurse.mary@hospital.com',
-                    password: 'nurse123',
+                  const result = await signIn("credentials", {
+                    email: "nurse.mary@hospital.com",
+                    password: "nurse123",
                     redirect: false,
-                  })
+                  });
                   if (result?.error) {
-                    toast.error('Nurse login failed')
+                    toast.error("Nurse login failed");
                   } else if (result?.ok) {
-                    toast.success('Nurse login successful')
-                    window.location.href = '/dashboard'
+                    toast.success("Nurse login successful");
+                    window.location.href = "/dashboard";
                   }
                 } catch (error) {
-                  toast.error('Login failed')
+                  toast.error("Login failed");
                 } finally {
-                  setIsLoading(false)
+                  setIsLoading(false);
                 }
               }}
               className="w-full text-left justify-start"
@@ -231,5 +229,5 @@ export default function SignIn() {
         </div>
       </div>
     </div>
-  )
+  );
 }

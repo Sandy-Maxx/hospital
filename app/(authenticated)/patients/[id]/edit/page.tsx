@@ -1,139 +1,154 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter, useParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { ArrowLeft, Save, User } from 'lucide-react'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Save, User } from "lucide-react";
+import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface Patient {
-  id: string
-  firstName: string
-  lastName: string
-  dateOfBirth: string
-  gender: string
-  phone: string
-  email?: string
-  address?: string
-  emergencyContact?: string
-  emergencyPhone?: string
-  bloodGroup?: string
-  allergies?: string
-  medicalHistory?: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  bloodGroup?: string;
+  allergies?: string;
+  medicalHistory?: string;
 }
 
 export default function EditPatient() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const params = useParams()
-  const patientId = params.id as string
+  const { data: session } = useSession();
+  const router = useRouter();
+  const params = useParams();
+  const patientId = params.id as string;
 
-  const [loading, setLoading] = useState(false)
-  const [patient, setPatient] = useState<Patient | null>(null)
+  const [loading, setLoading] = useState(false);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    gender: '',
-    phone: '',
-    email: '',
-    address: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    bloodGroup: '',
-    allergies: '',
-    medicalHistory: ''
-  })
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    gender: "",
+    phone: "",
+    email: "",
+    address: "",
+    emergencyContact: "",
+    emergencyPhone: "",
+    bloodGroup: "",
+    allergies: "",
+    medicalHistory: "",
+  });
 
   useEffect(() => {
     if (patientId) {
-      fetchPatient()
+      fetchPatient();
     }
-  }, [patientId])
+  }, [patientId]);
 
   const fetchPatient = async () => {
     try {
-      const response = await fetch(`/api/patients/${patientId}`)
+      const response = await fetch(`/api/patients/${patientId}`);
       if (response.ok) {
-        const data = await response.json()
-        setPatient(data.patient)
+        const data = await response.json();
+        setPatient(data.patient);
         setFormData({
-          firstName: data.patient.firstName || '',
-          lastName: data.patient.lastName || '',
-          dateOfBirth: data.patient.dateOfBirth ? new Date(data.patient.dateOfBirth).toISOString().split('T')[0] : '',
-          gender: data.patient.gender || '',
-          phone: data.patient.phone || '',
-          email: data.patient.email || '',
-          address: data.patient.address || '',
-          emergencyContact: data.patient.emergencyContact || '',
-          emergencyPhone: data.patient.emergencyPhone || '',
-          bloodGroup: data.patient.bloodGroup || '',
-          allergies: data.patient.allergies || '',
-          medicalHistory: data.patient.medicalHistory || ''
-        })
+          firstName: data.patient.firstName || "",
+          lastName: data.patient.lastName || "",
+          dateOfBirth: data.patient.dateOfBirth
+            ? new Date(data.patient.dateOfBirth).toISOString().split("T")[0]
+            : "",
+          gender: data.patient.gender || "",
+          phone: data.patient.phone || "",
+          email: data.patient.email || "",
+          address: data.patient.address || "",
+          emergencyContact: data.patient.emergencyContact || "",
+          emergencyPhone: data.patient.emergencyPhone || "",
+          bloodGroup: data.patient.bloodGroup || "",
+          allergies: data.patient.allergies || "",
+          medicalHistory: data.patient.medicalHistory || "",
+        });
       } else {
-        toast.error('Failed to fetch patient details')
-        router.push('/patients')
+        toast.error("Failed to fetch patient details");
+        router.push("/patients");
       }
     } catch (error) {
-      toast.error('Failed to fetch patient details')
-      router.push('/patients')
+      toast.error("Failed to fetch patient details");
+      router.push("/patients");
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!formData.firstName || !formData.lastName || !formData.phone) {
-      toast.error('Please fill in all required fields')
-      return
+      toast.error("Please fill in all required fields");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await fetch(`/api/patients/${patientId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
-          dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null
+          dateOfBirth: formData.dateOfBirth
+            ? new Date(formData.dateOfBirth).toISOString()
+            : null,
         }),
-      })
+      });
 
       if (response.ok) {
-        toast.success('Patient updated successfully!')
-        router.push(`/patients/${patientId}`)
+        toast.success("Patient updated successfully!");
+        router.push(`/patients/${patientId}`);
       } else {
-        const error = await response.json()
-        toast.error(error.message || 'Failed to update patient')
+        const error = await response.json();
+        toast.error(error.message || "Failed to update patient");
       }
     } catch (error) {
-      toast.error('Failed to update patient')
+      toast.error("Failed to update patient");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
-  if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'RECEPTIONIST')) {
+  if (
+    !session?.user ||
+    (session.user.role !== "ADMIN" && session.user.role !== "RECEPTIONIST")
+  ) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-red-600">Access denied. Admin or Receptionist privileges required.</p>
+          <p className="text-center text-red-600">
+            Access denied. Admin or Receptionist privileges required.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!patient) {
@@ -144,7 +159,7 @@ export default function EditPatient() {
           <p className="mt-4 text-gray-600">Loading patient details...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -170,7 +185,9 @@ export default function EditPatient() {
               <User className="w-5 h-5 mr-2" />
               Patient Information
             </CardTitle>
-            <CardDescription>Update the patient's personal and medical information</CardDescription>
+            <CardDescription>
+              Update the patient's personal and medical information
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Basic Information */}
@@ -180,7 +197,9 @@ export default function EditPatient() {
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -189,7 +208,9 @@ export default function EditPatient() {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -202,7 +223,9 @@ export default function EditPatient() {
                   id="dateOfBirth"
                   type="date"
                   value={formData.dateOfBirth}
-                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("dateOfBirth", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -210,7 +233,7 @@ export default function EditPatient() {
                 <select
                   id="gender"
                   value={formData.gender}
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 >
                   <option value="">Select Gender</option>
@@ -224,7 +247,9 @@ export default function EditPatient() {
                 <select
                   id="bloodGroup"
                   value={formData.bloodGroup}
-                  onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("bloodGroup", e.target.value)
+                  }
                   className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 >
                   <option value="">Select Blood Group</option>
@@ -247,7 +272,7 @@ export default function EditPatient() {
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
                   required
                 />
               </div>
@@ -257,7 +282,7 @@ export default function EditPatient() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                 />
               </div>
             </div>
@@ -267,7 +292,7 @@ export default function EditPatient() {
               <Textarea
                 id="address"
                 value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
+                onChange={(e) => handleInputChange("address", e.target.value)}
                 rows={2}
               />
             </div>
@@ -279,7 +304,9 @@ export default function EditPatient() {
                 <Input
                   id="emergencyContact"
                   value={formData.emergencyContact}
-                  onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("emergencyContact", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -287,7 +314,9 @@ export default function EditPatient() {
                 <Input
                   id="emergencyPhone"
                   value={formData.emergencyPhone}
-                  onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("emergencyPhone", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -298,7 +327,7 @@ export default function EditPatient() {
               <Textarea
                 id="allergies"
                 value={formData.allergies}
-                onChange={(e) => handleInputChange('allergies', e.target.value)}
+                onChange={(e) => handleInputChange("allergies", e.target.value)}
                 placeholder="List any known allergies..."
                 rows={2}
               />
@@ -309,7 +338,9 @@ export default function EditPatient() {
               <Textarea
                 id="medicalHistory"
                 value={formData.medicalHistory}
-                onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("medicalHistory", e.target.value)
+                }
                 placeholder="Brief medical history..."
                 rows={3}
               />
@@ -324,12 +355,12 @@ export default function EditPatient() {
               </Link>
               <Button type="submit" disabled={loading}>
                 <Save className="w-4 h-4 mr-2" />
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </CardContent>
         </Card>
       </form>
     </div>
-  )
+  );
 }

@@ -1,6 +1,7 @@
 # Component Architecture Documentation
 
 ## Overview
+
 The Hospital Management System follows a modular component architecture with clear separation of concerns, reusable UI components, and feature-specific modules.
 
 ## Component Hierarchy
@@ -8,16 +9,19 @@ The Hospital Management System follows a modular component architecture with cle
 ### Layout Components (`components/layout/`)
 
 #### Header Component
+
 **File**: `components/layout/header.tsx`
 **Purpose**: Main navigation and user session management
 
 **Features**:
+
 - Role-based navigation menu
 - User profile dropdown
 - Logout functionality
 - Hospital branding display
 
 **Props Interface**:
+
 ```typescript
 interface HeaderProps {
   user?: {
@@ -29,43 +33,47 @@ interface HeaderProps {
 ```
 
 #### Sidebar Component
+
 **File**: `components/layout/sidebar.tsx`
 **Purpose**: Side navigation for authenticated users
 
 **Features**:
+
 - Role-based menu items
 - Active route highlighting
 - Collapsible navigation
 - Quick access shortcuts
 
 **Navigation Structure**:
+
 ```typescript
 const navigationItems = {
   ADMIN: [
-    { href: '/dashboard', label: 'Dashboard', icon: 'Home' },
-    { href: '/patients', label: 'Patients', icon: 'Users' },
-    { href: '/appointments', label: 'Appointments', icon: 'Calendar' },
-    { href: '/billing', label: 'Billing', icon: 'CreditCard' },
-    { href: '/reports', label: 'Reports', icon: 'BarChart' },
-    { href: '/admin', label: 'Admin', icon: 'Settings' }
+    { href: "/dashboard", label: "Dashboard", icon: "Home" },
+    { href: "/patients", label: "Patients", icon: "Users" },
+    { href: "/appointments", label: "Appointments", icon: "Calendar" },
+    { href: "/billing", label: "Billing", icon: "CreditCard" },
+    { href: "/reports", label: "Reports", icon: "BarChart" },
+    { href: "/admin", label: "Admin", icon: "Settings" },
   ],
   DOCTOR: [
-    { href: '/dashboard', label: 'Dashboard', icon: 'Home' },
-    { href: '/doctor', label: 'My Patients', icon: 'Users' },
-    { href: '/prescriptions', label: 'Prescriptions', icon: 'FileText' }
+    { href: "/dashboard", label: "Dashboard", icon: "Home" },
+    { href: "/doctor", label: "My Patients", icon: "Users" },
+    { href: "/prescriptions", label: "Prescriptions", icon: "FileText" },
   ],
   RECEPTIONIST: [
-    { href: '/dashboard', label: 'Dashboard', icon: 'Home' },
-    { href: '/queue', label: 'Queue', icon: 'Clock' },
-    { href: '/appointments', label: 'Appointments', icon: 'Calendar' },
-    { href: '/billing', label: 'Billing', icon: 'CreditCard' }
-  ]
+    { href: "/dashboard", label: "Dashboard", icon: "Home" },
+    { href: "/queue", label: "Queue", icon: "Clock" },
+    { href: "/appointments", label: "Appointments", icon: "Calendar" },
+    { href: "/billing", label: "Billing", icon: "CreditCard" },
+  ],
 };
 ```
 
 ### UI Components (`components/ui/`)
 
 #### Base Components
+
 - **Button**: Consistent button styling with variants
 - **Input**: Form input with validation states
 - **Modal**: Reusable modal dialog
@@ -76,10 +84,11 @@ const navigationItems = {
 - **Loading**: Loading states and spinners
 
 **Button Component Example**:
+
 ```typescript
 interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
@@ -92,8 +101,10 @@ interface ButtonProps {
 #### Appointment Components (`components/appointments/`)
 
 ##### BookAppointmentModal
+
 **Purpose**: Modal for booking new appointments
 **Features**:
+
 - Patient selection/creation
 - Doctor selection
 - Session and time slot selection
@@ -101,6 +112,7 @@ interface ButtonProps {
 - Form validation
 
 **State Management**:
+
 ```typescript
 interface BookingState {
   selectedPatient: Patient | null;
@@ -113,8 +125,10 @@ interface BookingState {
 ```
 
 ##### TokenPrint
+
 **Purpose**: Generate and print appointment tokens
 **Features**:
+
 - QR code generation with appointment details
 - Professional token design
 - Print and download functionality
@@ -122,6 +136,7 @@ interface BookingState {
 - Priority-based styling
 
 **QR Code Data Structure**:
+
 ```typescript
 interface TokenQRData {
   appointmentId: string;
@@ -136,8 +151,10 @@ interface TokenQRData {
 #### Billing Components (`components/billing/`)
 
 ##### BillForm
+
 **Purpose**: Create and manage bills
 **Features**:
+
 - Prescription integration
 - Item management (add/remove/edit)
 - GST calculations
@@ -145,6 +162,7 @@ interface TokenQRData {
 - Payment method selection
 
 **Bill Calculation Logic**:
+
 ```typescript
 interface BillCalculation {
   subtotal: number;
@@ -154,20 +172,29 @@ interface BillCalculation {
   finalAmount: number;
 }
 
-const calculateBill = (items: BillItem[], gstRate: number, discount: number) => {
-  const subtotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+const calculateBill = (
+  items: BillItem[],
+  gstRate: number,
+  discount: number,
+) => {
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0,
+  );
   const gstAmount = (subtotal * gstRate) / 100;
   const cgst = gstAmount / 2;
   const sgst = gstAmount / 2;
   const finalAmount = subtotal + gstAmount - discount;
-  
+
   return { subtotal, cgst, sgst, discount, finalAmount };
 };
 ```
 
 ##### BillPrint
+
 **Purpose**: Generate printable bills
 **Features**:
+
 - GST-compliant bill format
 - Hospital letterhead
 - Item breakdown
@@ -175,8 +202,10 @@ const calculateBill = (items: BillItem[], gstRate: number, discount: number) => 
 - QR code for digital verification
 
 ##### EditBillForm
+
 **Purpose**: Modify existing bills
 **Features**:
+
 - Load existing bill data
 - Edit items and amounts
 - Recalculate totals
@@ -185,8 +214,10 @@ const calculateBill = (items: BillItem[], gstRate: number, discount: number) => 
 #### Prescription Components (`components/prescriptions/`)
 
 ##### PrescriptionForm
+
 **Purpose**: Create and manage prescriptions
 **Features**:
+
 - Patient auto-selection from consultation
 - Medicine search and selection
 - Dosage and instruction management
@@ -194,6 +225,7 @@ const calculateBill = (items: BillItem[], gstRate: number, discount: number) => 
 - Quick selection tools
 
 **Medicine Interface**:
+
 ```typescript
 interface Medicine {
   name: string;
@@ -205,24 +237,30 @@ interface Medicine {
 ```
 
 ##### PrescriptionList
+
 **Purpose**: Display and manage prescription history
 **Features**:
+
 - Filter by patient/doctor/date
 - Search functionality
 - Status indicators
 - Quick actions (view, edit, print)
 
 ##### PrescriptionPrint
+
 **Purpose**: Generate printable prescriptions
 **Features**:
+
 - Professional prescription format
 - Doctor signature area
 - Hospital branding
 - Medicine list with instructions
 
 ##### PrescriptionView
+
 **Purpose**: Read-only prescription display
 **Features**:
+
 - Formatted prescription display
 - SOAP notes view
 - Patient and doctor information
@@ -231,14 +269,17 @@ interface Medicine {
 #### SOAP Components (`components/soap/`)
 
 ##### SOAPNotes
+
 **Purpose**: Structured clinical documentation
 **Features**:
+
 - Subjective: Patient complaints and symptoms
 - Objective: Clinical findings and vital signs
 - Assessment: Diagnosis and clinical assessment
 - Plan: Treatment plan and follow-up
 
 **SOAP Interface**:
+
 ```typescript
 interface SOAPNotes {
   subjective: {
@@ -265,8 +306,10 @@ interface SOAPNotes {
 ```
 
 ##### QuickSelectionTools
+
 **Purpose**: Rapid clinical data entry
 **Features**:
+
 - Common symptoms checkboxes
 - Vital signs input fields
 - Common diagnoses selection
@@ -275,24 +318,30 @@ interface SOAPNotes {
 #### Chart Components (`components/charts/`)
 
 ##### PatientChartModal
+
 **Purpose**: Individual patient analytics
 **Features**:
+
 - Appointment history timeline
 - Vital signs trends
 - Prescription history
 - Billing summary
 
 ##### PatientsDistinctChartModal
+
 **Purpose**: Patient demographics analytics
 **Features**:
+
 - Age distribution charts
 - Gender distribution
 - Geographic distribution
 - Registration trends
 
 ##### RevenueChartModal
+
 **Purpose**: Financial analytics
 **Features**:
+
 - Revenue trends over time
 - Payment method breakdown
 - Doctor-wise revenue
@@ -301,6 +350,7 @@ interface SOAPNotes {
 ## State Management Patterns
 
 ### Local Component State
+
 ```typescript
 // Using React hooks for local state
 const [loading, setLoading] = useState(false);
@@ -309,6 +359,7 @@ const [data, setData] = useState<DataType[]>([]);
 ```
 
 ### Form State Management
+
 ```typescript
 // Using React Hook Form
 const {
@@ -316,30 +367,31 @@ const {
   handleSubmit,
   formState: { errors },
   setValue,
-  watch
+  watch,
 } = useForm<FormData>();
 ```
 
 ### API State Management
+
 ```typescript
 // Custom hooks for API calls
 const usePatients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/patients');
+      const response = await fetch("/api/patients");
       const data = await response.json();
       setPatients(data.patients);
     } catch (error) {
-      console.error('Failed to fetch patients:', error);
+      console.error("Failed to fetch patients:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   return { patients, loading, fetchPatients };
 };
 ```
@@ -347,11 +399,12 @@ const usePatients = () => {
 ## Component Communication Patterns
 
 ### Props Down, Events Up
+
 ```typescript
 // Parent component
 const ParentComponent = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  
+
   return (
     <PatientSelector
       patients={patients}
@@ -370,6 +423,7 @@ interface PatientSelectorProps {
 ```
 
 ### Context for Shared State
+
 ```typescript
 // Hospital settings context
 const HospitalSettingsContext = createContext<HospitalSettings | null>(null);
@@ -377,7 +431,9 @@ const HospitalSettingsContext = createContext<HospitalSettings | null>(null);
 export const useHospitalSettings = () => {
   const context = useContext(HospitalSettingsContext);
   if (!context) {
-    throw new Error('useHospitalSettings must be used within HospitalSettingsProvider');
+    throw new Error(
+      "useHospitalSettings must be used within HospitalSettingsProvider",
+    );
   }
   return context;
 };
@@ -386,47 +442,52 @@ export const useHospitalSettings = () => {
 ## Styling Architecture
 
 ### Tailwind CSS Classes
+
 ```typescript
 // Consistent styling patterns
 const buttonStyles = {
-  base: 'px-4 py-2 rounded-md font-medium transition-colors',
+  base: "px-4 py-2 rounded-md font-medium transition-colors",
   variants: {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700'
-  }
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+  },
 };
 ```
 
 ### Component Variants
+
 ```typescript
 // Using class-variance-authority for consistent variants
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border border-input hover:bg-accent hover:text-accent-foreground',
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input hover:bg-accent hover:text-accent-foreground",
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
+      variant: "default",
+      size: "default",
     },
-  }
+  },
 );
 ```
 
 ## Error Handling Patterns
 
 ### Component Error Boundaries
+
 ```typescript
 class ComponentErrorBoundary extends React.Component {
   constructor(props: any) {
@@ -453,15 +514,16 @@ class ComponentErrorBoundary extends React.Component {
 ```
 
 ### API Error Handling
+
 ```typescript
 const handleApiError = (error: any) => {
   if (error.response?.status === 401) {
     // Redirect to login
-    router.push('/auth/signin');
+    router.push("/auth/signin");
   } else if (error.response?.status === 403) {
-    toast.error('Access denied');
+    toast.error("Access denied");
   } else {
-    toast.error(error.message || 'An error occurred');
+    toast.error(error.message || "An error occurred");
   }
 };
 ```
@@ -469,6 +531,7 @@ const handleApiError = (error: any) => {
 ## Performance Optimization
 
 ### Component Memoization
+
 ```typescript
 // Memoize expensive components
 const ExpensiveComponent = React.memo(({ data }: { data: ComplexData }) => {
@@ -481,6 +544,7 @@ const ExpensiveComponent = React.memo(({ data }: { data: ComplexData }) => {
 ```
 
 ### Lazy Loading
+
 ```typescript
 // Lazy load heavy components
 const ChartModal = lazy(() => import('./components/charts/PatientChartModal'));
@@ -495,35 +559,37 @@ const ComponentWithChart = () => (
 ## Testing Patterns
 
 ### Component Testing
+
 ```typescript
 // Jest + React Testing Library
 describe('PatientForm', () => {
   it('should validate required fields', async () => {
     render(<PatientForm onSubmit={mockSubmit} />);
-    
+
     fireEvent.click(screen.getByText('Submit'));
-    
+
     expect(await screen.findByText('First name is required')).toBeInTheDocument();
   });
 });
 ```
 
 ### Integration Testing
+
 ```typescript
 // Test component integration
 describe('AppointmentBooking', () => {
   it('should complete booking flow', async () => {
     render(<AppointmentBookingFlow />);
-    
+
     // Select patient
     fireEvent.click(screen.getByText('John Doe'));
-    
+
     // Select session
     fireEvent.click(screen.getByText('Morning Session'));
-    
+
     // Submit booking
     fireEvent.click(screen.getByText('Book Appointment'));
-    
+
     expect(await screen.findByText('Appointment booked successfully')).toBeInTheDocument();
   });
 });
@@ -532,6 +598,7 @@ describe('AppointmentBooking', () => {
 ## Future Component Enhancements
 
 ### Planned Components
+
 - **NotificationCenter**: Real-time notifications
 - **ChatWidget**: Patient-doctor communication
 - **VideoCall**: Telemedicine integration
@@ -539,6 +606,7 @@ describe('AppointmentBooking', () => {
 - **ReportBuilder**: Custom report generation
 
 ### Mobile-First Components
+
 - **SwipeableCard**: Touch-friendly interactions
 - **PullToRefresh**: Mobile refresh patterns
 - **BottomSheet**: Mobile modal alternative

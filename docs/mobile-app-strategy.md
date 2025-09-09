@@ -1,11 +1,13 @@
 # Mobile App Strategy - React Native Conversion
 
 ## Overview
+
 This document outlines the strategy for converting the Hospital Management System into a React Native mobile application, enabling cross-platform deployment on iOS and Android devices.
 
 ## Mobile App Architecture
 
 ### 1. Technology Stack
+
 ```typescript
 // Core Technologies
 - React Native 0.72+
@@ -28,6 +30,7 @@ This document outlines the strategy for converting the Hospital Management Syste
 ```
 
 ### 2. App Structure
+
 ```
 mobile-app/
 ├── src/
@@ -54,6 +57,7 @@ mobile-app/
 ## Code Sharing Strategy
 
 ### 1. Shared Business Logic
+
 ```typescript
 // Shared utilities and types
 // packages/shared/
@@ -80,6 +84,7 @@ import { Patient, validatePatient } from '@hospital/shared';
 ```
 
 ### 2. API Client Abstraction
+
 ```typescript
 // services/api.ts
 class ApiClient {
@@ -92,13 +97,16 @@ class ApiClient {
 
   async setAuthToken(token: string) {
     this.token = token;
-    await SecureStore.setItemAsync('auth_token', token);
+    await SecureStore.setItemAsync("auth_token", token);
   }
 
-  async request<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>> {
+  async request<T>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(this.token && { Authorization: `Bearer ${this.token}` }),
       ...options?.headers,
     };
@@ -121,16 +129,25 @@ class ApiClient {
 
   // Specific API methods
   async getPatients(filters?: PatientFilters): Promise<Patient[]> {
-    const queryString = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-    const response = await this.request<{ patients: Patient[] }>(`/api/patients${queryString}`);
+    const queryString = filters
+      ? `?${new URLSearchParams(filters).toString()}`
+      : "";
+    const response = await this.request<{ patients: Patient[] }>(
+      `/api/patients${queryString}`,
+    );
     return response.data.patients;
   }
 
-  async createAppointment(data: CreateAppointmentRequest): Promise<Appointment> {
-    const response = await this.request<{ appointment: Appointment }>('/api/appointments', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  async createAppointment(
+    data: CreateAppointmentRequest,
+  ): Promise<Appointment> {
+    const response = await this.request<{ appointment: Appointment }>(
+      "/api/appointments",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
     return response.data.appointment;
   }
 }
@@ -139,6 +156,7 @@ class ApiClient {
 ## Mobile-Specific Features
 
 ### 1. Offline Support
+
 ```typescript
 // store/offline.ts
 interface OfflineStore {
@@ -151,22 +169,22 @@ class OfflineManager {
   private db: SQLite.Database;
 
   async init() {
-    this.db = await SQLite.openDatabase('hospital_offline.db');
+    this.db = await SQLite.openDatabase("hospital_offline.db");
     await this.createTables();
   }
 
   async cacheData(key: string, data: any, ttl: number = 3600000) {
     const expiresAt = Date.now() + ttl;
     await this.db.executeSql(
-      'INSERT OR REPLACE INTO cache (key, data, expires_at) VALUES (?, ?, ?)',
-      [key, JSON.stringify(data), expiresAt]
+      "INSERT OR REPLACE INTO cache (key, data, expires_at) VALUES (?, ?, ?)",
+      [key, JSON.stringify(data), expiresAt],
     );
   }
 
   async getCachedData<T>(key: string): Promise<T | null> {
     const result = await this.db.executeSql(
-      'SELECT data FROM cache WHERE key = ? AND expires_at > ?',
-      [key, Date.now()]
+      "SELECT data FROM cache WHERE key = ? AND expires_at > ?",
+      [key, Date.now()],
     );
 
     if (result.rows.length > 0) {
@@ -177,23 +195,27 @@ class OfflineManager {
 
   async queueAction(action: PendingAction) {
     await this.db.executeSql(
-      'INSERT INTO pending_actions (id, type, data, created_at) VALUES (?, ?, ?, ?)',
-      [action.id, action.type, JSON.stringify(action.data), Date.now()]
+      "INSERT INTO pending_actions (id, type, data, created_at) VALUES (?, ?, ?, ?)",
+      [action.id, action.type, JSON.stringify(action.data), Date.now()],
     );
   }
 
   async syncPendingActions() {
     if (!NetInfo.isConnected) return;
 
-    const result = await this.db.executeSql('SELECT * FROM pending_actions ORDER BY created_at');
-    
+    const result = await this.db.executeSql(
+      "SELECT * FROM pending_actions ORDER BY created_at",
+    );
+
     for (let i = 0; i < result.rows.length; i++) {
       const action = result.rows.item(i);
       try {
         await this.executeAction(action);
-        await this.db.executeSql('DELETE FROM pending_actions WHERE id = ?', [action.id]);
+        await this.db.executeSql("DELETE FROM pending_actions WHERE id = ?", [
+          action.id,
+        ]);
       } catch (error) {
-        console.error('Failed to sync action:', action.id, error);
+        console.error("Failed to sync action:", action.id, error);
       }
     }
   }
@@ -201,13 +223,14 @@ class OfflineManager {
 ```
 
 ### 2. Push Notifications
+
 ```typescript
 // services/notifications.ts
 class NotificationService {
   async initialize() {
     const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      throw new Error('Notification permissions not granted');
+    if (status !== "granted") {
+      throw new Error("Notification permissions not granted");
     }
 
     const token = await Notifications.getExpoPushTokenAsync();
@@ -215,8 +238,8 @@ class NotificationService {
   }
 
   async registerDevice(pushToken: string) {
-    await apiClient.request('/api/devices/register', {
-      method: 'POST',
+    await apiClient.request("/api/devices/register", {
+      method: "POST",
       body: JSON.stringify({
         pushToken,
         platform: Platform.OS,
@@ -236,7 +259,7 @@ class NotificationService {
     });
 
     // Handle notification responses
-    Notifications.addNotificationResponseReceivedListener(response => {
+    Notifications.addNotificationResponseReceivedListener((response) => {
       const { data } = response.notification.request.content;
       this.handleNotificationAction(data);
     });
@@ -244,14 +267,14 @@ class NotificationService {
 
   private handleNotificationAction(data: any) {
     switch (data.type) {
-      case 'APPOINTMENT_REMINDER':
-        navigation.navigate('AppointmentDetails', { id: data.appointmentId });
+      case "APPOINTMENT_REMINDER":
+        navigation.navigate("AppointmentDetails", { id: data.appointmentId });
         break;
-      case 'QUEUE_UPDATE':
-        navigation.navigate('Queue');
+      case "QUEUE_UPDATE":
+        navigation.navigate("Queue");
         break;
-      case 'PRESCRIPTION_READY':
-        navigation.navigate('Prescriptions', { id: data.prescriptionId });
+      case "PRESCRIPTION_READY":
+        navigation.navigate("Prescriptions", { id: data.prescriptionId });
         break;
     }
   }
@@ -259,6 +282,7 @@ class NotificationService {
 ```
 
 ### 3. Biometric Authentication
+
 ```typescript
 // services/biometrics.ts
 class BiometricAuth {
@@ -269,14 +293,14 @@ class BiometricAuth {
 
   async authenticate(): Promise<boolean> {
     try {
-      await TouchID.authenticate('Use your fingerprint to access the app', {
-        fallbackLabel: 'Use Passcode',
+      await TouchID.authenticate("Use your fingerprint to access the app", {
+        fallbackLabel: "Use Passcode",
         unifiedErrors: false,
         passcodeFallback: true,
       });
       return true;
     } catch (error) {
-      console.error('Biometric authentication failed:', error);
+      console.error("Biometric authentication failed:", error);
       return false;
     }
   }
@@ -284,14 +308,14 @@ class BiometricAuth {
   async enableBiometricLogin(userId: string) {
     const isAuthenticated = await this.authenticate();
     if (isAuthenticated) {
-      await SecureStore.setItemAsync('biometric_enabled', 'true');
-      await SecureStore.setItemAsync('biometric_user_id', userId);
+      await SecureStore.setItemAsync("biometric_enabled", "true");
+      await SecureStore.setItemAsync("biometric_user_id", userId);
     }
   }
 
   async isBiometricEnabled(): Promise<boolean> {
-    const enabled = await SecureStore.getItemAsync('biometric_enabled');
-    return enabled === 'true';
+    const enabled = await SecureStore.getItemAsync("biometric_enabled");
+    return enabled === "true";
   }
 }
 ```
@@ -299,6 +323,7 @@ class BiometricAuth {
 ## Screen Adaptations
 
 ### 1. Dashboard Screen
+
 ```typescript
 // screens/DashboardScreen.tsx
 const DashboardScreen: React.FC = () => {
@@ -308,7 +333,7 @@ const DashboardScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Header title="Dashboard" user={user} />
-      
+
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
         <StatCard
@@ -360,12 +385,13 @@ const QuickActions: React.FC<{ role: string }> = ({ role }) => {
 ```
 
 ### 2. Patient Management
+
 ```typescript
 // screens/PatientListScreen.tsx
 const PatientListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<PatientFilters>({});
-  
+
   const {
     data: patients,
     isLoading,
@@ -393,7 +419,7 @@ const PatientListScreen: React.FC = () => {
         onChangeText={setSearchQuery}
         placeholder="Search patients..."
       />
-      
+
       <FilterBar filters={filters} onFiltersChange={setFilters} />
 
       <FlatList
@@ -417,6 +443,7 @@ const PatientListScreen: React.FC = () => {
 ```
 
 ### 3. QR Code Scanner
+
 ```typescript
 // screens/QRScannerScreen.tsx
 const QRScannerScreen: React.FC = () => {
@@ -432,7 +459,7 @@ const QRScannerScreen: React.FC = () => {
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
-    
+
     try {
       const appointmentData = JSON.parse(data);
       if (appointmentData.appointmentId) {
@@ -484,6 +511,7 @@ const QRScannerScreen: React.FC = () => {
 ## Navigation Structure
 
 ### 1. Tab Navigation (Role-based)
+
 ```typescript
 // navigation/TabNavigator.tsx
 const TabNavigator: React.FC = () => {
@@ -549,6 +577,7 @@ const TabNavigator: React.FC = () => {
 ## Performance Optimizations
 
 ### 1. Image Optimization
+
 ```typescript
 // components/OptimizedImage.tsx
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -567,7 +596,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
           {placeholder || <ActivityIndicator />}
         </View>
       )}
-      
+
       <Image
         {...props}
         source={source}
@@ -579,7 +608,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         }}
         resizeMode="cover"
       />
-      
+
       {error && (
         <View style={styles.errorContainer}>
           <Icon name="image-off" size={24} color="#gray" />
@@ -591,6 +620,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 ```
 
 ### 2. List Performance
+
 ```typescript
 // components/VirtualizedList.tsx
 const VirtualizedPatientList: React.FC<VirtualizedListProps> = ({
@@ -637,38 +667,40 @@ const VirtualizedPatientList: React.FC<VirtualizedListProps> = ({
 ## Testing Strategy
 
 ### 1. Unit Testing
+
 ```typescript
 // __tests__/services/ApiClient.test.ts
-describe('ApiClient', () => {
+describe("ApiClient", () => {
   let apiClient: ApiClient;
-  
+
   beforeEach(() => {
-    apiClient = new ApiClient('https://api.example.com');
+    apiClient = new ApiClient("https://api.example.com");
   });
 
-  it('should make authenticated requests', async () => {
-    await apiClient.setAuthToken('test-token');
-    
+  it("should make authenticated requests", async () => {
+    await apiClient.setAuthToken("test-token");
+
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true, data: { patients: [] } }),
     });
 
     const patients = await apiClient.getPatients();
-    
+
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.example.com/api/patients',
+      "https://api.example.com/api/patients",
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer test-token',
+          Authorization: "Bearer test-token",
         }),
-      })
+      }),
     );
   });
 });
 ```
 
 ### 2. Component Testing
+
 ```typescript
 // __tests__/components/PatientCard.test.tsx
 describe('PatientCard', () => {
@@ -682,7 +714,7 @@ describe('PatientCard', () => {
 
   it('should render patient information', () => {
     const { getByText } = render(<PatientCard patient={mockPatient} />);
-    
+
     expect(getByText('John Doe')).toBeTruthy();
     expect(getByText('1234567890')).toBeTruthy();
     expect(getByText('john@example.com')).toBeTruthy();
@@ -693,7 +725,7 @@ describe('PatientCard', () => {
     const { getByTestId } = render(
       <PatientCard patient={mockPatient} onPress={onPress} />
     );
-    
+
     fireEvent.press(getByTestId('patient-card'));
     expect(onPress).toHaveBeenCalledWith(mockPatient);
   });
@@ -703,6 +735,7 @@ describe('PatientCard', () => {
 ## Deployment Strategy
 
 ### 1. Expo Configuration
+
 ```json
 // app.json
 {
@@ -721,9 +754,7 @@ describe('PatientCard', () => {
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hospital.management",
@@ -751,6 +782,7 @@ describe('PatientCard', () => {
 ```
 
 ### 2. Build Configuration
+
 ```bash
 # Development build
 expo build:android --type apk
@@ -767,6 +799,7 @@ expo publish --release-channel production
 ## Migration Timeline
 
 ### Phase 1: Foundation (4-6 weeks)
+
 - [ ] Set up React Native project structure
 - [ ] Implement shared business logic
 - [ ] Create basic navigation
@@ -774,6 +807,7 @@ expo publish --release-channel production
 - [ ] Set up API client
 
 ### Phase 2: Core Features (6-8 weeks)
+
 - [ ] Patient management screens
 - [ ] Appointment booking flow
 - [ ] Dashboard implementation
@@ -781,6 +815,7 @@ expo publish --release-channel production
 - [ ] Basic offline support
 
 ### Phase 3: Advanced Features (4-6 weeks)
+
 - [ ] Prescription management
 - [ ] Billing system
 - [ ] QR code scanning
@@ -788,6 +823,7 @@ expo publish --release-channel production
 - [ ] Biometric authentication
 
 ### Phase 4: Polish & Testing (2-4 weeks)
+
 - [ ] UI/UX refinements
 - [ ] Performance optimization
 - [ ] Comprehensive testing

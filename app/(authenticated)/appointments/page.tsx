@@ -1,185 +1,204 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Calendar, Clock, User, Phone, Plus } from 'lucide-react'
-import { formatDate, formatTime } from '@/lib/utils'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Calendar, Clock, User, Phone, Plus } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/utils";
+import Breadcrumb from "@/components/navigation/breadcrumb";
+import toast from "react-hot-toast";
 
 interface Appointment {
-  id: string
-  date: string
-  time: string
-  type: string
-  status: string
-  notes?: string
-  tokenNumber?: number
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  notes?: string;
+  tokenNumber?: number;
   patient: {
-    id: string
-    firstName: string
-    lastName: string
-    phone: string
-    email?: string
-  }
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+  };
   doctor: {
-    id: string
-    name: string
-  }
+    id: string;
+    name: string;
+  };
 }
 
 const statusColors = {
-  SCHEDULED: 'bg-blue-100 text-blue-800',
-  ARRIVED: 'bg-green-100 text-green-800',
-  WAITING: 'bg-yellow-100 text-yellow-800',
-  IN_CONSULTATION: 'bg-purple-100 text-purple-800',
-  COMPLETED: 'bg-gray-100 text-gray-800',
-  CANCELLED: 'bg-red-100 text-red-800',
-  NO_SHOW: 'bg-orange-100 text-orange-800',
-}
+  SCHEDULED: "bg-blue-100 text-blue-800",
+  ARRIVED: "bg-green-100 text-green-800",
+  WAITING: "bg-yellow-100 text-yellow-800",
+  IN_CONSULTATION: "bg-purple-100 text-purple-800",
+  COMPLETED: "bg-gray-100 text-gray-800",
+  CANCELLED: "bg-red-100 text-red-800",
+  NO_SHOW: "bg-orange-100 text-orange-800",
+};
 
 export default function Appointments() {
-  const { data: session } = useSession()
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [statusFilter, setStatusFilter] = useState('')
+  const { data: session } = useSession();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [statusFilter, setStatusFilter] = useState("");
 
   const fetchAppointments = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const params = new URLSearchParams({
         date: selectedDate,
         ...(statusFilter && { status: statusFilter }),
-      })
+      });
 
-      const response = await fetch(`/api/appointments?${params}`)
+      const response = await fetch(`/api/appointments?${params}`);
       if (response.ok) {
-        const data = await response.json()
-        setAppointments(data.appointments)
+        const data = await response.json();
+        setAppointments(data.appointments);
       } else {
-        toast.error('Failed to fetch appointments')
+        toast.error("Failed to fetch appointments");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchAppointments()
-  }, [selectedDate, statusFilter])
+    fetchAppointments();
+  }, [selectedDate, statusFilter]);
 
-  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+  const updateAppointmentStatus = async (
+    appointmentId: string,
+    newStatus: string,
+  ) => {
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: newStatus }),
-      })
+      });
 
       if (response.ok) {
-        toast.success('Status updated successfully')
-        fetchAppointments()
+        toast.success("Status updated successfully");
+        fetchAppointments();
       } else {
-        toast.error('Failed to update status')
+        toast.error("Failed to update status");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     }
-  }
+  };
 
   const getStatusActions = (appointment: Appointment) => {
-    const actions = []
-    
+    const actions = [];
+
     switch (appointment.status) {
-      case 'SCHEDULED':
+      case "SCHEDULED":
         actions.push(
           <Button
             key="arrived"
             size="sm"
             variant="success"
-            onClick={() => updateAppointmentStatus(appointment.id, 'ARRIVED')}
+            onClick={() => updateAppointmentStatus(appointment.id, "ARRIVED")}
           >
             Mark Arrived
-          </Button>
-        )
-        break
-      case 'ARRIVED':
+          </Button>,
+        );
+        break;
+      case "ARRIVED":
         actions.push(
           <Button
             key="waiting"
             size="sm"
             variant="warning"
-            onClick={() => updateAppointmentStatus(appointment.id, 'WAITING')}
+            onClick={() => updateAppointmentStatus(appointment.id, "WAITING")}
           >
             Move to Queue
-          </Button>
-        )
-        break
-      case 'WAITING':
-        if (session?.user.role === 'DOCTOR') {
+          </Button>,
+        );
+        break;
+      case "WAITING":
+        if (session?.user.role === "DOCTOR") {
           actions.push(
             <Button
               key="consultation"
               size="sm"
-              onClick={() => updateAppointmentStatus(appointment.id, 'IN_CONSULTATION')}
+              onClick={() =>
+                updateAppointmentStatus(appointment.id, "IN_CONSULTATION")
+              }
             >
               Start Consultation
-            </Button>
-          )
+            </Button>,
+          );
         }
-        break
-      case 'IN_CONSULTATION':
-        if (session?.user.role === 'DOCTOR') {
+        break;
+      case "IN_CONSULTATION":
+        if (session?.user.role === "DOCTOR") {
           actions.push(
             <Button
               key="complete"
               size="sm"
               variant="success"
-              onClick={() => updateAppointmentStatus(appointment.id, 'COMPLETED')}
+              onClick={() =>
+                updateAppointmentStatus(appointment.id, "COMPLETED")
+              }
             >
               Complete
-            </Button>
-          )
+            </Button>,
+          );
         }
-        break
+        break;
     }
 
-    if (!['COMPLETED', 'CANCELLED'].includes(appointment.status)) {
+    if (!["COMPLETED", "CANCELLED"].includes(appointment.status)) {
       actions.push(
         <Button
           key="cancel"
           size="sm"
           variant="destructive"
-          onClick={() => updateAppointmentStatus(appointment.id, 'CANCELLED')}
+          onClick={() => updateAppointmentStatus(appointment.id, "CANCELLED")}
         >
           Cancel
-        </Button>
-      )
+        </Button>,
+      );
     }
 
-    return actions
-  }
+    return actions;
+  };
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Appointments", href: "/appointments" }]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Calendar className="w-8 h-8 mr-3 text-primary-600" />
             Appointments
           </h1>
-          <p className="text-gray-600 mt-2">Manage patient appointments and schedules</p>
+          <p className="text-gray-600 mt-2">
+            Manage patient appointments and schedules
+          </p>
         </div>
-        {session?.user.role === 'RECEPTIONIST' && (
+        {session?.user.role === "RECEPTIONIST" && (
           <Link href="/book-appointment">
             <Button className="flex items-center">
               <Plus className="w-4 h-4 mr-2" />
@@ -229,9 +248,7 @@ export default function Appointments() {
       {/* Appointments List */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Appointments for {formatDate(selectedDate)}
-          </CardTitle>
+          <CardTitle>Appointments for {formatDate(selectedDate)}</CardTitle>
           <CardDescription>
             {appointments.length} appointments found
           </CardDescription>
@@ -244,7 +261,9 @@ export default function Appointments() {
           ) : appointments.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No appointments found for this date</p>
+              <p className="text-gray-500">
+                No appointments found for this date
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -258,12 +277,13 @@ export default function Appointments() {
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
                           <span className="text-primary-600 font-medium">
-                            {appointment.tokenNumber || '#'}
+                            {appointment.tokenNumber || "#"}
                           </span>
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {appointment.patient.firstName} {appointment.patient.lastName}
+                            {appointment.patient.firstName}{" "}
+                            {appointment.patient.lastName}
                           </h3>
                           <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                             <span className="flex items-center">
@@ -272,7 +292,7 @@ export default function Appointments() {
                             </span>
                             <span className="flex items-center">
                               <User className="w-4 h-4 mr-1" />
-{appointment.doctor.name}
+                              {appointment.doctor.name}
                             </span>
                             <span className="flex items-center">
                               <Phone className="w-4 h-4 mr-1" />
@@ -283,41 +303,51 @@ export default function Appointments() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        statusColors[appointment.status as keyof typeof statusColors]
-                      }`}>
-                        {appointment.status.replace('_', ' ')}
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          statusColors[
+                            appointment.status as keyof typeof statusColors
+                          ]
+                        }`}
+                      >
+                        {appointment.status.replace("_", " ")}
                       </span>
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
                         {appointment.type}
                       </span>
                     </div>
                   </div>
-                  
-{appointment.notes && (session?.user?.role !== 'NURSE') && (
+
+                  {appointment.notes && session?.user?.role !== "NURSE" && (
                     <div className="mt-3 text-sm text-gray-600">
-                      <strong>Notes:</strong>{' '}
+                      <strong>Notes:</strong>{" "}
                       {(() => {
                         try {
-                          const parsed = JSON.parse(appointment.notes)
+                          const parsed = JSON.parse(appointment.notes);
                           if (parsed?.soapNotes || parsed?.quickNotes) {
                             return (
                               <span>
                                 {parsed.soapNotes?.subjective && (
-                                  <><em>S:</em> {parsed.soapNotes.subjective} </>
+                                  <>
+                                    <em>S:</em>{" "}
+                                    {parsed.soapNotes.subjective}{" "}
+                                  </>
                                 )}
                                 {parsed.soapNotes?.assessment && (
-                                  <><em>A:</em> {parsed.soapNotes.assessment} </>
+                                  <>
+                                    <em>A:</em>{" "}
+                                    {parsed.soapNotes.assessment}{" "}
+                                  </>
                                 )}
                               </span>
-                            )
+                            );
                           }
                         } catch {}
-                        return appointment.notes
+                        return appointment.notes;
                       })()}
                     </div>
                   )}
-                  
+
                   <div className="mt-3 flex space-x-2">
                     {getStatusActions(appointment)}
                   </div>
@@ -328,5 +358,5 @@ export default function Appointments() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

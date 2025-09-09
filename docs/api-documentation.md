@@ -1,18 +1,22 @@
 # API Documentation
 
 ## Overview
+
 The Hospital Management System provides RESTful APIs built with Next.js API routes. All APIs follow consistent patterns for authentication, error handling, and response formatting.
 
 ## Authentication
+
 All protected API routes require authentication via NextAuth.js JWT tokens. Include the session token in requests to authenticated endpoints.
 
 ### Authentication Headers
+
 ```
 Authorization: Bearer <jwt_token>
 Cookie: next-auth.session-token=<session_token>
 ```
 
 ## Response Format
+
 All APIs return consistent JSON responses:
 
 ```json
@@ -25,6 +29,7 @@ All APIs return consistent JSON responses:
 ```
 
 Error responses:
+
 ```json
 {
   "success": false,
@@ -37,10 +42,12 @@ Error responses:
 ## Authentication APIs
 
 ### POST /api/auth/signin
+
 **Purpose**: User authentication
 **Access**: Public
 
 **Request Body**:
+
 ```json
 {
   "email": "doctor@hospital.com",
@@ -49,6 +56,7 @@ Error responses:
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -67,10 +75,12 @@ Error responses:
 ## Patient APIs
 
 ### GET /api/patients
+
 **Purpose**: Retrieve all patients with pagination
 **Access**: ADMIN, DOCTOR, RECEPTIONIST
 
 **Query Parameters**:
+
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 10)
 - `search`: Search term for name/phone
@@ -78,6 +88,7 @@ Error responses:
 - `sortOrder`: asc/desc
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -105,10 +116,12 @@ Error responses:
 ```
 
 ### POST /api/patients
+
 **Purpose**: Create new patient
 **Access**: ADMIN, RECEPTIONIST
 
 **Request Body**:
+
 ```json
 {
   "firstName": "John",
@@ -125,24 +138,29 @@ Error responses:
 ```
 
 ### GET /api/patients/[id]
+
 **Purpose**: Get patient by ID
 **Access**: ADMIN, DOCTOR, RECEPTIONIST
 
 ### PUT /api/patients/[id]
+
 **Purpose**: Update patient information
 **Access**: ADMIN, RECEPTIONIST
 
 ### DELETE /api/patients/[id]
+
 **Purpose**: Soft delete patient
 **Access**: ADMIN
 
 ## Appointment APIs
 
 ### GET /api/appointments
+
 **Purpose**: Retrieve appointments with filters
 **Access**: ADMIN, DOCTOR, RECEPTIONIST
 
 **Query Parameters**:
+
 - `date`: Filter by date (YYYY-MM-DD)
 - `doctorId`: Filter by doctor
 - `patientId`: Filter by patient
@@ -150,6 +168,7 @@ Error responses:
 - `sessionId`: Filter by session
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -182,10 +201,12 @@ Error responses:
 ```
 
 ### POST /api/appointments
+
 **Purpose**: Create new appointment
 **Access**: ADMIN, RECEPTIONIST
 
 **Request Body**:
+
 ```json
 {
   "patientId": "patient_id",
@@ -199,10 +220,12 @@ Error responses:
 ```
 
 ### POST /api/appointments/book-public
+
 **Purpose**: Public appointment booking
 **Access**: Public
 
 **Request Body**:
+
 ```json
 {
   "patient": {
@@ -221,10 +244,12 @@ Error responses:
 ```
 
 ### PUT /api/appointments/[id]/status
+
 **Purpose**: Update appointment status
 **Access**: ADMIN, DOCTOR, RECEPTIONIST
 
 **Request Body**:
+
 ```json
 {
   "status": "IN_CONSULTATION",
@@ -235,13 +260,16 @@ Error responses:
 ## Session APIs
 
 ### GET /api/sessions
+
 **Purpose**: Get appointment sessions for date
 **Access**: Public
 
 **Query Parameters**:
+
 - `date`: Date (YYYY-MM-DD)
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -264,10 +292,12 @@ Error responses:
 ```
 
 ### POST /api/sessions
+
 **Purpose**: Create sessions for date
 **Access**: ADMIN
 
 **Request Body**:
+
 ```json
 {
   "date": "2024-01-01",
@@ -286,19 +316,23 @@ Error responses:
 ## Prescription APIs
 
 ### GET /api/prescriptions
+
 **Purpose**: Get prescriptions with filters
 **Access**: ADMIN, DOCTOR
 
 **Query Parameters**:
+
 - `patientId`: Filter by patient
 - `doctorId`: Filter by doctor
 - `date`: Filter by date
 
 ### POST /api/prescriptions
+
 **Purpose**: Create new prescription
 **Access**: DOCTOR
 
 **Request Body**:
+
 ```json
 {
   "patientId": "patient_id",
@@ -324,10 +358,12 @@ Error responses:
 ```
 
 ### GET /api/prescriptions/pending-billing
+
 **Purpose**: Get prescriptions needing billing
 **Access**: ADMIN, RECEPTIONIST
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -353,10 +389,12 @@ Error responses:
 ## Billing APIs
 
 ### GET /api/bills
+
 **Purpose**: Retrieve bills with filters
 **Access**: ADMIN, RECEPTIONIST
 
 **Query Parameters**:
+
 - `patientId`: Filter by patient
 - `doctorId`: Filter by doctor
 - `paymentStatus`: Filter by payment status
@@ -364,10 +402,12 @@ Error responses:
 - `dateTo`: End date filter
 
 ### POST /api/bills
+
 **Purpose**: Create new bill
 **Access**: ADMIN, RECEPTIONIST
 
 **Request Body**:
+
 ```json
 {
   "patientId": "patient_id",
@@ -397,6 +437,7 @@ Error responses:
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -417,10 +458,12 @@ Error responses:
 ```
 
 ### PUT /api/bills/[id]/payment
+
 **Purpose**: Update bill payment status
 **Access**: ADMIN, RECEPTIONIST
 
 **Request Body**:
+
 ```json
 {
   "paymentStatus": "PAID",
@@ -432,14 +475,17 @@ Error responses:
 ## Doctor APIs
 
 ### GET /api/doctors
+
 **Purpose**: Get all doctors
 **Access**: ADMIN, RECEPTIONIST
 
 ### GET /api/doctors/consultation-fees
+
 **Purpose**: Get doctor consultation fees
 **Access**: ADMIN, RECEPTIONIST
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -458,10 +504,12 @@ Error responses:
 ```
 
 ### POST /api/doctors/consultation-fees
+
 **Purpose**: Set doctor consultation fee
 **Access**: ADMIN
 
 **Request Body**:
+
 ```json
 {
   "doctorId": "doctor_id",
@@ -473,18 +521,22 @@ Error responses:
 ## Medicine APIs
 
 ### GET /api/medicines
+
 **Purpose**: Get medicine database
 **Access**: DOCTOR
 
 **Query Parameters**:
+
 - `search`: Search term
 - `category`: Filter by category
 
 ### POST /api/medicines
+
 **Purpose**: Add new medicine
 **Access**: ADMIN
 
 **Request Body**:
+
 ```json
 {
   "name": "Paracetamol",
@@ -499,14 +551,17 @@ Error responses:
 ## Hospital Settings APIs
 
 ### GET /api/settings
+
 **Purpose**: Get hospital settings
 **Access**: ADMIN
 
 ### PUT /api/settings
+
 **Purpose**: Update hospital settings
 **Access**: ADMIN
 
 **Request Body**:
+
 ```json
 {
   "name": "MediCare Hospital",
@@ -524,18 +579,21 @@ Error responses:
 ## Error Codes
 
 ### Authentication Errors
+
 - `AUTH_REQUIRED`: Authentication required
 - `INVALID_CREDENTIALS`: Invalid email/password
 - `ACCESS_DENIED`: Insufficient permissions
 - `SESSION_EXPIRED`: Session has expired
 
 ### Validation Errors
+
 - `VALIDATION_ERROR`: Request validation failed
 - `MISSING_REQUIRED_FIELD`: Required field missing
 - `INVALID_FORMAT`: Invalid data format
 - `DUPLICATE_ENTRY`: Duplicate record exists
 
 ### Business Logic Errors
+
 - `PATIENT_NOT_FOUND`: Patient does not exist
 - `APPOINTMENT_CONFLICT`: Appointment time conflict
 - `SESSION_FULL`: Session has reached capacity
@@ -543,38 +601,47 @@ Error responses:
 - `PRESCRIPTION_NOT_FOUND`: Prescription not found
 
 ### System Errors
+
 - `DATABASE_ERROR`: Database operation failed
 - `INTERNAL_ERROR`: Internal server error
 - `SERVICE_UNAVAILABLE`: Service temporarily unavailable
 
 ## Rate Limiting
+
 - Public APIs: 100 requests per minute per IP
 - Authenticated APIs: 1000 requests per minute per user
 - File upload APIs: 10 requests per minute per user
 
 ## API Versioning
+
 Current API version: v1
 Version header: `API-Version: v1`
 
 Future versions will maintain backward compatibility for at least 6 months.
 
 ## Testing Endpoints
+
 Use the following test credentials for API testing:
 
 **Admin**:
+
 - Email: admin@hospital.com
 - Password: admin123
 
 **Doctor**:
+
 - Email: doctor@hospital.com
 - Password: doctor123
 
 **Receptionist**:
+
 - Email: reception@hospital.com
 - Password: reception123
 
 ## WebSocket APIs (Future)
+
 Real-time features planned:
+
 - Appointment queue updates
 - Notification system
 - Live chat support

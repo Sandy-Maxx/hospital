@@ -3,6 +3,7 @@
 ## Current Performance Analysis
 
 ### Application Performance Metrics
+
 - **Initial Load Time**: ~2-3 seconds (development)
 - **Database Query Time**: 50-200ms average
 - **API Response Time**: 100-500ms average
@@ -12,16 +13,18 @@
 ### Performance Bottlenecks Identified
 
 #### 1. Database Performance Issues
+
 **Problem**: N+1 query problems and missing indexes
 **Impact**: HIGH - Slow page loads and API responses
 
 **Current Issues**:
+
 ```typescript
 // Inefficient: N+1 query problem
 const appointments = await prisma.appointment.findMany();
 for (const appointment of appointments) {
   const patient = await prisma.patient.findUnique({
-    where: { id: appointment.patientId }
+    where: { id: appointment.patientId },
   });
 }
 
@@ -32,6 +35,7 @@ for (const appointment of appointments) {
 ```
 
 **Optimization Solutions**:
+
 ```typescript
 // Efficient: Use include/select for related data
 const appointments = await prisma.appointment.findMany({
@@ -80,16 +84,19 @@ model Bill {
 ```
 
 #### 2. Frontend Performance Issues
+
 **Problem**: Large bundle size and unnecessary re-renders
 **Impact**: MEDIUM - Slow initial load and laggy interactions
 
 **Current Issues**:
+
 - All components loaded on initial page load
 - No code splitting implemented
 - Heavy libraries loaded upfront (jsPDF, html2canvas)
 - Unnecessary component re-renders
 
 **Optimization Solutions**:
+
 ```typescript
 // Implement code splitting
 const PatientChartModal = lazy(() => import('./components/charts/PatientChartModal'));
@@ -125,19 +132,22 @@ const VirtualizedPatientList = ({ patients }: { patients: Patient[] }) => (
 ```
 
 #### 3. API Performance Issues
+
 **Problem**: No caching and inefficient data fetching
 **Impact**: MEDIUM - Repeated API calls and slow responses
 
 **Current Issues**:
+
 - No response caching
 - Large payloads with unnecessary data
 - No pagination on large datasets
 - Synchronous processing
 
 **Optimization Solutions**:
+
 ```typescript
 // Implement API response caching
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -146,19 +156,19 @@ export const withCache = (handler: Function) => {
   return async (req: NextRequest) => {
     const cacheKey = `${req.method}:${req.url}`;
     const cached = cache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data);
     }
-    
+
     const response = await handler(req);
     const data = await response.json();
-    
+
     cache.set(cacheKey, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     return NextResponse.json(data);
   };
 };
@@ -169,29 +179,29 @@ export const getPaginatedResults = async (
   page: number = 1,
   limit: number = 10,
   where: any = {},
-  include: any = {}
+  include: any = {},
 ) => {
   const skip = (page - 1) * limit;
-  
+
   const [data, total] = await Promise.all([
     model.findMany({
       where,
       include,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     }),
-    model.count({ where })
+    model.count({ where }),
   ]);
-  
+
   return {
     data,
     pagination: {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit)
-    }
+      totalPages: Math.ceil(total / limit),
+    },
   };
 };
 
@@ -206,7 +216,7 @@ const getPatients = async () => {
       email: true,
       createdAt: true,
       // Don't select large fields like allergies, address unless needed
-    }
+    },
   });
 };
 ```
@@ -214,6 +224,7 @@ const getPatients = async () => {
 ## Database Optimization Strategy
 
 ### 1. Query Optimization
+
 ```sql
 -- Add composite indexes for common query patterns
 CREATE INDEX idx_appointment_doctor_date ON appointments(doctorId, dateTime);
@@ -227,6 +238,7 @@ CREATE INDEX idx_medicine_search ON medicines(name, genericName);
 ```
 
 ### 2. Connection Pool Optimization
+
 ```typescript
 // Optimize Prisma connection pool
 const prisma = new PrismaClient({
@@ -235,7 +247,7 @@ const prisma = new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  log: process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
 });
 
 // Connection pool settings for production
@@ -249,6 +261,7 @@ const productionPrisma = new PrismaClient({
 ```
 
 ### 3. Database Migration to PostgreSQL
+
 ```typescript
 // Migration strategy for better performance
 // 1. Setup PostgreSQL with proper configuration
@@ -269,7 +282,7 @@ datasource db {
 model Patient {
   // ... existing fields
   searchVector String? // For full-text search
-  
+
   @@index([searchVector], type: Gin)
 }
 ```
@@ -277,27 +290,28 @@ model Patient {
 ## Frontend Performance Optimization
 
 ### 1. Bundle Size Optimization
+
 ```typescript
 // Dynamic imports for heavy components
 const ChartComponents = {
-  PatientChart: lazy(() => import('./charts/PatientChartModal')),
-  RevenueChart: lazy(() => import('./charts/RevenueChartModal')),
-  DistributionChart: lazy(() => import('./charts/PatientsDistinctChartModal')),
+  PatientChart: lazy(() => import("./charts/PatientChartModal")),
+  RevenueChart: lazy(() => import("./charts/RevenueChartModal")),
+  DistributionChart: lazy(() => import("./charts/PatientsDistinctChartModal")),
 };
 
 // Tree-shaking optimization
 // Import only needed functions
-import { format } from 'date-fns/format';
-import { parseISO } from 'date-fns/parseISO';
+import { format } from "date-fns/format";
+import { parseISO } from "date-fns/parseISO";
 // Instead of: import * as dateFns from 'date-fns';
 
 // Optimize Tailwind CSS
 // tailwind.config.js
 module.exports = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx}',
-    './components/**/*.{js,ts,jsx,tsx}',
-    './app/**/*.{js,ts,jsx,tsx}',
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -306,11 +320,12 @@ module.exports = {
   },
   plugins: [],
   // Enable JIT mode for smaller CSS
-  mode: 'jit',
+  mode: "jit",
 };
 ```
 
 ### 2. State Management Optimization
+
 ```typescript
 // Implement efficient state management
 import { create } from 'zustand';
@@ -330,15 +345,15 @@ const useAppStore = create<AppState>()(
     patients: [],
     appointments: [],
     loading: false,
-    
+
     setPatients: (patients) => set({ patients }),
-    
+
     addPatient: (patient) => set((state) => ({
       patients: [...state.patients, patient]
     })),
-    
+
     updatePatient: (id, updates) => set((state) => ({
-      patients: state.patients.map(p => 
+      patients: state.patients.map(p =>
         p.id === id ? { ...p, ...updates } : p
       )
     })),
@@ -349,7 +364,7 @@ const useAppStore = create<AppState>()(
 const PatientList = () => {
   const patients = useAppStore(state => state.patients);
   const loading = useAppStore(state => state.loading);
-  
+
   return (
     <div>
       {loading ? <Loading /> : <PatientItems patients={patients} />}
@@ -359,6 +374,7 @@ const PatientList = () => {
 ```
 
 ### 3. Image and Asset Optimization
+
 ```typescript
 // Optimize images with Next.js Image component
 import Image from 'next/image';
@@ -378,11 +394,11 @@ const HospitalLogo = () => (
 // Implement progressive loading for large datasets
 const useProgressiveLoading = (initialCount: number = 20) => {
   const [displayCount, setDisplayCount] = useState(initialCount);
-  
+
   const loadMore = useCallback(() => {
     setDisplayCount(prev => prev + initialCount);
   }, [initialCount]);
-  
+
   return { displayCount, loadMore };
 };
 ```
@@ -390,14 +406,15 @@ const useProgressiveLoading = (initialCount: number = 20) => {
 ## Caching Strategy
 
 ### 1. Client-Side Caching
+
 ```typescript
 // Implement React Query for API caching
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const usePatients = () => {
   return useQuery({
-    queryKey: ['patients'],
-    queryFn: () => fetch('/api/patients').then(res => res.json()),
+    queryKey: ["patients"],
+    queryFn: () => fetch("/api/patients").then((res) => res.json()),
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -405,15 +422,15 @@ const usePatients = () => {
 
 const useCreatePatient = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (patient: CreatePatientData) =>
-      fetch('/api/patients', {
-        method: 'POST',
+      fetch("/api/patients", {
+        method: "POST",
         body: JSON.stringify(patient),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
     },
   });
 };
@@ -421,46 +438,51 @@ const useCreatePatient = () => {
 // Local storage caching for settings
 const useHospitalSettings = () => {
   const [settings, setSettings] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('hospital-settings');
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("hospital-settings");
       return cached ? JSON.parse(cached) : null;
     }
     return null;
   });
-  
+
   const updateSettings = (newSettings: HospitalSettings) => {
     setSettings(newSettings);
-    localStorage.setItem('hospital-settings', JSON.stringify(newSettings));
+    localStorage.setItem("hospital-settings", JSON.stringify(newSettings));
   };
-  
+
   return { settings, updateSettings };
 };
 ```
 
 ### 2. Server-Side Caching
+
 ```typescript
 // Redis caching for API responses
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 const redis = new Redis(process.env.REDIS_URL);
 
 export const withRedisCache = (key: string, ttl: number = 300) => {
-  return (target: any, propertyName: string, descriptor: PropertyDescriptor) => {
+  return (
+    target: any,
+    propertyName: string,
+    descriptor: PropertyDescriptor,
+  ) => {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const cacheKey = `${key}:${JSON.stringify(args)}`;
-      
+
       // Try to get from cache
       const cached = await redis.get(cacheKey);
       if (cached) {
         return JSON.parse(cached);
       }
-      
+
       // Execute method and cache result
       const result = await method.apply(this, args);
       await redis.setex(cacheKey, ttl, JSON.stringify(result));
-      
+
       return result;
     };
   };
@@ -468,11 +490,11 @@ export const withRedisCache = (key: string, ttl: number = 300) => {
 
 // Usage in API routes
 class PatientService {
-  @withRedisCache('patients', 300) // 5 minutes
+  @withRedisCache("patients", 300) // 5 minutes
   async getPatients(filters: PatientFilters) {
     return await prisma.patient.findMany({
       where: filters,
-      include: { appointments: true }
+      include: { appointments: true },
     });
   }
 }
@@ -481,14 +503,15 @@ class PatientService {
 ## Real-Time Performance Monitoring
 
 ### 1. Performance Metrics Collection
+
 ```typescript
 // Web Vitals monitoring
-import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+import { getCLS, getFID, getFCP, getLCP, getTTFB } from "web-vitals";
 
 const sendToAnalytics = (metric: any) => {
   // Send to your analytics service
-  fetch('/api/analytics', {
-    method: 'POST',
+  fetch("/api/analytics", {
+    method: "POST",
     body: JSON.stringify(metric),
   });
 };
@@ -505,11 +528,11 @@ const performanceMonitor = {
   startTimer: (label: string) => {
     performance.mark(`${label}-start`);
   },
-  
+
   endTimer: (label: string) => {
     performance.mark(`${label}-end`);
     performance.measure(label, `${label}-start`, `${label}-end`);
-    
+
     const measure = performance.getEntriesByName(label)[0];
     sendToAnalytics({
       name: label,
@@ -522,37 +545,39 @@ const performanceMonitor = {
 // Usage in components
 const PatientForm = () => {
   const handleSubmit = async (data: PatientData) => {
-    performanceMonitor.startTimer('patient-creation');
-    
+    performanceMonitor.startTimer("patient-creation");
+
     try {
       await createPatient(data);
     } finally {
-      performanceMonitor.endTimer('patient-creation');
+      performanceMonitor.endTimer("patient-creation");
     }
   };
 };
 ```
 
 ### 2. Database Performance Monitoring
+
 ```typescript
 // Prisma query logging and monitoring
 const prismaWithLogging = new PrismaClient({
   log: [
     {
-      emit: 'event',
-      level: 'query',
+      emit: "event",
+      level: "query",
     },
   ],
 });
 
-prismaWithLogging.$on('query', (e) => {
-  if (e.duration > 1000) { // Log slow queries (>1s)
-    console.warn('Slow query detected:', {
+prismaWithLogging.$on("query", (e) => {
+  if (e.duration > 1000) {
+    // Log slow queries (>1s)
+    console.warn("Slow query detected:", {
       query: e.query,
       duration: e.duration,
       params: e.params,
     });
-    
+
     // Send alert for very slow queries
     if (e.duration > 5000) {
       sendSlowQueryAlert(e);
@@ -569,7 +594,7 @@ const analyzeQueryPerformance = async () => {
     ORDER BY avg_exec_time DESC
     LIMIT 10;
   `;
-  
+
   return slowQueries;
 };
 ```
@@ -577,6 +602,7 @@ const analyzeQueryPerformance = async () => {
 ## Mobile Performance Optimization
 
 ### 1. Progressive Web App (PWA) Implementation
+
 ```typescript
 // Service Worker for caching
 // public/sw.js
@@ -631,49 +657,50 @@ self.addEventListener('fetch', (event) => {
 ```
 
 ### 2. Offline Support Strategy
+
 ```typescript
 // Offline data synchronization
 class OfflineManager {
   private db: IDBDatabase;
-  
+
   async init() {
     this.db = await this.openDB();
   }
-  
+
   private openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('HospitalDB', 1);
-      
+      const request = indexedDB.open("HospitalDB", 1);
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
-      
+
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // Create object stores
-        db.createObjectStore('patients', { keyPath: 'id' });
-        db.createObjectStore('appointments', { keyPath: 'id' });
-        db.createObjectStore('pendingSync', { keyPath: 'id' });
+        db.createObjectStore("patients", { keyPath: "id" });
+        db.createObjectStore("appointments", { keyPath: "id" });
+        db.createObjectStore("pendingSync", { keyPath: "id" });
       };
     });
   }
-  
+
   async saveOfflineData(storeName: string, data: any) {
-    const transaction = this.db.transaction([storeName], 'readwrite');
+    const transaction = this.db.transaction([storeName], "readwrite");
     const store = transaction.objectStore(storeName);
     await store.put(data);
   }
-  
+
   async syncWhenOnline() {
     if (navigator.onLine) {
       const pendingData = await this.getPendingSync();
-      
+
       for (const item of pendingData) {
         try {
           await this.syncItem(item);
           await this.removePendingSync(item.id);
         } catch (error) {
-          console.error('Sync failed for item:', item.id, error);
+          console.error("Sync failed for item:", item.id, error);
         }
       }
     }
@@ -684,6 +711,7 @@ class OfflineManager {
 ## Performance Testing Strategy
 
 ### 1. Load Testing
+
 ```typescript
 // Artillery.js load testing configuration
 // artillery-config.yml
@@ -714,38 +742,39 @@ scenarios:
 // Performance benchmarking
 const benchmarkAPI = async () => {
   const startTime = performance.now();
-  
+
   const promises = Array(100).fill(null).map(() =>
     fetch('/api/patients').then(r => r.json())
   );
-  
+
   await Promise.all(promises);
-  
+
   const endTime = performance.now();
   console.log(`100 concurrent requests took ${endTime - startTime}ms`);
 };
 ```
 
 ### 2. Automated Performance Testing
+
 ```typescript
 // Lighthouse CI configuration
 // .lighthouserc.js
 module.exports = {
   ci: {
     collect: {
-      url: ['http://localhost:3000/', 'http://localhost:3000/dashboard'],
+      url: ["http://localhost:3000/", "http://localhost:3000/dashboard"],
       numberOfRuns: 3,
     },
     assert: {
       assertions: {
-        'categories:performance': ['error', { minScore: 0.8 }],
-        'categories:accessibility': ['error', { minScore: 0.9 }],
-        'categories:best-practices': ['error', { minScore: 0.9 }],
-        'categories:seo': ['error', { minScore: 0.8 }],
+        "categories:performance": ["error", { minScore: 0.8 }],
+        "categories:accessibility": ["error", { minScore: 0.9 }],
+        "categories:best-practices": ["error", { minScore: 0.9 }],
+        "categories:seo": ["error", { minScore: 0.8 }],
       },
     },
     upload: {
-      target: 'temporary-public-storage',
+      target: "temporary-public-storage",
     },
   },
 };
@@ -754,6 +783,7 @@ module.exports = {
 ## Performance Optimization Roadmap
 
 ### Phase 1: Immediate Optimizations (1-2 weeks)
+
 - [ ] Add database indexes for common queries
 - [ ] Implement code splitting for heavy components
 - [ ] Add React.memo for frequently re-rendering components
@@ -761,6 +791,7 @@ module.exports = {
 - [ ] Implement basic caching for static data
 
 ### Phase 2: Advanced Optimizations (2-4 weeks)
+
 - [ ] Migrate to PostgreSQL for better performance
 - [ ] Implement Redis caching layer
 - [ ] Add virtual scrolling for large lists
@@ -768,6 +799,7 @@ module.exports = {
 - [ ] Implement progressive loading patterns
 
 ### Phase 3: Infrastructure Optimizations (4-8 weeks)
+
 - [ ] Set up CDN for static assets
 - [ ] Implement database read replicas
 - [ ] Add application-level caching
@@ -775,6 +807,7 @@ module.exports = {
 - [ ] Implement offline support with service workers
 
 ### Phase 4: Advanced Features (8-12 weeks)
+
 - [ ] Real-time updates with WebSockets
 - [ ] Advanced analytics and monitoring
 - [ ] Machine learning for predictive caching

@@ -5,6 +5,7 @@
 ### Environment Setup
 
 #### 1. Environment Variables Configuration
+
 ```bash
 # Database Configuration
 DATABASE_URL="postgresql://username:password@localhost:5432/hospital_db"
@@ -35,6 +36,7 @@ LOG_LEVEL="error"
 ```
 
 #### 2. Database Migration Strategy
+
 ```bash
 # Production database setup
 # 1. Create PostgreSQL database
@@ -57,6 +59,7 @@ npm run seed:production
 ### Docker Deployment
 
 #### 1. Multi-stage Dockerfile
+
 ```dockerfile
 # Build stage
 FROM node:18-alpine AS builder
@@ -114,8 +117,9 @@ CMD ["node", "server.js"]
 ```
 
 #### 2. Docker Compose Configuration
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -189,6 +193,7 @@ networks:
 ### Cloud Deployment Options
 
 #### 1. Vercel Deployment
+
 ```bash
 # Install Vercel CLI
 npm i -g vercel
@@ -209,6 +214,7 @@ vercel domains add yourdomain.com
 ```
 
 **Vercel Configuration (vercel.json)**:
+
 ```json
 {
   "framework": "nextjs",
@@ -229,9 +235,10 @@ vercel domains add yourdomain.com
 ```
 
 #### 2. AWS Deployment with ECS
+
 ```yaml
 # ECS Task Definition
-version: '3'
+version: "3"
 services:
   hospital-app:
     image: your-ecr-repo/hospital-management:latest
@@ -254,9 +261,10 @@ services:
 ```
 
 **CloudFormation Template**:
+
 ```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Hospital Management System Infrastructure'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Hospital Management System Infrastructure"
 
 Resources:
   VPC:
@@ -276,7 +284,7 @@ Resources:
     Properties:
       DBInstanceClass: db.t3.micro
       Engine: postgres
-      EngineVersion: '15.4'
+      EngineVersion: "15.4"
       MasterUsername: postgres
       MasterUserPassword: !Ref DBPassword
       AllocatedStorage: 20
@@ -295,6 +303,7 @@ Resources:
 ```
 
 #### 3. Google Cloud Platform Deployment
+
 ```yaml
 # Cloud Run Service
 apiVersion: serving.knative.dev/v1
@@ -312,29 +321,30 @@ spec:
         run.googleapis.com/cpu: "1000m"
     spec:
       containers:
-      - image: gcr.io/your-project/hospital-management:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: hospital-secrets
-              key: database-url
-        - name: NEXTAUTH_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: hospital-secrets
-              key: nextauth-secret
-        resources:
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
+        - image: gcr.io/your-project/hospital-management:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-secrets
+                  key: database-url
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-secrets
+                  key: nextauth-secret
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
 ```
 
 ### SSL/TLS Configuration
 
 #### 1. Nginx SSL Configuration
+
 ```nginx
 server {
     listen 80;
@@ -411,6 +421,7 @@ server {
 ```
 
 #### 2. Let's Encrypt SSL Setup
+
 ```bash
 # Install Certbot
 sudo apt-get update
@@ -427,22 +438,23 @@ sudo crontab -e
 ### Monitoring & Logging
 
 #### 1. Application Monitoring
+
 ```typescript
 // Health check endpoint
 // app/api/health/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     // Check database connection
     await prisma.$queryRaw`SELECT 1`;
-    
+
     // Check Redis connection (if using)
     // await redis.ping();
-    
+
     return NextResponse.json({
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       memory: process.memoryUsage(),
@@ -451,48 +463,52 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       {
-        status: 'unhealthy',
+        status: "unhealthy",
         error: error.message,
         timestamp: new Date().toISOString(),
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }
 ```
 
 #### 2. Logging Configuration
+
 ```typescript
 // lib/logger.ts
-import winston from 'winston';
+import winston from "winston";
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
   ),
-  defaultMeta: { service: 'hospital-management' },
+  defaultMeta: { service: "hospital-management" },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
+    new winston.transports.File({ filename: "logs/combined.log" }),
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  );
 }
 
 export default logger;
 ```
 
 #### 3. Error Tracking with Sentry
+
 ```typescript
 // lib/sentry.ts
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -514,6 +530,7 @@ export default Sentry;
 ### Backup & Recovery
 
 #### 1. Database Backup Strategy
+
 ```bash
 #!/bin/bash
 # backup-database.sh
@@ -538,6 +555,7 @@ echo "Backup completed: hospital_backup_$DATE.sql.gz"
 ```
 
 #### 2. Application Backup
+
 ```bash
 #!/bin/bash
 # backup-application.sh
@@ -562,25 +580,26 @@ echo "Application backup completed: hospital_app_$DATE.tar.gz"
 ### Performance Optimization for Production
 
 #### 1. Next.js Production Configuration
+
 ```javascript
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: "standalone",
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  
+
   images: {
-    domains: ['yourdomain.com'],
-    formats: ['image/webp', 'image/avif'],
+    domains: ["yourdomain.com"],
+    formats: ["image/webp", "image/avif"],
   },
-  
+
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: ["lucide-react"],
   },
-  
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -590,36 +609,36 @@ const nextConfig = {
         tls: false,
       };
     }
-    
+
     // Bundle analyzer in development
-    if (process.env.ANALYZE === 'true') {
-      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+    if (process.env.ANALYZE === "true") {
+      const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
       config.plugins.push(
         new BundleAnalyzerPlugin({
-          analyzerMode: 'server',
+          analyzerMode: "server",
           openAnalyzer: true,
-        })
+        }),
       );
     }
-    
+
     return config;
   },
-  
+
   headers: async () => [
     {
-      source: '/(.*)',
+      source: "/(.*)",
       headers: [
         {
-          key: 'X-Frame-Options',
-          value: 'DENY',
+          key: "X-Frame-Options",
+          value: "DENY",
         },
         {
-          key: 'X-Content-Type-Options',
-          value: 'nosniff',
+          key: "X-Content-Type-Options",
+          value: "nosniff",
         },
         {
-          key: 'Referrer-Policy',
-          value: 'strict-origin-when-cross-origin',
+          key: "Referrer-Policy",
+          value: "strict-origin-when-cross-origin",
         },
       ],
     },
@@ -630,29 +649,33 @@ module.exports = nextConfig;
 ```
 
 #### 2. Database Connection Pooling
+
 ```typescript
 // lib/prisma.ts (Production)
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
     },
-  },
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
-});
+    log:
+      process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
+  });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // Connection pool configuration for production
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   // Graceful shutdown
-  process.on('beforeExit', async () => {
+  process.on("beforeExit", async () => {
     await prisma.$disconnect();
   });
 }
@@ -661,6 +684,7 @@ if (process.env.NODE_ENV === 'production') {
 ### Security Hardening
 
 #### 1. Production Security Checklist
+
 - [ ] Environment variables secured
 - [ ] Database credentials rotated
 - [ ] SSL/TLS certificates installed
@@ -673,6 +697,7 @@ if (process.env.NODE_ENV === 'production') {
 - [ ] Access controls verified
 
 #### 2. Firewall Configuration
+
 ```bash
 # UFW Firewall setup
 sudo ufw default deny incoming
@@ -691,6 +716,7 @@ sudo systemctl start fail2ban
 ### Deployment Automation
 
 #### 1. GitHub Actions CI/CD
+
 ```yaml
 # .github/workflows/deploy.yml
 name: Deploy to Production
@@ -706,9 +732,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
-      
+          node-version: "18"
+          cache: "npm"
+
       - run: npm ci
       - run: npm run lint
       - run: npm run test
@@ -718,10 +744,10 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Deploy to production
         uses: appleboy/ssh-action@v0.1.5
         with:
@@ -737,6 +763,7 @@ jobs:
 ```
 
 #### 2. Zero-Downtime Deployment
+
 ```bash
 #!/bin/bash
 # deploy.sh - Zero downtime deployment script
@@ -782,31 +809,32 @@ fi
 ### Production Monitoring Dashboard
 
 #### 1. System Metrics Collection
+
 ```typescript
 // lib/metrics.ts
-import { register, Counter, Histogram, Gauge } from 'prom-client';
+import { register, Counter, Histogram, Gauge } from "prom-client";
 
 export const httpRequestsTotal = new Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
+  name: "http_requests_total",
+  help: "Total number of HTTP requests",
+  labelNames: ["method", "route", "status_code"],
 });
 
 export const httpRequestDuration = new Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route'],
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route"],
   buckets: [0.1, 0.5, 1, 2, 5],
 });
 
 export const activeUsers = new Gauge({
-  name: 'active_users_total',
-  help: 'Number of active users',
+  name: "active_users_total",
+  help: "Number of active users",
 });
 
 export const databaseConnections = new Gauge({
-  name: 'database_connections_active',
-  help: 'Number of active database connections',
+  name: "database_connections_active",
+  help: "Number of active database connections",
 });
 
 // Metrics endpoint
@@ -814,7 +842,7 @@ export const databaseConnections = new Gauge({
 export async function GET() {
   const metrics = await register.metrics();
   return new Response(metrics, {
-    headers: { 'Content-Type': register.contentType },
+    headers: { "Content-Type": register.contentType },
   });
 }
 ```

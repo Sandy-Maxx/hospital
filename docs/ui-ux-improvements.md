@@ -3,25 +3,29 @@
 ## Current UI/UX Analysis
 
 ### Strengths
+
 ✅ **Consistent Design System**: Tailwind CSS with custom color palette  
 ✅ **Role-Based Navigation**: Clear separation of user interfaces  
 ✅ **Responsive Layout**: Mobile-friendly design patterns  
 ✅ **Professional Branding**: Hospital-appropriate visual identity  
-✅ **Form Validation**: Real-time feedback and error handling  
+✅ **Form Validation**: Real-time feedback and error handling
 
 ### Critical UX Issues Identified
 
 #### 1. Navigation & Information Architecture
+
 **Problem**: Complex navigation structure with deep nesting
 **Impact**: HIGH - Users get lost in the interface
 
 **Current Issues**:
+
 - Too many navigation levels (3-4 deep)
 - Inconsistent breadcrumb implementation
 - No quick access to frequently used features
 - Role-based menus not optimized for workflow
 
 **Improvement Solutions**:
+
 ```typescript
 // Simplified navigation structure
 const improvedNavigation = {
@@ -55,7 +59,7 @@ const Breadcrumb = ({ items }: { items: BreadcrumbItem[] }) => (
     {items.map((item, index) => (
       <React.Fragment key={item.href}>
         {index > 0 && <ChevronRight className="w-4 h-4" />}
-        <Link 
+        <Link
           href={item.href}
           className={index === items.length - 1 ? 'text-gray-900 font-medium' : 'hover:text-blue-600'}
         >
@@ -68,16 +72,19 @@ const Breadcrumb = ({ items }: { items: BreadcrumbItem[] }) => (
 ```
 
 #### 2. Form Design & User Input
+
 **Problem**: Complex forms with poor user experience
 **Impact**: HIGH - High abandonment rate and user frustration
 
 **Current Issues**:
+
 - Long forms without progress indicators
 - Poor error message placement
 - No auto-save functionality
 - Inconsistent input validation feedback
 
 **Improvement Solutions**:
+
 ```typescript
 // Multi-step form with progress
 const MultiStepForm = ({ steps, onSubmit }: MultiStepFormProps) => {
@@ -168,16 +175,19 @@ const EnhancedInput = ({
 ```
 
 #### 3. Data Visualization & Dashboard
+
 **Problem**: Poor data presentation and lack of actionable insights
 **Impact**: MEDIUM - Reduced efficiency in decision making
 
 **Current Issues**:
+
 - Static charts without interactivity
 - No real-time data updates
 - Poor mobile chart experience
 - Missing key performance indicators
 
 **Improvement Solutions**:
+
 ```typescript
 // Interactive dashboard with real-time updates
 const DashboardCard = ({ title, value, change, trend, onClick }: DashboardCardProps) => (
@@ -211,14 +221,14 @@ const DashboardCard = ({ title, value, change, trend, onClick }: DashboardCardPr
 // Real-time queue status
 const QueueStatus = () => {
   const [queueData, setQueueData] = useState([]);
-  
+
   useEffect(() => {
     const interval = setInterval(async () => {
       const response = await fetch('/api/queue/status');
       const data = await response.json();
       setQueueData(data.queue);
     }, 30000); // Update every 30 seconds
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -248,16 +258,19 @@ const QueueStatus = () => {
 ```
 
 #### 4. Mobile Experience
+
 **Problem**: Poor mobile optimization and touch interactions
 **Impact**: HIGH - Mobile users struggle with the interface
 
 **Current Issues**:
+
 - Small touch targets
 - Horizontal scrolling on mobile
 - Poor modal experience on mobile
 - No mobile-specific navigation patterns
 
 **Improvement Solutions**:
+
 ```typescript
 // Mobile-optimized components
 const MobileBottomSheet = ({ isOpen, onClose, children }: BottomSheetProps) => (
@@ -304,7 +317,7 @@ const TouchButton = ({ children, variant = 'primary', ...props }: TouchButtonPro
 // Mobile navigation
 const MobileNavigation = ({ user }: { user: User }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <>
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
@@ -332,12 +345,15 @@ const MobileNavigation = ({ user }: { user: User }) => {
 ## Accessibility Improvements
 
 ### 1. Keyboard Navigation
+
 **Current Issues**:
+
 - Poor tab order in complex forms
 - Missing focus indicators
 - No keyboard shortcuts for common actions
 
 **Improvements**:
+
 ```typescript
 // Enhanced keyboard navigation
 const useKeyboardShortcuts = () => {
@@ -348,13 +364,13 @@ const useKeyboardShortcuts = () => {
         event.preventDefault();
         openSearchModal();
       }
-      
+
       // Ctrl/Cmd + N for new patient
       if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
         event.preventDefault();
         openNewPatientModal();
       }
-      
+
       // Escape to close modals
       if (event.key === 'Escape') {
         closeAllModals();
@@ -369,31 +385,32 @@ const useKeyboardShortcuts = () => {
 // Focus management
 const FocusTrap = ({ children, isActive }: FocusTrapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (!isActive) return;
-    
+
     const focusableElements = containerRef.current?.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     if (focusableElements && focusableElements.length > 0) {
       (focusableElements[0] as HTMLElement).focus();
     }
   }, [isActive]);
-  
+
   return <div ref={containerRef}>{children}</div>;
 };
 ```
 
 ### 2. Screen Reader Support
+
 ```typescript
 // ARIA labels and descriptions
-const AccessibleButton = ({ 
-  children, 
-  ariaLabel, 
+const AccessibleButton = ({
+  children,
+  ariaLabel,
   ariaDescribedBy,
-  ...props 
+  ...props
 }: AccessibleButtonProps) => (
   <button
     aria-label={ariaLabel}
@@ -418,12 +435,12 @@ const LiveRegion = ({ message, priority = 'polite' }: LiveRegionProps) => (
 // Status announcements
 const useStatusAnnouncement = () => {
   const [announcement, setAnnouncement] = useState('');
-  
+
   const announce = (message: string) => {
     setAnnouncement(message);
     setTimeout(() => setAnnouncement(''), 1000);
   };
-  
+
   return { announcement, announce };
 };
 ```
@@ -431,6 +448,7 @@ const useStatusAnnouncement = () => {
 ## Visual Design Enhancements
 
 ### 1. Color System & Theming
+
 ```typescript
 // Enhanced color system
 const colorSystem = {
@@ -459,7 +477,7 @@ const colorSystem = {
 // Dark mode support
 const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
@@ -468,7 +486,7 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       setTheme('dark');
     }
   }, []);
-  
+
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
       <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -480,33 +498,35 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 ```
 
 ### 2. Typography & Spacing
+
 ```typescript
 // Improved typography scale
 const typography = {
-  display: 'text-4xl font-bold tracking-tight',
-  h1: 'text-3xl font-bold',
-  h2: 'text-2xl font-semibold',
-  h3: 'text-xl font-semibold',
-  h4: 'text-lg font-medium',
-  body: 'text-base',
-  small: 'text-sm',
-  caption: 'text-xs text-gray-600',
+  display: "text-4xl font-bold tracking-tight",
+  h1: "text-3xl font-bold",
+  h2: "text-2xl font-semibold",
+  h3: "text-xl font-semibold",
+  h4: "text-lg font-medium",
+  body: "text-base",
+  small: "text-sm",
+  caption: "text-xs text-gray-600",
 };
 
 // Consistent spacing system
 const spacing = {
-  xs: '0.25rem',   // 4px
-  sm: '0.5rem',    // 8px
-  md: '1rem',      // 16px
-  lg: '1.5rem',    // 24px
-  xl: '2rem',      // 32px
-  '2xl': '3rem',   // 48px
+  xs: "0.25rem", // 4px
+  sm: "0.5rem", // 8px
+  md: "1rem", // 16px
+  lg: "1.5rem", // 24px
+  xl: "2rem", // 32px
+  "2xl": "3rem", // 48px
 };
 ```
 
 ## User Experience Patterns
 
 ### 1. Loading States & Feedback
+
 ```typescript
 // Skeleton loading components
 const PatientCardSkeleton = () => (
@@ -525,13 +545,13 @@ const PatientCardSkeleton = () => (
 const ProgressiveList = ({ items, renderItem }: ProgressiveListProps) => {
   const [visibleCount, setVisibleCount] = useState(20);
   const { ref, inView } = useInView();
-  
+
   useEffect(() => {
     if (inView && visibleCount < items.length) {
       setVisibleCount(prev => Math.min(prev + 20, items.length));
     }
   }, [inView, visibleCount, items.length]);
-  
+
   return (
     <div>
       {items.slice(0, visibleCount).map(renderItem)}
@@ -550,16 +570,16 @@ const useOptimisticUpdate = <T,>(
   updateFn: (item: T) => Promise<T>
 ) => {
   const [optimisticItems, setOptimisticItems] = useState(items);
-  
+
   const updateItem = async (item: T) => {
     // Optimistically update UI
-    setOptimisticItems(prev => 
+    setOptimisticItems(prev =>
       prev.map(i => i.id === item.id ? item : i)
     );
-    
+
     try {
       const updated = await updateFn(item);
-      setOptimisticItems(prev => 
+      setOptimisticItems(prev =>
         prev.map(i => i.id === updated.id ? updated : i)
       );
     } catch (error) {
@@ -568,19 +588,20 @@ const useOptimisticUpdate = <T,>(
       throw error;
     }
   };
-  
+
   return { items: optimisticItems, updateItem };
 };
 ```
 
 ### 2. Search & Filtering
+
 ```typescript
 // Advanced search component
 const SmartSearch = ({ onSearch, placeholder }: SmartSearchProps) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const debouncedQuery = useDebounce(query, 300);
-  
+
   useEffect(() => {
     if (debouncedQuery) {
       fetchSuggestions(debouncedQuery).then(setSuggestions);
@@ -588,7 +609,7 @@ const SmartSearch = ({ onSearch, placeholder }: SmartSearchProps) => {
       setSuggestions([]);
     }
   }, [debouncedQuery]);
-  
+
   return (
     <div className="relative">
       <div className="relative">
@@ -601,7 +622,7 @@ const SmartSearch = ({ onSearch, placeholder }: SmartSearchProps) => {
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
-      
+
       {suggestions.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
           {suggestions.map((suggestion, index) => (
@@ -628,13 +649,13 @@ const SmartSearch = ({ onSearch, placeholder }: SmartSearchProps) => {
 const FilterPanel = ({ filters, onFilterChange }: FilterPanelProps) => (
   <div className="space-y-4">
     <h3 className="font-medium text-gray-900">Filters</h3>
-    
+
     {filters.map((filter) => (
       <div key={filter.key}>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {filter.label}
         </label>
-        
+
         {filter.type === 'select' && (
           <select
             value={filter.value}
@@ -649,7 +670,7 @@ const FilterPanel = ({ filters, onFilterChange }: FilterPanelProps) => (
             ))}
           </select>
         )}
-        
+
         {filter.type === 'date-range' && (
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -681,24 +702,25 @@ const FilterPanel = ({ filters, onFilterChange }: FilterPanelProps) => (
 ## Notification & Feedback System
 
 ### 1. Toast Notifications
+
 ```typescript
 // Enhanced toast system
 const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  
+
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { ...toast, id }]);
-    
+
     if (toast.duration !== 0) {
       setTimeout(() => removeToast(id), toast.duration || 5000);
     }
   };
-  
+
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
-  
+
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
@@ -737,11 +759,12 @@ const ActionableToast = ({ type, message, action }: ActionableToastProps) => (
 ## Performance UX Improvements
 
 ### 1. Perceived Performance
+
 ```typescript
 // Instant feedback patterns
 const InstantButton = ({ onClick, children, ...props }: InstantButtonProps) => {
   const [isPressed, setIsPressed] = useState(false);
-  
+
   const handleClick = async () => {
     setIsPressed(true);
     try {
@@ -750,7 +773,7 @@ const InstantButton = ({ onClick, children, ...props }: InstantButtonProps) => {
       setIsPressed(false);
     }
   };
-  
+
   return (
     <button
       className={`transition-transform ${isPressed ? 'scale-95' : 'scale-100'}`}
@@ -765,7 +788,7 @@ const InstantButton = ({ onClick, children, ...props }: InstantButtonProps) => {
 // Predictive loading
 const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  
+
   useEffect(() => {
     const handleMouseEnter = (e: MouseEvent) => {
       const link = (e.target as HTMLElement).closest('a');
@@ -773,11 +796,11 @@ const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
         router.prefetch(link.href);
       }
     };
-    
+
     document.addEventListener('mouseenter', handleMouseEnter, true);
     return () => document.removeEventListener('mouseenter', handleMouseEnter, true);
   }, [router]);
-  
+
   return <>{children}</>;
 };
 ```
@@ -785,6 +808,7 @@ const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
 ## UX Improvement Roadmap
 
 ### Phase 1: Critical UX Fixes (1-2 weeks)
+
 - [ ] Implement breadcrumb navigation
 - [ ] Add progress indicators to multi-step forms
 - [ ] Improve mobile touch targets
@@ -792,6 +816,7 @@ const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
 - [ ] Implement proper loading states
 
 ### Phase 2: Enhanced Interactions (2-4 weeks)
+
 - [ ] Add real-time updates to dashboard
 - [ ] Implement advanced search with suggestions
 - [ ] Add drag-and-drop functionality
@@ -799,6 +824,7 @@ const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
 - [ ] Add contextual help system
 
 ### Phase 3: Advanced UX Features (4-8 weeks)
+
 - [ ] Implement dark mode
 - [ ] Add customizable dashboard
 - [ ] Create mobile-specific navigation
@@ -806,6 +832,7 @@ const PredictiveLoader = ({ children }: { children: React.ReactNode }) => {
 - [ ] Implement advanced filtering system
 
 ### Phase 4: Personalization & AI (8-12 weeks)
+
 - [ ] User preference system
 - [ ] Smart suggestions based on usage
 - [ ] Predictive text in forms

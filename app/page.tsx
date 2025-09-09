@@ -1,82 +1,104 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Stethoscope, Users, Calendar, FileText, Shield, Phone, Mail, MapPin, Heart, Eye, Target, Plus, X } from 'lucide-react'
-import Link from 'next/link'
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Stethoscope,
+  Users,
+  Calendar,
+  FileText,
+  Shield,
+  Phone,
+  Mail,
+  MapPin,
+  Heart,
+  Eye,
+  Target,
+  Plus,
+  X,
+} from "lucide-react";
+import Link from "next/link";
 
 interface HospitalSettings {
-  name: string
-  tagline: string
-  logo?: string
-  primaryColor: string
-  secondaryColor: string
-  phone: string
-  email: string
-  address: string
-  vision: string
-  mission: string
+  name: string;
+  tagline: string;
+  logo?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  phone: string;
+  email: string;
+  address: string;
+  vision: string;
+  mission: string;
   socialMedia: {
-    facebook?: string
-    twitter?: string
-    instagram?: string
-    linkedin?: string
-  }
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
+  };
 }
 
 export default function LandingPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [showFloatingCTA, setShowFloatingCTA] = useState(true)
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [showFloatingCTA, setShowFloatingCTA] = useState(true);
   const [settings, setSettings] = useState<HospitalSettings>({
-    name: 'MediCare Hospital',
-    tagline: 'Your Health, Our Priority',
-    primaryColor: '#2563eb',
-    secondaryColor: '#1e40af',
-    phone: '+1 (555) 123-4567',
-    email: 'info@medicare.com',
-    address: '123 Health Street, Medical City, MC 12345',
-    vision: 'To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.',
-    mission: 'We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.',
+    name: "MediCare Hospital",
+    tagline: "Your Health, Our Priority",
+    primaryColor: "#2563eb",
+    secondaryColor: "#1e40af",
+    phone: "+1 (555) 123-4567",
+    email: "info@medicare.com",
+    address: "123 Health Street, Medical City, MC 12345",
+    vision:
+      "To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.",
+    mission:
+      "We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.",
     socialMedia: {
-      facebook: '#',
-      twitter: '#',
-      instagram: '#',
-      linkedin: '#'
-    }
-  })
+      facebook: "#",
+      twitter: "#",
+      instagram: "#",
+      linkedin: "#",
+    },
+  });
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.push('/dashboard')
+    if (status === "authenticated") {
+      router.push("/dashboard");
     }
-  }, [status, router])
+  }, [status, router]);
 
   useEffect(() => {
     // Load hospital settings from API or localStorage
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/settings/hospital')
+        const response = await fetch("/api/settings/hospital");
         if (response.ok) {
-          const data = await response.json()
-          setSettings(prev => ({ ...prev, ...data }))
+          const data = await response.json();
+          setSettings((prev) => ({ ...prev, ...data }));
         }
       } catch (error) {
-        console.log('Using default settings')
+        console.log("Using default settings");
       }
-    }
-    loadSettings()
-  }, [])
+    };
+    loadSettings();
+  }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -86,14 +108,18 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div 
+              <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
-                style={{ backgroundColor: settings.logo ? 'transparent' : settings.primaryColor }}
+                style={{
+                  backgroundColor: settings.logo
+                    ? "transparent"
+                    : settings.primaryColor,
+                }}
               >
                 {settings.logo ? (
-                  <img 
-                    src={settings.logo} 
-                    alt={`${settings.name} Logo`} 
+                  <img
+                    src={settings.logo}
+                    alt={`${settings.name} Logo`}
                     className="w-full h-full object-contain"
                   />
                 ) : (
@@ -101,7 +127,9 @@ export default function LandingPage() {
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{settings.name}</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {settings.name}
+                </h1>
                 <p className="text-sm text-gray-600">{settings.tagline}</p>
               </div>
             </div>
@@ -109,7 +137,10 @@ export default function LandingPage() {
               <Button variant="outline" asChild>
                 <Link href="/auth/signin">Staff Login</Link>
               </Button>
-              <Button asChild style={{ backgroundColor: settings.primaryColor }}>
+              <Button
+                asChild
+                style={{ backgroundColor: settings.primaryColor }}
+              >
                 <Link href="/book-appointment">Book Appointment</Link>
               </Button>
             </div>
@@ -121,13 +152,21 @@ export default function LandingPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Welcome to <span style={{ color: settings.primaryColor }}>{settings.name}</span>
+            Welcome to{" "}
+            <span style={{ color: settings.primaryColor }}>
+              {settings.name}
+            </span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            {settings.tagline} - Experience world-class healthcare with our state-of-the-art facilities and expert medical professionals.
+            {settings.tagline} - Experience world-class healthcare with our
+            state-of-the-art facilities and expert medical professionals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild style={{ backgroundColor: settings.primaryColor }}>
+            <Button
+              size="lg"
+              asChild
+              style={{ backgroundColor: settings.primaryColor }}
+            >
               <Link href="/book-appointment">Book Appointment</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
@@ -141,8 +180,12 @@ export default function LandingPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Us?</h2>
-            <p className="text-lg text-gray-600">Comprehensive healthcare services with modern technology</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Why Choose Us?
+            </h2>
+            <p className="text-lg text-gray-600">
+              Comprehensive healthcare services with modern technology
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="text-center">
@@ -154,7 +197,8 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Highly qualified and experienced medical professionals dedicated to your health.
+                  Highly qualified and experienced medical professionals
+                  dedicated to your health.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -168,7 +212,8 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Book appointments online with our convenient scheduling system.
+                  Book appointments online with our convenient scheduling
+                  system.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -211,7 +256,10 @@ export default function LandingPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center space-x-3">
-                  <Eye className="w-6 h-6" style={{ color: settings.primaryColor }} />
+                  <Eye
+                    className="w-6 h-6"
+                    style={{ color: settings.primaryColor }}
+                  />
                   <CardTitle>Our Vision</CardTitle>
                 </div>
               </CardHeader>
@@ -223,7 +271,10 @@ export default function LandingPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center space-x-3">
-                  <Target className="w-6 h-6" style={{ color: settings.primaryColor }} />
+                  <Target
+                    className="w-6 h-6"
+                    style={{ color: settings.primaryColor }}
+                  />
                   <CardTitle>Our Mission</CardTitle>
                 </div>
               </CardHeader>
@@ -239,13 +290,20 @@ export default function LandingPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Get In Touch</h2>
-            <p className="text-lg text-gray-600">We're here to help you with all your healthcare needs</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Get In Touch
+            </h2>
+            <p className="text-lg text-gray-600">
+              We're here to help you with all your healthcare needs
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="text-center">
               <CardHeader>
-                <Phone className="w-8 h-8 mx-auto mb-4" style={{ color: settings.primaryColor }} />
+                <Phone
+                  className="w-8 h-8 mx-auto mb-4"
+                  style={{ color: settings.primaryColor }}
+                />
                 <CardTitle>Phone</CardTitle>
               </CardHeader>
               <CardContent>
@@ -255,7 +313,10 @@ export default function LandingPage() {
 
             <Card className="text-center">
               <CardHeader>
-                <Mail className="w-8 h-8 mx-auto mb-4" style={{ color: settings.primaryColor }} />
+                <Mail
+                  className="w-8 h-8 mx-auto mb-4"
+                  style={{ color: settings.primaryColor }}
+                />
                 <CardTitle>Email</CardTitle>
               </CardHeader>
               <CardContent>
@@ -265,7 +326,10 @@ export default function LandingPage() {
 
             <Card className="text-center">
               <CardHeader>
-                <MapPin className="w-8 h-8 mx-auto mb-4" style={{ color: settings.primaryColor }} />
+                <MapPin
+                  className="w-8 h-8 mx-auto mb-4"
+                  style={{ color: settings.primaryColor }}
+                />
                 <CardTitle>Address</CardTitle>
               </CardHeader>
               <CardContent>
@@ -282,14 +346,18 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div 
+                <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
-                  style={{ backgroundColor: settings.logo ? 'transparent' : settings.primaryColor }}
+                  style={{
+                    backgroundColor: settings.logo
+                      ? "transparent"
+                      : settings.primaryColor,
+                  }}
                 >
                   {settings.logo ? (
-                    <img 
-                      src={settings.logo} 
-                      alt={`${settings.name} Logo`} 
+                    <img
+                      src={settings.logo}
+                      alt={`${settings.name} Logo`}
                       className="w-full h-full object-contain"
                     />
                   ) : (
@@ -300,17 +368,33 @@ export default function LandingPage() {
               </div>
               <p className="text-gray-400">{settings.tagline}</p>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/services" className="hover:text-white">Services</Link></li>
-                <li><Link href="/doctors" className="hover:text-white">Doctors</Link></li>
-                <li><Link href="/book-appointment" className="hover:text-white">Book Appointment</Link></li>
-                <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
+                <li>
+                  <Link href="/services" className="hover:text-white">
+                    Services
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/doctors" className="hover:text-white">
+                    Doctors
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/book-appointment" className="hover:text-white">
+                    Book Appointment
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-white">
+                    Contact
+                  </Link>
+                </li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4">Services</h4>
               <ul className="space-y-2 text-gray-400">
@@ -320,7 +404,7 @@ export default function LandingPage() {
                 <li>Diagnostic Services</li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
               <div className="space-y-2 text-gray-400">
@@ -330,7 +414,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 {settings.name}. All rights reserved.</p>
           </div>
@@ -347,7 +431,10 @@ export default function LandingPage() {
               style={{ backgroundColor: settings.primaryColor }}
               asChild
             >
-              <Link href="/book-appointment" className="flex items-center px-6 py-4">
+              <Link
+                href="/book-appointment"
+                className="flex items-center px-6 py-4"
+              >
                 <Calendar className="w-5 h-5 mr-2" />
                 Book Now
               </Link>
@@ -364,5 +451,5 @@ export default function LandingPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

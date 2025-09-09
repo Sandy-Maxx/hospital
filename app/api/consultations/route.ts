@@ -1,53 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(authOptions);
+
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const consultations = await prisma.consultation.findMany({
       include: {
         patient: true,
         doctor: true,
-        appointment: true
+        appointment: true,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
-    })
+        createdAt: "desc",
+      },
+    });
 
-    return NextResponse.json({ consultations })
+    return NextResponse.json({ consultations });
   } catch (error) {
-    console.error('Error fetching consultations:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error fetching consultations:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(authOptions);
+
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { appointmentId, symptoms, diagnosis, notes } = body
+    const body = await request.json();
+    const { appointmentId, symptoms, diagnosis, notes } = body;
 
     // Get appointment details to find patient and doctor
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: { patient: true, doctor: true }
-    })
+      include: { patient: true, doctor: true },
+    });
 
     if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 },
+      );
     }
 
     const consultation = await prisma.consultation.create({
@@ -57,18 +63,21 @@ export async function POST(request: NextRequest) {
         appointmentId: appointmentId,
         symptoms,
         diagnosis,
-        notes: notes || ''
+        notes: notes || "",
       },
       include: {
         patient: true,
         doctor: true,
-        appointment: true
-      }
-    })
+        appointment: true,
+      },
+    });
 
-    return NextResponse.json({ consultation }, { status: 201 })
+    return NextResponse.json({ consultation }, { status: 201 });
   } catch (error) {
-    console.error('Error creating consultation:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error creating consultation:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

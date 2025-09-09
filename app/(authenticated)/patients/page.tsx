@@ -1,82 +1,88 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Users, UserPlus, Search, Phone, Mail, Calendar } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { formatDate, calculateAge } from '@/lib/utils'
-import toast from 'react-hot-toast'
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Users, UserPlus, Search, Phone, Mail, Calendar } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { formatDate, calculateAge } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 interface Patient {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string
-  phone: string
-  dateOfBirth?: string
-  gender?: string
-  bloodGroup?: string
-  createdAt: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  createdAt: string;
 }
 
 interface PaginationData {
-  page: number
-  limit: number
-  total: number
-  pages: number
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 export default function Patients() {
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     limit: 10,
     total: 0,
     pages: 0,
-  })
+  });
 
-  const fetchPatients = async (page = 1, search = '') => {
+  const fetchPatients = async (page = 1, search = "") => {
     try {
-      setLoading(true)
+      setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '10',
+        limit: "10",
         ...(search && { search }),
-      })
+      });
 
-      const response = await fetch(`/api/patients?${params}`)
+      const response = await fetch(`/api/patients?${params}`);
       if (response.ok) {
-        const data = await response.json()
-        setPatients(data.patients)
-        setPagination(data.pagination)
+        const data = await response.json();
+        setPatients(data.patients);
+        setPagination(data.pagination);
       } else {
-        toast.error('Failed to fetch patients')
+        toast.error("Failed to fetch patients");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchPatients()
-  }, [])
+    fetchPatients();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    fetchPatients(1, searchTerm)
-  }
+    e.preventDefault();
+    fetchPatients(1, searchTerm);
+  };
 
   const handlePageChange = (newPage: number) => {
-    fetchPatients(newPage, searchTerm)
-  }
+    fetchPatients(newPage, searchTerm);
+  };
 
   return (
     <div className="space-y-6">
@@ -86,7 +92,9 @@ export default function Patients() {
             <Users className="w-8 h-8 mr-3 text-primary-600" />
             Patients
           </h1>
-          <p className="text-gray-600 mt-2">Manage patient records and information</p>
+          <p className="text-gray-600 mt-2">
+            Manage patient records and information
+          </p>
         </div>
         <Link href="/patients/new">
           <Button className="flex items-center">
@@ -115,8 +123,8 @@ export default function Patients() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setSearchTerm('')
-                  fetchPatients(1, '')
+                  setSearchTerm("");
+                  fetchPatients(1, "");
                 }}
               >
                 Clear
@@ -156,7 +164,8 @@ export default function Patients() {
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
                           <span className="text-primary-600 font-medium text-lg">
-                            {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
+                            {patient.firstName.charAt(0)}
+                            {patient.lastName.charAt(0)}
                           </span>
                         </div>
                         <div>
@@ -237,5 +246,5 @@ export default function Patients() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

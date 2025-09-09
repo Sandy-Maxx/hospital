@@ -1,27 +1,28 @@
-'use client'
+"use client";
 
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/layout/sidebar'
-import { Header } from '@/components/layout/header'
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
+import MobileNavigation from "@/components/navigation/mobile-navigation";
 
 export default function AuthenticatedLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession();
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
       </div>
-    )
+    );
   }
 
   if (!session) {
-    redirect('/auth/signin')
+    redirect("/auth/signin");
   }
 
   return (
@@ -29,10 +30,9 @@ export default function AuthenticatedLayout({
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        <main className="flex-1 p-6 pb-20 md:pb-6">{children}</main>
+        <MobileNavigation />
       </div>
     </div>
-  )
+  );
 }

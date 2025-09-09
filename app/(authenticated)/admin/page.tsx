@@ -1,95 +1,109 @@
-'use client'
+"use client";
 
-import React, { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Settings, FileText, Activity, UserPlus } from 'lucide-react'
-import Link from 'next/link'
+import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Users, Settings, FileText, Activity, UserPlus } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminDashboard() {
-  const { data: session } = useSession()
+  const { data: session } = useSession();
 
-  const [activePatients, setActivePatients] = useState<number>(0)
+  const [activePatients, setActivePatients] = useState<number>(0);
 
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0]
-    const params = new URLSearchParams({ date: todayStr, status: 'ARRIVED,WAITING,IN_CONSULTATION,SCHEDULED', limit: '10000' })
+    const todayStr = new Date().toISOString().split("T")[0];
+    const params = new URLSearchParams({
+      date: todayStr,
+      status: "ARRIVED,WAITING,IN_CONSULTATION,SCHEDULED",
+      limit: "10000",
+    });
     fetch(`/api/appointments?${params.toString()}`).then(async (res) => {
       if (res.ok) {
-        const data = await res.json()
-        const unique = new Set((data.appointments || []).map((a: any) => a.patientId))
-        setActivePatients(unique.size)
+        const data = await res.json();
+        const unique = new Set(
+          (data.appointments || []).map((a: any) => a.patientId),
+        );
+        setActivePatients(unique.size);
       }
-    })
-  }, [])
+    });
+  }, []);
 
   const stats = [
     {
-      title: 'Total Staff',
-      value: '45',
-      change: '+3 this month',
+      title: "Total Staff",
+      value: "45",
+      change: "+3 this month",
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      href: '/staff',
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      href: "/staff",
     },
     {
-      title: 'Active Patients',
+      title: "Active Patients",
       value: String(activePatients),
-      change: 'Currently active today',
+      change: "Currently active today",
       icon: UserPlus,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: "text-green-600",
+      bgColor: "bg-green-50",
     },
     {
-      title: 'System Health',
-      value: '99.9%',
-      change: 'All systems operational',
+      title: "System Health",
+      value: "99.9%",
+      change: "All systems operational",
       icon: Activity,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
     },
-  ]
+  ];
 
   const quickActions = [
     {
-      title: 'Hospital Settings',
-      description: 'Configure hospital information and branding',
+      title: "Hospital Settings",
+      description: "Configure hospital information and branding",
       icon: Settings,
-      href: '/admin/settings',
-      color: 'bg-blue-500 hover:bg-blue-600',
+      href: "/admin/settings",
+      color: "bg-blue-500 hover:bg-blue-600",
     },
     {
-      title: 'Staff Management',
-      description: 'Manage staff members and permissions',
+      title: "Staff Management",
+      description: "Manage staff members and permissions",
       icon: Users,
-      href: '/staff',
-      color: 'bg-green-500 hover:bg-green-600',
+      href: "/staff",
+      color: "bg-green-500 hover:bg-green-600",
     },
     {
-      title: 'Reports & Analytics',
-      description: 'View detailed reports and analytics',
+      title: "Reports & Analytics",
+      description: "View detailed reports and analytics",
       icon: FileText,
-      href: '/reports',
-      color: 'bg-purple-500 hover:bg-purple-600',
+      href: "/reports",
+      color: "bg-purple-500 hover:bg-purple-600",
     },
     {
-      title: 'Patient Management',
-      description: 'Manage patient records and information',
+      title: "Patient Management",
+      description: "Manage patient records and information",
       icon: UserPlus,
-      href: '/patients',
-      color: 'bg-orange-500 hover:bg-orange-600',
+      href: "/patients",
+      color: "bg-orange-500 hover:bg-orange-600",
     },
-  ]
+  ];
 
-  if (session?.user?.role !== 'ADMIN') {
+  if (session?.user?.role !== "ADMIN") {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-red-600">Access denied. Admin privileges required.</p>
+          <p className="text-center text-red-600">
+            Access denied. Admin privileges required.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -102,52 +116,72 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
-          const Icon = stat.icon
+          const Icon = stat.icon;
           const CardInner = (
-            <Card className={stat.href ? 'hover:shadow-lg transition-shadow cursor-pointer' : ''}>
+            <Card
+              className={
+                stat.href
+                  ? "hover:shadow-lg transition-shadow cursor-pointer"
+                  : ""
+              }
+            >
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className={`p-2 rounded-lg ${stat.bgColor}`}>
                     <Icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
                     <p className="text-xs text-gray-500">{stat.change}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          )
+          );
           return stat.href ? (
-            <Link key={index} href={stat.href}>{CardInner}</Link>
+            <Link key={index} href={stat.href}>
+              {CardInner}
+            </Link>
           ) : (
             <div key={index}>{CardInner}</div>
-          )
+          );
         })}
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Quick Actions
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action, index) => {
-            const Icon = action.icon
+            const Icon = action.icon;
             return (
               <Link key={index} href={action.href}>
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                   <CardContent className="p-6">
                     <div className="flex flex-col items-center text-center">
-                      <div className={`p-3 rounded-lg text-white mb-4 ${action.color}`}>
+                      <div
+                        className={`p-3 rounded-lg text-white mb-4 ${action.color}`}
+                      >
                         <Icon className="w-8 h-8" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 mb-2">{action.title}</h3>
-                      <p className="text-sm text-gray-600">{action.description}</p>
+                      <h3 className="font-semibold text-gray-900 mb-2">
+                        {action.title}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {action.description}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
-            )
+            );
           })}
         </div>
       </div>
@@ -156,31 +190,45 @@ export default function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Latest system activities and updates</CardDescription>
+          <CardDescription>
+            Latest system activities and updates
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">New staff member added</p>
-                <p className="text-xs text-gray-500">Dr. Sarah Johnson joined Cardiology department</p>
+                <p className="text-sm font-medium text-gray-900">
+                  New staff member added
+                </p>
+                <p className="text-xs text-gray-500">
+                  Dr. Sarah Johnson joined Cardiology department
+                </p>
               </div>
               <span className="text-xs text-gray-400">2 hours ago</span>
             </div>
             <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">System backup completed</p>
-                <p className="text-xs text-gray-500">Daily backup process finished successfully</p>
+                <p className="text-sm font-medium text-gray-900">
+                  System backup completed
+                </p>
+                <p className="text-xs text-gray-500">
+                  Daily backup process finished successfully
+                </p>
               </div>
               <span className="text-xs text-gray-400">4 hours ago</span>
             </div>
             <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Hospital settings updated</p>
-                <p className="text-xs text-gray-500">Branding and contact information modified</p>
+                <p className="text-sm font-medium text-gray-900">
+                  Hospital settings updated
+                </p>
+                <p className="text-xs text-gray-500">
+                  Branding and contact information modified
+                </p>
               </div>
               <span className="text-xs text-gray-400">1 day ago</span>
             </div>
@@ -188,5 +236,5 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

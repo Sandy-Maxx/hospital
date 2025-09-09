@@ -1,266 +1,298 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, Users, Phone, User, UserCheck, Search, CheckCircle, AlertCircle, XCircle, Printer, Download, RefreshCw, Plus } from 'lucide-react'
-import Link from 'next/link'
-import { formatDate } from '@/lib/utils'
-import TokenPrint from '@/components/appointments/token-print'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Calendar,
+  Clock,
+  Users,
+  Phone,
+  User,
+  UserCheck,
+  Search,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Printer,
+  Download,
+  RefreshCw,
+  Plus,
+} from "lucide-react";
+import Link from "next/link";
+import { formatDate } from "@/lib/utils";
+import TokenPrint from "@/components/appointments/token-print";
+import toast from "react-hot-toast";
 
 interface Doctor {
-  id: string
-  name: string
-  department: string
+  id: string;
+  name: string;
+  department: string;
 }
 
 interface Appointment {
-  id: string
-  tokenNumber: string
-  status: string
-  type: string
-  priority: string
-  notes?: string
-  createdAt: string
+  id: string;
+  tokenNumber: string;
+  status: string;
+  type: string;
+  priority: string;
+  notes?: string;
+  createdAt: string;
   patient: {
-    id: string
-    firstName: string
-    lastName: string
-    phone: string
-  }
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+  };
   session: {
-    id: string
-    name: string
-    shortCode: string
-    startTime: string
-    endTime: string
-  }
+    id: string;
+    name: string;
+    shortCode: string;
+    startTime: string;
+    endTime: string;
+  };
   doctor?: {
-    id: string
-    name: string
-    department: string
-  }
+    id: string;
+    name: string;
+    department: string;
+  };
 }
 
 interface Session {
-  id: string
-  name: string
-  shortCode: string
-  date: string
-  startTime: string
-  endTime: string
-  maxTokens: number
-  currentTokens: number
-  isActive: boolean
+  id: string;
+  name: string;
+  shortCode: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxTokens: number;
+  currentTokens: number;
+  isActive: boolean;
   doctor?: {
-    id: string
-    name: string
-  }
-  appointments: Appointment[]
+    id: string;
+    name: string;
+  };
+  appointments: Appointment[];
 }
 
 const statusColors = {
-  SCHEDULED: 'bg-blue-100 text-blue-800',
-  ARRIVED: 'bg-green-100 text-green-800',
-  WAITING: 'bg-yellow-100 text-yellow-800',
-  IN_CONSULTATION: 'bg-purple-100 text-purple-800',
-  COMPLETED: 'bg-gray-100 text-gray-800',
-  CANCELLED: 'bg-red-100 text-red-800',
-  NO_SHOW: 'bg-orange-100 text-orange-800',
-}
+  SCHEDULED: "bg-blue-100 text-blue-800",
+  ARRIVED: "bg-green-100 text-green-800",
+  WAITING: "bg-yellow-100 text-yellow-800",
+  IN_CONSULTATION: "bg-purple-100 text-purple-800",
+  COMPLETED: "bg-gray-100 text-gray-800",
+  CANCELLED: "bg-red-100 text-red-800",
+  NO_SHOW: "bg-orange-100 text-orange-800",
+};
 
 const priorityColors = {
-  EMERGENCY: 'bg-red-500 text-white',
-  HIGH: 'bg-orange-500 text-white',
-  NORMAL: 'bg-blue-500 text-white',
-  LOW: 'bg-gray-500 text-white',
-}
+  EMERGENCY: "bg-red-500 text-white",
+  HIGH: "bg-orange-500 text-white",
+  NORMAL: "bg-blue-500 text-white",
+  LOW: "bg-gray-500 text-white",
+};
 
 export default function Receptionist() {
-  const { data: session } = useSession()
-  const [appointments, setAppointments] = useState<Appointment[]>([]) // deprecated, keep if needed elsewhere
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [hospitalSettings, setHospitalSettings] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [editingAppointment, setEditingAppointment] = useState<string | null>(null)
-  const [selectedDoctorId, setSelectedDoctorId] = useState('')
-  const [printingToken, setPrintingToken] = useState<string | null>(null)
+  const { data: session } = useSession();
+  const [appointments, setAppointments] = useState<Appointment[]>([]); // deprecated, keep if needed elsewhere
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [hospitalSettings, setHospitalSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingAppointment, setEditingAppointment] = useState<string | null>(
+    null,
+  );
+  const [selectedDoctorId, setSelectedDoctorId] = useState("");
+  const [printingToken, setPrintingToken] = useState<string | null>(null);
 
   const fetchSessions = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/sessions?date=${selectedDate}`)
+      setLoading(true);
+      const response = await fetch(`/api/sessions?date=${selectedDate}`);
       if (response.ok) {
-        const data = await response.json()
-        setSessions(data.sessions || [])
+        const data = await response.json();
+        setSessions(data.sessions || []);
       } else {
-        toast.error('Failed to fetch sessions')
+        toast.error("Failed to fetch sessions");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchHospitalSettings = async () => {
     try {
       // Use API route which persists settings to the filesystem
-      const response = await fetch('/api/settings/hospital')
+      const response = await fetch("/api/settings/hospital");
       if (response.ok) {
-        const settings = await response.json()
-        setHospitalSettings(settings)
+        const settings = await response.json();
+        setHospitalSettings(settings);
       }
     } catch (error) {
-      console.error('Failed to fetch hospital settings:', error)
+      console.error("Failed to fetch hospital settings:", error);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSessions()
-    fetchDoctors()
-    fetchHospitalSettings()
-  }, [])
+    fetchSessions();
+    fetchDoctors();
+    fetchHospitalSettings();
+  }, []);
 
   // Refresh sessions when date changes
   useEffect(() => {
-    fetchSessions()
-  }, [selectedDate])
+    fetchSessions();
+  }, [selectedDate]);
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('/api/doctors')
+      const response = await fetch("/api/doctors");
       if (response.ok) {
-        const data = await response.json()
-        const list = Array.isArray(data) ? data : (data.doctors || [])
-        setDoctors(list)
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : data.doctors || [];
+        setDoctors(list);
       }
     } catch (error) {
-      console.error('Error fetching doctors:', error)
+      console.error("Error fetching doctors:", error);
     }
-  }
+  };
 
-  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+  const updateAppointmentStatus = async (
+    appointmentId: string,
+    newStatus: string,
+  ) => {
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: newStatus }),
-      })
+      });
 
       if (response.ok) {
-        toast.success('Status updated successfully')
-        fetchSessions()
+        toast.success("Status updated successfully");
+        fetchSessions();
       } else {
-        toast.error('Failed to update status')
+        toast.error("Failed to update status");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     }
-  }
+  };
 
   const assignDoctor = async (appointmentId: string, doctorId: string) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}/assign-doctor`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doctorId })
-      })
+      const response = await fetch(
+        `/api/appointments/${appointmentId}/assign-doctor`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ doctorId }),
+        },
+      );
 
       if (response.ok) {
-        toast.success('Doctor assigned successfully')
-        fetchSessions()
-        setEditingAppointment(null)
-        setSelectedDoctorId('')
+        toast.success("Doctor assigned successfully");
+        fetchSessions();
+        setEditingAppointment(null);
+        setSelectedDoctorId("");
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to assign doctor')
+        const error = await response.json();
+        toast.error(error.error || "Failed to assign doctor");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     }
-  }
+  };
 
   const getStatusActions = (appointment: Appointment) => {
-    const actions = []
-    
+    const actions = [];
+
     switch (appointment.status) {
-      case 'SCHEDULED':
+      case "SCHEDULED":
         actions.push(
           <Button
             key="arrived"
             size="sm"
             variant="default"
             className="bg-green-600 hover:bg-green-700"
-            onClick={() => updateAppointmentStatus(appointment.id, 'ARRIVED')}
+            onClick={() => updateAppointmentStatus(appointment.id, "ARRIVED")}
           >
             Mark Arrived
-          </Button>
-        )
-        break
-      case 'ARRIVED':
+          </Button>,
+        );
+        break;
+      case "ARRIVED":
         actions.push(
           <Button
             key="waiting"
             size="sm"
             variant="default"
             className="bg-yellow-600 hover:bg-yellow-700"
-            onClick={() => updateAppointmentStatus(appointment.id, 'WAITING')}
+            onClick={() => updateAppointmentStatus(appointment.id, "WAITING")}
           >
             Move to Queue
-          </Button>
-        )
-        break
-      case 'WAITING':
+          </Button>,
+        );
+        break;
+      case "WAITING":
         // Receptionist should not start consultation; allow sending back to Arrived only
         actions.push(
           <Button
             key="back-arrived"
             size="sm"
             variant="outline"
-            onClick={() => updateAppointmentStatus(appointment.id, 'ARRIVED')}
+            onClick={() => updateAppointmentStatus(appointment.id, "ARRIVED")}
           >
             Back to Arrived
-          </Button>
-        )
-        break
-      case 'IN_CONSULTATION':
+          </Button>,
+        );
+        break;
+      case "IN_CONSULTATION":
         actions.push(
           <Button
             key="complete"
             size="sm"
             variant="default"
             className="bg-green-600 hover:bg-green-700"
-            onClick={() => updateAppointmentStatus(appointment.id, 'COMPLETED')}
+            onClick={() => updateAppointmentStatus(appointment.id, "COMPLETED")}
           >
             Complete
-          </Button>
-        )
+          </Button>,
+        );
         actions.push(
           <Button
             key="back-waiting"
             size="sm"
             variant="outline"
-            onClick={() => updateAppointmentStatus(appointment.id, 'WAITING')}
+            onClick={() => updateAppointmentStatus(appointment.id, "WAITING")}
           >
             Back to Queue
-          </Button>
-        )
-        break
+          </Button>,
+        );
+        break;
     }
 
     // Doctor assignment allowed only when status is ARRIVED
-    if (appointment.status === 'ARRIVED') {
+    if (appointment.status === "ARRIVED") {
       if (editingAppointment === appointment.id) {
         actions.push(
           <div key="doctor-select" className="flex items-center space-x-2">
@@ -270,7 +302,7 @@ export default function Receptionist() {
               className="px-2 py-1 border border-gray-300 rounded text-sm"
             >
               <option value="">Select Doctor</option>
-              {doctors.map(doctor => (
+              {doctors.map((doctor) => (
                 <option key={doctor.id} value={doctor.id}>
                   Dr. {doctor.name}
                 </option>
@@ -288,14 +320,14 @@ export default function Receptionist() {
               size="sm"
               variant="outline"
               onClick={() => {
-                setEditingAppointment(null)
-                setSelectedDoctorId('')
+                setEditingAppointment(null);
+                setSelectedDoctorId("");
               }}
             >
               Cancel
             </Button>
-          </div>
-        )
+          </div>,
+        );
       } else {
         actions.push(
           <Button
@@ -303,14 +335,14 @@ export default function Receptionist() {
             size="sm"
             variant="outline"
             onClick={() => {
-              setEditingAppointment(appointment.id)
-              setSelectedDoctorId(appointment.doctor?.id || '')
+              setEditingAppointment(appointment.id);
+              setSelectedDoctorId(appointment.doctor?.id || "");
             }}
           >
             <UserCheck className="w-4 h-4 mr-1" />
-            {appointment.doctor ? 'Reassign' : 'Assign'} Doctor
-          </Button>
-        )
+            {appointment.doctor ? "Reassign" : "Assign"} Doctor
+          </Button>,
+        );
       }
 
       actions.push(
@@ -318,51 +350,59 @@ export default function Receptionist() {
           key="cancel"
           size="sm"
           variant="destructive"
-          onClick={() => updateAppointmentStatus(appointment.id, 'CANCELLED')}
+          onClick={() => updateAppointmentStatus(appointment.id, "CANCELLED")}
         >
           Cancel
-        </Button>
-      )
+        </Button>,
+      );
     }
 
-    return actions
-  }
+    return actions;
+  };
 
-  const filteredSessions = sessions.filter(session => {
+  const filteredSessions = sessions.filter((session) => {
     if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      return session.appointments.some(apt => 
-        apt.patient.firstName.toLowerCase().includes(term) ||
-        apt.patient.lastName.toLowerCase().includes(term) ||
-        apt.patient.phone.includes(term) ||
-        apt.tokenNumber.toLowerCase().includes(term)
-      )
+      const term = searchTerm.toLowerCase();
+      return session.appointments.some(
+        (apt) =>
+          apt.patient.firstName.toLowerCase().includes(term) ||
+          apt.patient.lastName.toLowerCase().includes(term) ||
+          apt.patient.phone.includes(term) ||
+          apt.tokenNumber.toLowerCase().includes(term),
+      );
     }
-    return true
-  })
+    return true;
+  });
 
   const getTotalStats = () => {
-    const allAppointments = sessions.flatMap(s => s.appointments)
+    const allAppointments = sessions.flatMap((s) => s.appointments);
     return {
       total: allAppointments.length,
-      scheduled: allAppointments.filter(a => a.status === 'SCHEDULED').length,
-      arrived: allAppointments.filter(a => a.status === 'ARRIVED').length,
-      waiting: allAppointments.filter(a => a.status === 'WAITING').length,
-      inConsultation: allAppointments.filter(a => a.status === 'IN_CONSULTATION').length,
-      completed: allAppointments.filter(a => a.status === 'COMPLETED').length,
-    }
-  }
+      scheduled: allAppointments.filter((a) => a.status === "SCHEDULED").length,
+      arrived: allAppointments.filter((a) => a.status === "ARRIVED").length,
+      waiting: allAppointments.filter((a) => a.status === "WAITING").length,
+      inConsultation: allAppointments.filter(
+        (a) => a.status === "IN_CONSULTATION",
+      ).length,
+      completed: allAppointments.filter((a) => a.status === "COMPLETED").length,
+    };
+  };
 
-  const stats = getTotalStats()
+  const stats = getTotalStats();
 
-  if (session?.user?.role !== 'RECEPTIONIST' && session?.user?.role !== 'ADMIN') {
+  if (
+    session?.user?.role !== "RECEPTIONIST" &&
+    session?.user?.role !== "ADMIN"
+  ) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-red-600">Access denied. Receptionist or Admin privileges required.</p>
+          <p className="text-center text-red-600">
+            Access denied. Receptionist or Admin privileges required.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -374,7 +414,9 @@ export default function Receptionist() {
             <Users className="w-8 h-8 mr-3 text-primary-600" />
             Reception Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">Manage appointments and patient queue</p>
+          <p className="text-gray-600 mt-2">
+            Manage appointments and patient queue
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={fetchSessions}>
@@ -400,37 +442,49 @@ export default function Receptionist() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {stats.total}
+            </div>
             <p className="text-xs text-gray-600">Total Today</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-500">{stats.scheduled}</div>
+            <div className="text-2xl font-bold text-blue-500">
+              {stats.scheduled}
+            </div>
             <p className="text-xs text-gray-600">Scheduled</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-500">{stats.arrived}</div>
+            <div className="text-2xl font-bold text-green-500">
+              {stats.arrived}
+            </div>
             <p className="text-xs text-gray-600">Arrived</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-500">{stats.waiting}</div>
+            <div className="text-2xl font-bold text-yellow-500">
+              {stats.waiting}
+            </div>
             <p className="text-xs text-gray-600">Waiting</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-500">{stats.inConsultation}</div>
+            <div className="text-2xl font-bold text-purple-500">
+              {stats.inConsultation}
+            </div>
             <p className="text-xs text-gray-600">In Progress</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-gray-500">{stats.completed}</div>
+            <div className="text-2xl font-bold text-gray-500">
+              {stats.completed}
+            </div>
             <p className="text-xs text-gray-600">Completed</p>
           </CardContent>
         </Card>
@@ -520,14 +574,15 @@ export default function Receptionist() {
                     </CardTitle>
                     <CardDescription>
                       {session.startTime} - {session.endTime}
-{session.doctor && ` • ${session.doctor.name}`}
+                      {session.doctor && ` • ${session.doctor.name}`}
                       <br />
-                      {session.currentTokens} of {session.maxTokens} appointments
+                      {session.currentTokens} of {session.maxTokens}{" "}
+                      appointments
                     </CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={session.isActive ? 'default' : 'secondary'}>
-                      {session.isActive ? 'Active' : 'Inactive'}
+                    <Badge variant={session.isActive ? "default" : "secondary"}>
+                      {session.isActive ? "Active" : "Inactive"}
                     </Badge>
                     <Badge variant="outline">
                       {session.appointments.length} appointments
@@ -543,22 +598,36 @@ export default function Receptionist() {
                 ) : (
                   <div className="space-y-3">
                     {session.appointments
-                      .filter(apt => {
-                        if (!searchTerm) return true
-                        const term = searchTerm.toLowerCase()
-                        return apt.patient.firstName.toLowerCase().includes(term) ||
-                               apt.patient.lastName.toLowerCase().includes(term) ||
-                               apt.patient.phone.includes(term) ||
-                               apt.tokenNumber.toLowerCase().includes(term)
+                      .filter((apt) => {
+                        if (!searchTerm) return true;
+                        const term = searchTerm.toLowerCase();
+                        return (
+                          apt.patient.firstName.toLowerCase().includes(term) ||
+                          apt.patient.lastName.toLowerCase().includes(term) ||
+                          apt.patient.phone.includes(term) ||
+                          apt.tokenNumber.toLowerCase().includes(term)
+                        );
                       })
                       .sort((a, b) => {
                         // Sort by priority first, then by token number
-                        const priorityOrder = { EMERGENCY: 0, HIGH: 1, NORMAL: 2, LOW: 3 }
-                        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2
-                        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2
-                        
-                        if (aPriority !== bPriority) return aPriority - bPriority
-                        return a.tokenNumber.localeCompare(b.tokenNumber)
+                        const priorityOrder = {
+                          EMERGENCY: 0,
+                          HIGH: 1,
+                          NORMAL: 2,
+                          LOW: 3,
+                        };
+                        const aPriority =
+                          priorityOrder[
+                            a.priority as keyof typeof priorityOrder
+                          ] ?? 2;
+                        const bPriority =
+                          priorityOrder[
+                            b.priority as keyof typeof priorityOrder
+                          ] ?? 2;
+
+                        if (aPriority !== bPriority)
+                          return aPriority - bPriority;
+                        return a.tokenNumber.localeCompare(b.tokenNumber);
                       })
                       .map((appointment) => (
                         <div
@@ -575,7 +644,8 @@ export default function Receptionist() {
                                 </div>
                                 <div className="flex-1">
                                   <h3 className="text-lg font-semibold text-gray-900">
-                                    {appointment.patient.firstName} {appointment.patient.lastName}
+                                    {appointment.patient.firstName}{" "}
+                                    {appointment.patient.lastName}
                                   </h3>
                                   <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                                     <span className="flex items-center">
@@ -589,7 +659,7 @@ export default function Receptionist() {
                                     {appointment.doctor && (
                                       <span className="flex items-center text-blue-600">
                                         <UserCheck className="w-4 h-4 mr-1" />
-{appointment.doctor.name}
+                                        {appointment.doctor.name}
                                       </span>
                                     )}
                                   </div>
@@ -597,16 +667,30 @@ export default function Receptionist() {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Badge className={priorityColors[appointment.priority as keyof typeof priorityColors]}>
+                              <Badge
+                                className={
+                                  priorityColors[
+                                    appointment.priority as keyof typeof priorityColors
+                                  ]
+                                }
+                              >
                                 {appointment.priority}
                               </Badge>
-                              <Badge className={statusColors[appointment.status as keyof typeof statusColors]}>
-                                {appointment.status.replace('_', ' ')}
+                              <Badge
+                                className={
+                                  statusColors[
+                                    appointment.status as keyof typeof statusColors
+                                  ]
+                                }
+                              >
+                                {appointment.status.replace("_", " ")}
                               </Badge>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedAppointment(appointment)}
+                                onClick={() =>
+                                  setSelectedAppointment(appointment)
+                                }
                                 className="ml-2"
                               >
                                 <Printer className="w-4 h-4 mr-1" />
@@ -614,7 +698,7 @@ export default function Receptionist() {
                               </Button>
                             </div>
                           </div>
-                          
+
                           <div className="mt-3 flex space-x-2">
                             {getStatusActions(appointment)}
                           </div>
@@ -628,5 +712,5 @@ export default function Receptionist() {
         </div>
       )}
     </div>
-  )
+  );
 }

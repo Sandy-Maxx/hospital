@@ -1,129 +1,150 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter, useParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Activity, Calendar, Clock, User, AlertCircle, Heart } from 'lucide-react'
-import Link from 'next/link'
-import MedicalTimeline from '@/components/timeline/medical-timeline'
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  Activity,
+  Calendar,
+  Clock,
+  User,
+  AlertCircle,
+  Heart,
+} from "lucide-react";
+import Link from "next/link";
+import MedicalTimeline from "@/components/timeline/medical-timeline";
 
 interface Patient {
-  id: string
-  firstName: string
-  lastName: string
-  dateOfBirth: string
-  bloodGroup: string
-  allergies: string
-  medicalHistory: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  bloodGroup: string;
+  allergies: string;
+  medicalHistory: string;
 }
 
 interface Appointment {
-  id: string
-  dateTime: string
-  type: string
-  status: string
+  id: string;
+  dateTime: string;
+  type: string;
+  status: string;
   doctor: {
-    name: string
-    department: string
-  }
-  notes?: string
+    name: string;
+    department: string;
+  };
+  notes?: string;
 }
 
 interface Bill {
-  id: string
-  date: string
-  amount: number
-  status: string
-  description: string
+  id: string;
+  date: string;
+  amount: number;
+  status: string;
+  description: string;
 }
 
 export default function PatientMedicalHistory() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const params = useParams()
-  const patientId = params.id as string
+  const { data: session } = useSession();
+  const router = useRouter();
+  const params = useParams();
+  const patientId = params.id as string;
 
-  const [patient, setPatient] = useState<Patient | null>(null)
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [bills, setBills] = useState<Bill[]>([])
-  const [loading, setLoading] = useState(true)
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (patientId) {
-      fetchPatientHistory()
+      fetchPatientHistory();
     }
-  }, [patientId])
+  }, [patientId]);
 
   const fetchPatientHistory = async () => {
     try {
       // Fetch patient details
-      const patientResponse = await fetch(`/api/patients/${patientId}`)
+      const patientResponse = await fetch(`/api/patients/${patientId}`);
       if (patientResponse.ok) {
-        const patientData = await patientResponse.json()
-        setPatient(patientData.patient)
+        const patientData = await patientResponse.json();
+        setPatient(patientData.patient);
       }
 
       // Fetch appointments
-      const appointmentsResponse = await fetch(`/api/appointments?patientId=${patientId}`)
+      const appointmentsResponse = await fetch(
+        `/api/appointments?patientId=${patientId}`,
+      );
       if (appointmentsResponse.ok) {
-        const appointmentsData = await appointmentsResponse.json()
-        setAppointments(appointmentsData.appointments || [])
+        const appointmentsData = await appointmentsResponse.json();
+        setAppointments(appointmentsData.appointments || []);
       }
 
       // Fetch bills
-      const billsResponse = await fetch(`/api/bills?patientId=${patientId}`)
+      const billsResponse = await fetch(`/api/bills?patientId=${patientId}`);
       if (billsResponse.ok) {
-        const billsData = await billsResponse.json()
-        setBills(billsData.bills || [])
+        const billsData = await billsResponse.json();
+        setBills(billsData.bills || []);
       }
     } catch (error) {
-      console.error('Failed to fetch patient history:', error)
+      console.error("Failed to fetch patient history:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800'
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      case 'paid':
-        return 'bg-green-100 text-green-800'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'overdue':
-        return 'bg-red-100 text-red-800'
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "scheduled":
+        return "bg-blue-100 text-blue-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      case "paid":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "overdue":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800'
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   const calculateAge = (dateOfBirth: string) => {
-    const today = new Date()
-    const birthDate = new Date(dateOfBirth)
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
     }
-    return age
-  }
+    return age;
+  };
 
   if (!session?.user) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-red-600">Please sign in to access patient history.</p>
+          <p className="text-center text-red-600">
+            Please sign in to access patient history.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (loading) {
@@ -134,7 +155,7 @@ export default function PatientMedicalHistory() {
           <p className="mt-4 text-gray-600">Loading patient history...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -149,7 +170,8 @@ export default function PatientMedicalHistory() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {patient ? `${patient.firstName} ${patient.lastName}` : 'Patient'} - Medical History
+            {patient ? `${patient.firstName} ${patient.lastName}` : "Patient"} -
+            Medical History
           </h1>
           <p className="text-gray-600">Complete medical history and timeline</p>
         </div>
@@ -169,12 +191,14 @@ export default function PatientMedicalHistory() {
               <div>
                 <p className="text-sm text-gray-500">Age</p>
                 <p className="font-medium">
-                  {patient.dateOfBirth ? `${calculateAge(patient.dateOfBirth)} years` : 'N/A'}
+                  {patient.dateOfBirth
+                    ? `${calculateAge(patient.dateOfBirth)} years`
+                    : "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Blood Group</p>
-                <p className="font-medium">{patient.bloodGroup || 'N/A'}</p>
+                <p className="font-medium">{patient.bloodGroup || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Appointments</p>
@@ -182,7 +206,10 @@ export default function PatientMedicalHistory() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Bills</p>
-                <p className="font-medium">${bills.reduce((sum, bill) => sum + bill.amount, 0).toFixed(2)}</p>
+                <p className="font-medium">
+                  $
+                  {bills.reduce((sum, bill) => sum + bill.amount, 0).toFixed(2)}
+                </p>
               </div>
             </div>
 
@@ -214,5 +241,5 @@ export default function PatientMedicalHistory() {
         <MedicalTimeline patientId={patientId} />
       </div>
     </div>
-  )
+  );
 }

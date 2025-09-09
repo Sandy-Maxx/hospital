@@ -1,75 +1,93 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Upload, Save, Palette, Settings, Eye, Clock, Plus, Trash2, Edit2 } from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Upload,
+  Save,
+  Palette,
+  Settings,
+  Eye,
+  Clock,
+  Plus,
+  Trash2,
+  Edit2,
+} from "lucide-react";
 
 interface SessionTemplate {
-  id: string
-  name: string
-  shortCode: string
-  startTime: string
-  endTime: string
-  maxTokens: number
-  isActive: boolean
+  id: string;
+  name: string;
+  shortCode: string;
+  startTime: string;
+  endTime: string;
+  maxTokens: number;
+  isActive: boolean;
 }
 
 interface HospitalSettings {
-  name: string
-  tagline: string
-  logo?: string
-  primaryColor: string
-  secondaryColor: string
-  phone: string
-  email: string
-  address: string
-  vision: string
-  mission: string
+  name: string;
+  tagline: string;
+  logo?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  phone: string;
+  email: string;
+  address: string;
+  vision: string;
+  mission: string;
   // Appointment Settings
-  tokenPrefix: string
-  sessionPrefix: string
-  defaultSessionDuration: number
-  maxTokensPerSession: number
-  allowPublicBooking: boolean
-  requirePatientDetails: boolean
-  autoAssignTokens: boolean
-  enableCarryForward: boolean
+  tokenPrefix: string;
+  sessionPrefix: string;
+  defaultSessionDuration: number;
+  maxTokensPerSession: number;
+  allowPublicBooking: boolean;
+  requirePatientDetails: boolean;
+  autoAssignTokens: boolean;
+  enableCarryForward: boolean;
   // Business Hours
-  businessStartTime: string
-  businessEndTime: string
-  lunchBreakStart: string
-  lunchBreakEnd: string
+  businessStartTime: string;
+  businessEndTime: string;
+  lunchBreakStart: string;
+  lunchBreakEnd: string;
   // Session Templates
-  sessionTemplates: SessionTemplate[]
+  sessionTemplates: SessionTemplate[];
   socialMedia: {
-    facebook?: string
-    twitter?: string
-    instagram?: string
-    linkedin?: string
-  }
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
+  };
 }
 
 export default function AdminSettingsPage() {
-  const { data: session } = useSession()
+  const { data: session } = useSession();
   const [settings, setSettings] = useState<HospitalSettings>({
-    name: 'MediCare Hospital',
-    tagline: 'Your Health, Our Priority',
-    primaryColor: '#2563eb',
-    secondaryColor: '#1e40af',
-    phone: '+1 (555) 123-4567',
-    email: 'info@medicare.com',
-    address: '123 Health Street, Medical City, MC 12345',
-    vision: 'To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.',
-    mission: 'We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.',
+    name: "MediCare Hospital",
+    tagline: "Your Health, Our Priority",
+    primaryColor: "#2563eb",
+    secondaryColor: "#1e40af",
+    phone: "+1 (555) 123-4567",
+    email: "info@medicare.com",
+    address: "123 Health Street, Medical City, MC 12345",
+    vision:
+      "To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.",
+    mission:
+      "We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.",
     // Appointment Settings
-    tokenPrefix: 'T',
-    sessionPrefix: 'S',
+    tokenPrefix: "T",
+    sessionPrefix: "S",
     defaultSessionDuration: 240,
     maxTokensPerSession: 50,
     allowPublicBooking: true,
@@ -77,179 +95,224 @@ export default function AdminSettingsPage() {
     autoAssignTokens: true,
     enableCarryForward: true,
     // Business Hours
-    businessStartTime: '09:00',
-    businessEndTime: '17:00',
-    lunchBreakStart: '13:00',
-    lunchBreakEnd: '14:00',
+    businessStartTime: "09:00",
+    businessEndTime: "17:00",
+    lunchBreakStart: "13:00",
+    lunchBreakEnd: "14:00",
     // Session Templates
     sessionTemplates: [
-      { id: '1', name: 'Morning', shortCode: 'S1', startTime: '09:00', endTime: '13:00', maxTokens: 50, isActive: true },
-      { id: '2', name: 'Afternoon', shortCode: 'S2', startTime: '14:00', endTime: '17:00', maxTokens: 40, isActive: true },
-      { id: '3', name: 'Evening', shortCode: 'S3', startTime: '17:00', endTime: '20:00', maxTokens: 30, isActive: false }
+      {
+        id: "1",
+        name: "Morning",
+        shortCode: "S1",
+        startTime: "09:00",
+        endTime: "13:00",
+        maxTokens: 50,
+        isActive: true,
+      },
+      {
+        id: "2",
+        name: "Afternoon",
+        shortCode: "S2",
+        startTime: "14:00",
+        endTime: "17:00",
+        maxTokens: 40,
+        isActive: true,
+      },
+      {
+        id: "3",
+        name: "Evening",
+        shortCode: "S3",
+        startTime: "17:00",
+        endTime: "20:00",
+        maxTokens: 30,
+        isActive: false,
+      },
     ],
     socialMedia: {
-      facebook: '',
-      twitter: '',
-      instagram: '',
-      linkedin: ''
-    }
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [editingSession, setEditingSession] = useState<SessionTemplate | null>(null)
-  const [showSessionForm, setShowSessionForm] = useState(false)
+      facebook: "",
+      twitter: "",
+      instagram: "",
+      linkedin: "",
+    },
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingSession, setEditingSession] = useState<SessionTemplate | null>(
+    null,
+  );
+  const [showSessionForm, setShowSessionForm] = useState(false);
 
   useEffect(() => {
-    loadSettings()
-  }, [])
+    loadSettings();
+  }, []);
 
   const loadSettings = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/settings/hospital')
+      const response = await fetch("/api/settings/hospital");
       if (response.ok) {
-        const data = await response.json()
-        setSettings(prev => ({ ...prev, ...data }))
+        const data = await response.json();
+        setSettings((prev) => ({ ...prev, ...data }));
       }
     } catch (error) {
-      console.error('Error loading settings:', error)
+      console.error("Error loading settings:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const saveSettings = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      const response = await fetch('/api/settings/hospital', {
-        method: 'POST',
+      const response = await fetch("/api/settings/hospital", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(settings),
-      })
-      
+      });
+
       if (response.ok) {
-        alert('Settings saved successfully!')
+        alert("Settings saved successfully!");
       } else {
-        alert('Error saving settings')
+        alert("Error saving settings");
       }
     } catch (error) {
-      console.error('Error saving settings:', error)
-      alert('Error saving settings')
+      console.error("Error saving settings:", error);
+      alert("Error saving settings");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
-  const handleInputChange = (field: string, value: string | number | boolean) => {
-    setSettings(prev => ({
+  const handleInputChange = (
+    field: string,
+    value: string | number | boolean,
+  ) => {
+    setSettings((prev) => ({
       ...prev,
-      [field]: value
-    }))
-  }
+      [field]: value,
+    }));
+  };
 
   const handleSocialMediaChange = (platform: string, value: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       socialMedia: {
         ...prev.socialMedia,
-        [platform]: value
-      }
-    }))
-  }
+        [platform]: value,
+      },
+    }));
+  };
 
-  const handleSessionChange = (sessionId: string, field: string, value: any) => {
-    setSettings(prev => ({
+  const handleSessionChange = (
+    sessionId: string,
+    field: string,
+    value: any,
+  ) => {
+    setSettings((prev) => ({
       ...prev,
-      sessionTemplates: prev.sessionTemplates.map(session =>
-        session.id === sessionId ? { ...session, [field]: value } : session
-      )
-    }))
-  }
+      sessionTemplates: prev.sessionTemplates.map((session) =>
+        session.id === sessionId ? { ...session, [field]: value } : session,
+      ),
+    }));
+  };
 
   const addSession = () => {
     const newSession: SessionTemplate = {
       id: Date.now().toString(),
-      name: 'New Session',
+      name: "New Session",
       shortCode: `S${settings.sessionTemplates.length + 1}`,
-      startTime: '09:00',
-      endTime: '13:00',
+      startTime: "09:00",
+      endTime: "13:00",
       maxTokens: 50,
-      isActive: true
-    }
-    setSettings(prev => ({
+      isActive: true,
+    };
+    setSettings((prev) => ({
       ...prev,
-      sessionTemplates: [...prev.sessionTemplates, newSession]
-    }))
-  }
+      sessionTemplates: [...prev.sessionTemplates, newSession],
+    }));
+  };
 
   const removeSession = (sessionId: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      sessionTemplates: prev.sessionTemplates.filter(session => session.id !== sessionId)
-    }))
-  }
+      sessionTemplates: prev.sessionTemplates.filter(
+        (session) => session.id !== sessionId,
+      ),
+    }));
+  };
 
   const toggleSessionActive = (sessionId: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      sessionTemplates: prev.sessionTemplates.map(session =>
-        session.id === sessionId ? { ...session, isActive: !session.isActive } : session
-      )
-    }))
-  }
+      sessionTemplates: prev.sessionTemplates.map((session) =>
+        session.id === sessionId
+          ? { ...session, isActive: !session.isActive }
+          : session,
+      ),
+    }));
+  };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
+      const response = await fetch("/api/upload", {
+        method: "POST",
         body: formData,
-      })
+      });
 
-      const result = await response.json()
-      
+      const result = await response.json();
+
       if (result.success) {
-        setSettings(prev => ({ ...prev, logo: result.url }))
-        alert('Logo uploaded successfully!')
+        setSettings((prev) => ({ ...prev, logo: result.url }));
+        alert("Logo uploaded successfully!");
       } else {
-        alert(result.error || 'Failed to upload logo')
+        alert(result.error || "Failed to upload logo");
       }
     } catch (error) {
-      console.error('Upload error:', error)
-      alert('Failed to upload logo')
+      console.error("Upload error:", error);
+      alert("Failed to upload logo");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (session?.user?.role !== 'ADMIN') {
+  if (session?.user?.role !== "ADMIN") {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-red-600">Access denied. Admin privileges required.</p>
+          <p className="text-center text-red-600">
+            Access denied. Admin privileges required.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hospital Settings</h1>
-          <p className="text-gray-600">Configure your hospital's branding and information</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Hospital Settings
+          </h1>
+          <p className="text-gray-600">
+            Configure your hospital's branding and information
+          </p>
         </div>
         <Button onClick={saveSettings} disabled={isSaving}>
           <Save className="w-4 h-4 mr-2" />
-          {isSaving ? 'Saving...' : 'Save Changes'}
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -271,9 +334,7 @@ export default function AdminSettingsPage() {
             <Eye className="w-4 h-4 mr-2" />
             Content
           </TabsTrigger>
-          <TabsTrigger value="contact">
-            Contact
-          </TabsTrigger>
+          <TabsTrigger value="contact">Contact</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
@@ -291,7 +352,7 @@ export default function AdminSettingsPage() {
                   <Input
                     id="name"
                     value={settings.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="Enter hospital name"
                   />
                 </div>
@@ -300,7 +361,9 @@ export default function AdminSettingsPage() {
                   <Input
                     id="tagline"
                     value={settings.tagline}
-                    onChange={(e) => handleInputChange('tagline', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("tagline", e.target.value)
+                    }
                     placeholder="Enter hospital tagline"
                   />
                 </div>
@@ -319,7 +382,11 @@ export default function AdminSettingsPage() {
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
                   {settings.logo ? (
-                    <img src={settings.logo} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                    <img
+                      src={settings.logo}
+                      alt="Logo"
+                      className="w-full h-full object-contain rounded-lg"
+                    />
                   ) : (
                     <Upload className="w-8 h-8 text-gray-400" />
                   )}
@@ -332,15 +399,19 @@ export default function AdminSettingsPage() {
                     onChange={handleLogoUpload}
                     className="hidden"
                   />
-                  <Button 
-                    variant="outline" 
-                    onClick={() => document.getElementById('logo-upload')?.click()}
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      document.getElementById("logo-upload")?.click()
+                    }
                     disabled={isLoading}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {isLoading ? 'Uploading...' : 'Upload Logo'}
+                    {isLoading ? "Uploading..." : "Upload Logo"}
                   </Button>
-                  <p className="text-sm text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    PNG, JPG up to 2MB
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -360,7 +431,9 @@ export default function AdminSettingsPage() {
                   <Input
                     id="tokenPrefix"
                     value={settings.tokenPrefix}
-                    onChange={(e) => handleInputChange('tokenPrefix', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("tokenPrefix", e.target.value)
+                    }
                     placeholder="T"
                   />
                 </div>
@@ -369,30 +442,46 @@ export default function AdminSettingsPage() {
                   <Input
                     id="sessionPrefix"
                     value={settings.sessionPrefix}
-                    onChange={(e) => handleInputChange('sessionPrefix', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("sessionPrefix", e.target.value)
+                    }
                     placeholder="S"
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maxTokensPerSession">Max Tokens Per Session</Label>
+                  <Label htmlFor="maxTokensPerSession">
+                    Max Tokens Per Session
+                  </Label>
                   <Input
                     id="maxTokensPerSession"
                     type="number"
                     value={settings.maxTokensPerSession}
-                    onChange={(e) => handleInputChange('maxTokensPerSession', parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "maxTokensPerSession",
+                        parseInt(e.target.value) || 0,
+                      )
+                    }
                     placeholder="50"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="defaultSessionDuration">Default Session Duration (minutes)</Label>
+                  <Label htmlFor="defaultSessionDuration">
+                    Default Session Duration (minutes)
+                  </Label>
                   <Input
                     id="defaultSessionDuration"
                     type="number"
                     value={settings.defaultSessionDuration}
-                    onChange={(e) => handleInputChange('defaultSessionDuration', parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "defaultSessionDuration",
+                        parseInt(e.target.value) || 0,
+                      )
+                    }
                     placeholder="240"
                   />
                 </div>
@@ -404,17 +493,23 @@ export default function AdminSettingsPage() {
                     type="checkbox"
                     id="allowPublicBooking"
                     checked={settings.allowPublicBooking}
-                    onChange={(e) => handleInputChange('allowPublicBooking', e.target.checked)}
+                    onChange={(e) =>
+                      handleInputChange("allowPublicBooking", e.target.checked)
+                    }
                     className="rounded"
                   />
-                  <Label htmlFor="allowPublicBooking">Allow Public Booking</Label>
+                  <Label htmlFor="allowPublicBooking">
+                    Allow Public Booking
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="autoAssignTokens"
                     checked={settings.autoAssignTokens}
-                    onChange={(e) => handleInputChange('autoAssignTokens', e.target.checked)}
+                    onChange={(e) =>
+                      handleInputChange("autoAssignTokens", e.target.checked)
+                    }
                     className="rounded"
                   />
                   <Label htmlFor="autoAssignTokens">Auto Assign Tokens</Label>
@@ -424,10 +519,17 @@ export default function AdminSettingsPage() {
                     type="checkbox"
                     id="requirePatientDetails"
                     checked={settings.requirePatientDetails}
-                    onChange={(e) => handleInputChange('requirePatientDetails', e.target.checked)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "requirePatientDetails",
+                        e.target.checked,
+                      )
+                    }
                     className="rounded"
                   />
-                  <Label htmlFor="requirePatientDetails">Require Patient Details</Label>
+                  <Label htmlFor="requirePatientDetails">
+                    Require Patient Details
+                  </Label>
                 </div>
               </div>
             </CardContent>
@@ -448,7 +550,9 @@ export default function AdminSettingsPage() {
                     id="businessStartTime"
                     type="time"
                     value={settings.businessStartTime}
-                    onChange={(e) => handleInputChange('businessStartTime', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("businessStartTime", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -457,11 +561,13 @@ export default function AdminSettingsPage() {
                     id="businessEndTime"
                     type="time"
                     value={settings.businessEndTime}
-                    onChange={(e) => handleInputChange('businessEndTime', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("businessEndTime", e.target.value)
+                    }
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="lunchBreakStart">Lunch Break Start</Label>
@@ -469,7 +575,9 @@ export default function AdminSettingsPage() {
                     id="lunchBreakStart"
                     type="time"
                     value={settings.lunchBreakStart}
-                    onChange={(e) => handleInputChange('lunchBreakStart', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lunchBreakStart", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -478,7 +586,9 @@ export default function AdminSettingsPage() {
                     id="lunchBreakEnd"
                     type="time"
                     value={settings.lunchBreakEnd}
-                    onChange={(e) => handleInputChange('lunchBreakEnd', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lunchBreakEnd", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -493,7 +603,8 @@ export default function AdminSettingsPage() {
                 <div>
                   <CardTitle>Session Templates</CardTitle>
                   <CardDescription>
-                    Configure appointment session templates that will be used to create daily sessions
+                    Configure appointment session templates that will be used to
+                    create daily sessions
                   </CardDescription>
                 </div>
                 <Button onClick={addSession}>
@@ -511,7 +622,13 @@ export default function AdminSettingsPage() {
                         <Label>Session Name</Label>
                         <Input
                           value={session.name}
-                          onChange={(e) => handleSessionChange(session.id, 'name', e.target.value)}
+                          onChange={(e) =>
+                            handleSessionChange(
+                              session.id,
+                              "name",
+                              e.target.value,
+                            )
+                          }
                           placeholder="Morning"
                         />
                       </div>
@@ -519,7 +636,13 @@ export default function AdminSettingsPage() {
                         <Label>Short Code</Label>
                         <Input
                           value={session.shortCode}
-                          onChange={(e) => handleSessionChange(session.id, 'shortCode', e.target.value)}
+                          onChange={(e) =>
+                            handleSessionChange(
+                              session.id,
+                              "shortCode",
+                              e.target.value,
+                            )
+                          }
                           placeholder="S1"
                         />
                       </div>
@@ -528,7 +651,13 @@ export default function AdminSettingsPage() {
                         <Input
                           type="time"
                           value={session.startTime}
-                          onChange={(e) => handleSessionChange(session.id, 'startTime', e.target.value)}
+                          onChange={(e) =>
+                            handleSessionChange(
+                              session.id,
+                              "startTime",
+                              e.target.value,
+                            )
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -536,7 +665,13 @@ export default function AdminSettingsPage() {
                         <Input
                           type="time"
                           value={session.endTime}
-                          onChange={(e) => handleSessionChange(session.id, 'endTime', e.target.value)}
+                          onChange={(e) =>
+                            handleSessionChange(
+                              session.id,
+                              "endTime",
+                              e.target.value,
+                            )
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -544,7 +679,13 @@ export default function AdminSettingsPage() {
                         <Input
                           type="number"
                           value={session.maxTokens}
-                          onChange={(e) => handleSessionChange(session.id, 'maxTokens', parseInt(e.target.value))}
+                          onChange={(e) =>
+                            handleSessionChange(
+                              session.id,
+                              "maxTokens",
+                              parseInt(e.target.value),
+                            )
+                          }
                           placeholder="50"
                         />
                       </div>
@@ -553,9 +694,13 @@ export default function AdminSettingsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => toggleSessionActive(session.id)}
-                          className={session.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}
+                          className={
+                            session.isActive
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }
                         >
-                          {session.isActive ? 'Active' : 'Inactive'}
+                          {session.isActive ? "Active" : "Inactive"}
                         </Button>
                         <Button
                           variant="outline"
@@ -569,12 +714,14 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
                 ))}
-                
+
                 {settings.sessionTemplates.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No session templates configured</p>
-                    <p className="text-sm">Add session templates to enable appointment booking</p>
+                    <p className="text-sm">
+                      Add session templates to enable appointment booking
+                    </p>
                   </div>
                 )}
               </div>
@@ -599,12 +746,16 @@ export default function AdminSettingsPage() {
                       id="primaryColor"
                       type="color"
                       value={settings.primaryColor}
-                      onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("primaryColor", e.target.value)
+                      }
                       className="w-16 h-10 p-1 border rounded"
                     />
                     <Input
                       value={settings.primaryColor}
-                      onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("primaryColor", e.target.value)
+                      }
                       placeholder="#2563eb"
                       className="flex-1"
                     />
@@ -617,31 +768,35 @@ export default function AdminSettingsPage() {
                       id="secondaryColor"
                       type="color"
                       value={settings.secondaryColor}
-                      onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("secondaryColor", e.target.value)
+                      }
                       className="w-16 h-10 p-1 border rounded"
                     />
                     <Input
                       value={settings.secondaryColor}
-                      onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("secondaryColor", e.target.value)
+                      }
                       placeholder="#1e40af"
                       className="flex-1"
                     />
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-medium mb-3">Color Preview</h4>
                 <div className="flex space-x-4">
                   <div className="flex items-center space-x-2">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded"
                       style={{ backgroundColor: settings.primaryColor }}
                     ></div>
                     <span className="text-sm">Primary</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded"
                       style={{ backgroundColor: settings.secondaryColor }}
                     ></div>
@@ -667,7 +822,7 @@ export default function AdminSettingsPage() {
                 <Textarea
                   id="vision"
                   value={settings.vision}
-                  onChange={(e) => handleInputChange('vision', e.target.value)}
+                  onChange={(e) => handleInputChange("vision", e.target.value)}
                   placeholder="Enter your hospital's vision statement"
                   rows={3}
                 />
@@ -677,7 +832,7 @@ export default function AdminSettingsPage() {
                 <Textarea
                   id="mission"
                   value={settings.mission}
-                  onChange={(e) => handleInputChange('mission', e.target.value)}
+                  onChange={(e) => handleInputChange("mission", e.target.value)}
                   placeholder="Enter your hospital's mission statement"
                   rows={4}
                 />
@@ -701,7 +856,7 @@ export default function AdminSettingsPage() {
                   <Input
                     id="phone"
                     value={settings.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
@@ -711,7 +866,7 @@ export default function AdminSettingsPage() {
                     id="email"
                     type="email"
                     value={settings.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     placeholder="info@hospital.com"
                   />
                 </div>
@@ -721,7 +876,7 @@ export default function AdminSettingsPage() {
                 <Textarea
                   id="address"
                   value={settings.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
                   placeholder="Enter hospital address"
                   rows={2}
                 />
@@ -742,8 +897,10 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="facebook">Facebook</Label>
                   <Input
                     id="facebook"
-                    value={settings.socialMedia.facebook || ''}
-                    onChange={(e) => handleSocialMediaChange('facebook', e.target.value)}
+                    value={settings.socialMedia.facebook || ""}
+                    onChange={(e) =>
+                      handleSocialMediaChange("facebook", e.target.value)
+                    }
                     placeholder="https://facebook.com/yourhospital"
                   />
                 </div>
@@ -751,8 +908,10 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="twitter">Twitter</Label>
                   <Input
                     id="twitter"
-                    value={settings.socialMedia.twitter || ''}
-                    onChange={(e) => handleSocialMediaChange('twitter', e.target.value)}
+                    value={settings.socialMedia.twitter || ""}
+                    onChange={(e) =>
+                      handleSocialMediaChange("twitter", e.target.value)
+                    }
                     placeholder="https://twitter.com/yourhospital"
                   />
                 </div>
@@ -760,8 +919,10 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="instagram">Instagram</Label>
                   <Input
                     id="instagram"
-                    value={settings.socialMedia.instagram || ''}
-                    onChange={(e) => handleSocialMediaChange('instagram', e.target.value)}
+                    value={settings.socialMedia.instagram || ""}
+                    onChange={(e) =>
+                      handleSocialMediaChange("instagram", e.target.value)
+                    }
                     placeholder="https://instagram.com/yourhospital"
                   />
                 </div>
@@ -769,8 +930,10 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="linkedin">LinkedIn</Label>
                   <Input
                     id="linkedin"
-                    value={settings.socialMedia.linkedin || ''}
-                    onChange={(e) => handleSocialMediaChange('linkedin', e.target.value)}
+                    value={settings.socialMedia.linkedin || ""}
+                    onChange={(e) =>
+                      handleSocialMediaChange("linkedin", e.target.value)
+                    }
                     placeholder="https://linkedin.com/company/yourhospital"
                   />
                 </div>
@@ -780,5 +943,5 @@ export default function AdminSettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import React, { useEffect, useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import React, { useEffect, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   Users,
   Calendar,
@@ -24,100 +24,118 @@ import {
   Clock,
   BarChart2,
   Megaphone,
-  FlaskConical
-} from 'lucide-react'
+  FlaskConical,
+} from "lucide-react";
 
 interface SidebarProps {
-  className?: string
+  className?: string;
 }
 
 const menuItems = {
   ADMIN: [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: Shield, label: 'Admin Panel', href: '/admin' },
-    { icon: Users, label: 'User Management', href: '/admin/users' },
-    { icon: Clock, label: 'Doctor Availability', href: '/admin/doctor-availability' },
-    { icon: Settings, label: 'Hospital Settings', href: '/admin/settings' },
-    { icon: Users, label: 'Staff Management', href: '/staff' },
-    { icon: UserPlus, label: 'Patients', href: '/patients' },
-    { icon: Calendar, label: 'Appointments', href: '/appointments' },
-    { icon: CreditCard, label: 'Billing', href: '/billing' },
-    { icon: BarChart2, label: 'Reports', href: '/reports' },
-    { icon: Megaphone, label: 'Marketing', href: '/marketing' },
-    { icon: FlaskConical, label: 'Path Lab', href: '/lab' },
-    { icon: Users, label: 'My Profile', href: '/profile' },
+    { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: Shield, label: "Admin Panel", href: "/admin" },
+    { icon: Users, label: "User Management", href: "/admin/users" },
+    {
+      icon: Clock,
+      label: "Doctor Availability",
+      href: "/admin/doctor-availability",
+    },
+    { icon: Settings, label: "Hospital Settings", href: "/admin/settings" },
+    { icon: Users, label: "Staff Management", href: "/staff" },
+    { icon: UserPlus, label: "Patients", href: "/patients" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: CreditCard, label: "Billing", href: "/billing" },
+    { icon: BarChart2, label: "Reports", href: "/reports" },
+    { icon: Megaphone, label: "Marketing", href: "/marketing" },
+    { icon: FlaskConical, label: "Path Lab", href: "/lab" },
+    { icon: Users, label: "My Profile", href: "/profile" },
   ],
   DOCTOR: [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: Stethoscope, label: 'Doctor Console', href: '/doctor' },
-    { icon: Clock, label: 'My Availability', href: '/admin/doctor-availability' },
-    { icon: UserPlus, label: 'Patients', href: '/patients' },
-    { icon: FileText, label: 'Prescriptions', href: '/prescriptions' },
-    { icon: ClipboardList, label: 'Queue Management', href: '/queue' },
-    { icon: Calendar, label: 'Appointments', href: '/appointments' },
-    { icon: Users, label: 'My Profile', href: '/profile' },
+    { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: Stethoscope, label: "Doctor Console", href: "/doctor" },
+    {
+      icon: Clock,
+      label: "My Availability",
+      href: "/admin/doctor-availability",
+    },
+    { icon: UserPlus, label: "Patients", href: "/patients" },
+    { icon: FileText, label: "Prescriptions", href: "/prescriptions" },
+    { icon: ClipboardList, label: "Queue Management", href: "/queue" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: Users, label: "My Profile", href: "/profile" },
   ],
   RECEPTIONIST: [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: UserPlus, label: 'Patient Registration', href: '/patients/new' },
-    { icon: Calendar, label: 'Appointments', href: '/appointments' },
-    { icon: Clock, label: 'Doctor Schedules', href: '/admin/doctor-availability' },
-    { icon: ClipboardList, label: 'Queue Management', href: '/queue' },
-    { icon: CreditCard, label: 'Billing', href: '/billing' },
-    { icon: Users, label: 'Patients', href: '/patients' },
-    { icon: Users, label: 'My Profile', href: '/profile' },
+    { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: UserPlus, label: "Patient Registration", href: "/patients/new" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
+    {
+      icon: Clock,
+      label: "Doctor Schedules",
+      href: "/admin/doctor-availability",
+    },
+    { icon: ClipboardList, label: "Queue Management", href: "/queue" },
+    { icon: CreditCard, label: "Billing", href: "/billing" },
+    { icon: Users, label: "Patients", href: "/patients" },
+    { icon: Users, label: "My Profile", href: "/profile" },
   ],
   NURSE: [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: ClipboardList, label: 'Queue', href: '/queue' },
-    { icon: Users, label: 'Patients', href: '/patients' },
-    { icon: Calendar, label: 'Appointments', href: '/appointments' },
-    { icon: Users, label: 'My Profile', href: '/profile' },
+    { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: ClipboardList, label: "Queue", href: "/queue" },
+    { icon: Users, label: "Patients", href: "/patients" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: Users, label: "My Profile", href: "/profile" },
   ],
-}
+};
 
 export function Sidebar({ className }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const { data: session } = useSession()
-  const pathname = usePathname()
-  const [settings, setSettings] = useState<{ name?: string; logo?: string } | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
+  const [settings, setSettings] = useState<{
+    name?: string;
+    logo?: string;
+  } | null>(null);
 
   useEffect(() => {
-    fetch('/api/settings').then(async (res) => {
-      if (res.ok) setSettings(await res.json())
-    }).catch(() => {})
-  }, [])
+    fetch("/api/settings")
+      .then(async (res) => {
+        if (res.ok) setSettings(await res.json());
+      })
+      .catch(() => {});
+  }, []);
 
-  if (!session?.user) return null
+  if (!session?.user) return null;
 
-  const userMenuItems = menuItems[session.user.role as keyof typeof menuItems] || []
+  const userMenuItems =
+    menuItems[session.user.role as keyof typeof menuItems] || [];
 
   // Colorful icon palette per route for a modern look
   const colorByHref: Record<string, string> = {
-    '/dashboard': 'text-sky-600',
-    '/admin': 'text-indigo-600',
-    '/admin/users': 'text-purple-600',
-    '/admin/doctor-availability': 'text-amber-600',
-    '/admin/settings': 'text-gray-700',
-    '/staff': 'text-teal-600',
-    '/patients': 'text-emerald-600',
-    '/appointments': 'text-cyan-600',
-    '/billing': 'text-rose-600',
-    '/reports': 'text-violet-600',
-    '/marketing': 'text-fuchsia-600',
-    '/lab': 'text-orange-600',
-    '/profile': 'text-slate-600',
-    '/doctor': 'text-emerald-700',
-    '/queue': 'text-amber-700',
-    '/prescriptions': 'text-pink-600',
-  }
+    "/dashboard": "text-sky-600",
+    "/admin": "text-indigo-600",
+    "/admin/users": "text-purple-600",
+    "/admin/doctor-availability": "text-amber-600",
+    "/admin/settings": "text-gray-700",
+    "/staff": "text-teal-600",
+    "/patients": "text-emerald-600",
+    "/appointments": "text-cyan-600",
+    "/billing": "text-rose-600",
+    "/reports": "text-violet-600",
+    "/marketing": "text-fuchsia-600",
+    "/lab": "text-orange-600",
+    "/profile": "text-slate-600",
+    "/doctor": "text-emerald-700",
+    "/queue": "text-amber-700",
+    "/prescriptions": "text-pink-600",
+  };
 
   return (
     <div
       className={cn(
-        'flex flex-col bg-white border-r border-gray-200 transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64',
-        className
+        "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+        isCollapsed ? "w-16" : "w-64",
+        className,
       )}
     >
       {/* Header */}
@@ -125,20 +143,30 @@ export function Sidebar({ className }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             {settings?.logo ? (
-              <img src={settings.logo} alt="logo" className="w-8 h-8 object-contain rounded" />
+              <img
+                src={settings.logo}
+                alt="logo"
+                className="w-8 h-8 object-contain rounded"
+              />
             ) : (
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
             )}
-            <span className="font-semibold text-gray-900">{settings?.name || 'Hospital'}</span>
+            <span className="font-semibold text-gray-900">
+              {settings?.name || "Hospital"}
+            </span>
           </div>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
-          {isCollapsed ? <Menu className="w-6 h-6" /> : <X className="w-6 h-6" />}
+          {isCollapsed ? (
+            <Menu className="w-6 h-6" />
+          ) : (
+            <X className="w-6 h-6" />
+          )}
         </button>
       </div>
 
@@ -166,25 +194,25 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {userMenuItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
-          const color = colorByHref[item.href] || 'text-gray-500'
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          const color = colorByHref[item.href] || "text-gray-500";
           const iconClasses = cn(
-            'shrink-0',
-            isCollapsed ? 'w-7 h-7' : 'w-6 h-6',
-            isActive ? 'text-primary-600' : color
-          )
+            "shrink-0",
+            isCollapsed ? "w-7 h-7" : "w-6 h-6",
+            isActive ? "text-primary-600" : color,
+          );
           return (
             <Link
               key={item.href}
               href={item.href}
               title={isCollapsed ? item.label : undefined}
               className={cn(
-                'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                'min-h-[40px]',
+                "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "min-h-[40px]",
                 isActive
-                  ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  ? "bg-primary-50 text-primary-700 border-r-2 border-primary-600"
+                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
               )}
             >
               <div className="flex items-center justify-center w-8 h-8">
@@ -192,7 +220,7 @@ export function Sidebar({ className }: SidebarProps) {
               </div>
               {!isCollapsed && <span>{item.label}</span>}
             </Link>
-          )
+          );
         })}
       </nav>
 
@@ -207,5 +235,5 @@ export function Sidebar({ className }: SidebarProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

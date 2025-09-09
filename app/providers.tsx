@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { SessionProvider } from 'next-auth/react'
-import { Toaster } from 'react-hot-toast'
+import { SessionProvider } from "next-auth/react";
+import { Toaster } from "react-hot-toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -12,23 +12,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#363636',
-            color: '#fff',
+            background: "#363636",
+            color: "#fff",
           },
           success: {
             duration: 3000,
             style: {
-              background: '#22c55e',
+              background: "#22c55e",
             },
           },
           error: {
             duration: 5000,
             style: {
-              background: '#ef4444',
+              background: "#ef4444",
             },
           },
         }}
       />
     </SessionProvider>
-  )
+  );
 }

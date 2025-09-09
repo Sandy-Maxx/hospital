@@ -9,6 +9,7 @@ This is a comprehensive **Hospital Management System** built with **Next.js 14**
 ## Key Development Commands
 
 ### Database Operations
+
 ```bash
 # Push database schema changes to SQLite
 npm run db:push
@@ -24,6 +25,7 @@ npm run seed
 ```
 
 ### Development Workflow
+
 ```bash
 # Start development server (Next.js)
 npm run dev
@@ -42,26 +44,32 @@ npm run setup
 ```
 
 ### Database Seeding
+
 The seed script creates test users with these credentials:
+
 - **Admin**: admin@hospital.com / admin123
-- **Doctor**: doctor@hospital.com / doctor123  
+- **Doctor**: doctor@hospital.com / doctor123
 - **Receptionist**: reception@hospital.com / reception123
 
 ## Architecture & Structure
 
 ### Core Architecture Pattern
+
 This is a **monolithic Next.js application** using the App Router with:
+
 - **Route Groups**: `(authenticated)` for protected routes
 - **Role-based Access Control**: Implemented via NextAuth.js with JWT
 - **Server-side Rendering**: API routes + page components
 - **Real-time Features**: Socket.io for live queue updates
 
 ### Database Design
+
 **SQLite** database with **Prisma ORM** following these key relationships:
+
 ```
 User (roles: ADMIN, DOCTOR, RECEPTIONIST)
 ├── appointments (1:many)
-├── consultations (1:many) 
+├── consultations (1:many)
 ├── prescriptions (1:many)
 └── bills (1:many)
 
@@ -78,6 +86,7 @@ Appointment → Patient + Doctor + Session
 ```
 
 ### Directory Structure
+
 ```
 app/
 ├── (authenticated)/           # Protected routes requiring authentication
@@ -115,25 +124,30 @@ prisma/
 ## Critical Development Rules
 
 ### Authentication & Authorization
+
 - **ALL protected routes** must verify session via `getServerSession(authOptions)`
 - **Role-based menu items** are defined in `components/layout/sidebar.tsx`
 - **User roles** control access to different dashboard sections
 - **JWT tokens** include user role for client-side authorization
 
 ### Database Schema Rules
+
 - **NEVER use `Decimal` type** - SQLite requires `Float` for monetary values
 - **Maintain existing foreign key relationships** - breaking these breaks the system
 - **Add new fields as optional** to avoid breaking existing data
 - **Use Prisma transactions** for multi-table operations
 
 ### Token & Queue System
+
 - **Token format**: `{prefix}-{session}-{number}` (e.g., "T-M-001")
 - **Session management** via `AppointmentSession` model with shortCodes (S1, S2, S3)
 - **Sequential numbering** within sessions, auto-generated in API routes
 - **Queue status tracking**: SCHEDULED → ARRIVED → WAITING → IN_CONSULTATION → COMPLETED
 
 ### API Patterns
+
 All API routes follow this structure:
+
 ```typescript
 // Success Response
 {
@@ -142,7 +156,7 @@ All API routes follow this structure:
   message?: "Optional message"
 }
 
-// Error Response  
+// Error Response
 {
   success: false,
   error: "Error message",
@@ -151,6 +165,7 @@ All API routes follow this structure:
 ```
 
 ### Component Architecture
+
 - **Role-based navigation** in sidebar with dynamic menu items
 - **Consistent form patterns** using React Hook Form + Zod validation
 - **Toast notifications** for user feedback via react-hot-toast
@@ -160,6 +175,7 @@ All API routes follow this structure:
 ## Key Business Logic
 
 ### Appointment Workflow
+
 1. **Session Selection**: Choose from active AppointmentSessions (Morning/S1, Afternoon/S2, Evening/S3)
 2. **Doctor Assignment**: Based on availability and session assignments
 3. **Token Generation**: Auto-generated sequential tokens per session
@@ -167,13 +183,15 @@ All API routes follow this structure:
 5. **Billing Integration**: Automatic bill creation upon consultation completion
 
 ### Prescription System
+
 - **SOAP Format**: Subjective, Objective, Assessment, Plan structure
 - **Medicine Database**: JSON-stored medicine objects with dosages
 - **Integration**: Linked to consultations and automatically generates bills
 - **Digital Format**: Includes QR codes for verification
 
 ### Billing System
-- **GST Compliance**: CGST + SGST calculations for Indian tax requirements  
+
+- **GST Compliance**: CGST + SGST calculations for Indian tax requirements
 - **Multiple Payment Methods**: Cash, Card, UPI support
 - **Prescription Integration**: Auto-populated from consultation fees
 - **Status Tracking**: PENDING → PARTIAL → PAID workflow
@@ -181,12 +199,14 @@ All API routes follow this structure:
 ## Testing & Development
 
 ### Manual Testing Workflow
+
 1. **Login** with different role credentials to test role-based access
 2. **Patient Registration** → **Appointment Booking** → **Token Generation**
 3. **Doctor Console** → **Consultation** → **Prescription** → **Billing**
 4. **Queue Management** → Live status updates between receptionist/doctor views
 
 ### Key Integration Points
+
 - **NextAuth.js session** drives all authentication
 - **Prisma client** (`lib/prisma.ts`) handles all database operations
 - **Hospital settings** (`data/hospital-settings.json`) configures token prefixes
@@ -195,13 +215,15 @@ All API routes follow this structure:
 ## Performance Considerations
 
 ### Database Optimization
+
 - Use Prisma `select` to fetch only required fields
 - Implement pagination for large datasets (appointments, patients)
 - Avoid N+1 queries with proper `include` statements
 
 ### Critical Dependencies
+
 - **Next.js 14**: Framework and App Router
-- **NextAuth.js**: Authentication and session management  
+- **NextAuth.js**: Authentication and session management
 - **Prisma**: Database ORM with SQLite
 - **React Hook Form + Zod**: Form handling and validation
 - **Tailwind CSS**: Styling system

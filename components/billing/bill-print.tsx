@@ -1,45 +1,45 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Printer, X } from 'lucide-react'
-import { formatBillNumber } from '@/lib/identifiers'
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Printer, X } from "lucide-react";
+import { formatBillNumber } from "@/lib/identifiers";
 
 interface BillPrintProps {
-  isOpen: boolean
-  onClose: () => void
-  bill: any | null
+  isOpen: boolean;
+  onClose: () => void;
+  bill: any | null;
 }
 
 interface HospitalSettings {
-  name?: string
-  tagline?: string
-  logo?: string
-  phone?: string
-  email?: string
-  address?: string
-  primaryColor?: string
+  name?: string;
+  tagline?: string;
+  logo?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  primaryColor?: string;
 }
 
 export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
-  const [settings, setSettings] = useState<HospitalSettings>({})
+  const [settings, setSettings] = useState<HospitalSettings>({});
 
   useEffect(() => {
-    if (!isOpen) return
-    fetch('/api/settings')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => data && setSettings(data))
-      .catch(() => {})
-  }, [isOpen])
+    if (!isOpen) return;
+    fetch("/api/settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setSettings(data))
+      .catch(() => {});
+  }, [isOpen]);
 
-  if (!isOpen || !bill) return null
+  if (!isOpen || !bill) return null;
 
-  const subtotal = bill.totalAmount || 0
-  const cgst = bill.cgst || 0
-  const sgst = bill.sgst || 0
-  const discount = bill.discountAmount || 0
-  const final = bill.finalAmount ?? (subtotal + cgst + sgst - discount)
+  const subtotal = bill.totalAmount || 0;
+  const cgst = bill.cgst || 0;
+  const sgst = bill.sgst || 0;
+  const discount = bill.discountAmount || 0;
+  const final = bill.finalAmount ?? subtotal + cgst + sgst - discount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -47,15 +47,27 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center space-x-3">
             {settings.logo && (
-              <img src={settings.logo} alt="logo" className="h-10 w-10 object-contain" />
+              <img
+                src={settings.logo}
+                alt="logo"
+                className="h-10 w-10 object-contain"
+              />
             )}
             <div>
-              <div className="text-xl font-bold">{settings.name || 'Clinic'}</div>
-              {settings.tagline && <div className="text-sm text-gray-600">{settings.tagline}</div>}
+              <div className="text-xl font-bold">
+                {settings.name || "Clinic"}
+              </div>
+              {settings.tagline && (
+                <div className="text-sm text-gray-600">{settings.tagline}</div>
+              )}
               {(settings.address || settings.phone || settings.email) && (
                 <div className="text-xs text-gray-500">
-                  {settings.address}{settings.address && (settings.phone || settings.email) ? ' • ' : ''}
-                  {settings.phone}{settings.phone && settings.email ? ' • ' : ''}
+                  {settings.address}
+                  {settings.address && (settings.phone || settings.email)
+                    ? " • "
+                    : ""}
+                  {settings.phone}
+                  {settings.phone && settings.email ? " • " : ""}
                   {settings.email}
                 </div>
               )}
@@ -75,19 +87,29 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
           <div className="grid grid-cols-2 gap-4 text-sm mb-6">
             <div>
               <div className="text-gray-500">Bill No.</div>
-              <div className="font-semibold">{formatBillNumber({ billNumber: bill.billNumber, id: bill.id, createdAt: bill.createdAt })}</div>
+              <div className="font-semibold">
+                {formatBillNumber({
+                  billNumber: bill.billNumber,
+                  id: bill.id,
+                  createdAt: bill.createdAt,
+                })}
+              </div>
             </div>
             <div>
               <div className="text-gray-500">Date</div>
-              <div className="font-semibold">{new Date(bill.createdAt).toLocaleString()}</div>
+              <div className="font-semibold">
+                {new Date(bill.createdAt).toLocaleString()}
+              </div>
             </div>
             <div>
               <div className="text-gray-500">Patient</div>
-              <div className="font-semibold">{bill.patient?.firstName} {bill.patient?.lastName}</div>
+              <div className="font-semibold">
+                {bill.patient?.firstName} {bill.patient?.lastName}
+              </div>
             </div>
             <div>
               <div className="text-gray-500">Doctor</div>
-              <div className="font-semibold">{bill.doctor?.name || '-'}</div>
+              <div className="font-semibold">{bill.doctor?.name || "-"}</div>
             </div>
           </div>
 
@@ -101,7 +123,9 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
                     <th className="text-left px-4 py-2 border-b">Item</th>
                     <th className="text-right px-4 py-2 border-b">Qty</th>
                     <th className="text-right px-4 py-2 border-b">Rate (₹)</th>
-                    <th className="text-right px-4 py-2 border-b">Amount (₹)</th>
+                    <th className="text-right px-4 py-2 border-b">
+                      Amount (₹)
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -110,8 +134,12 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
                       <td className="px-4 py-2">{it.itemType}</td>
                       <td className="px-4 py-2">{it.itemName}</td>
                       <td className="px-4 py-2 text-right">{it.quantity}</td>
-                      <td className="px-4 py-2 text-right">{(it.unitPrice || 0).toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right">{(it.totalPrice || 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right">
+                        {(it.unitPrice || 0).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {(it.totalPrice || 0).toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -144,10 +172,11 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
           </div>
 
           <div className="mt-6 text-xs text-gray-500">
-            This is a computer-generated invoice. Prices include applicable taxes. Please retain for your records.
+            This is a computer-generated invoice. Prices include applicable
+            taxes. Please retain for your records.
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

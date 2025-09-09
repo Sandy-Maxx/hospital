@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost'],
+    domains: ["localhost"],
   },
   typescript: {
     ignoreBuildErrors: false,
@@ -16,10 +16,10 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-      }
+      };
     }
-    return config
+    return config;
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

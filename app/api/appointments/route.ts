@@ -1,32 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
-import fs from 'fs'
-import path from 'path'
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import fs from "fs";
+import path from "path";
 
 const appointmentSchema = z.object({
-  patientId: z.string().min(1, 'Patient is required'),
-  doctorId: z.string().min(1, 'Doctor is required'),
-  sessionId: z.string().min(1, 'Session is required'),
-  dateTime: z.string().min(1, 'Date and time is required'),
-  type: z.enum(['CONSULTATION', 'FOLLOW_UP', 'EMERGENCY', 'ROUTINE_CHECKUP']).default('CONSULTATION'),
+  patientId: z.string().min(1, "Patient is required"),
+  doctorId: z.string().min(1, "Doctor is required"),
+  sessionId: z.string().min(1, "Session is required"),
+  dateTime: z.string().min(1, "Date and time is required"),
+  type: z
+    .enum(["CONSULTATION", "FOLLOW_UP", "EMERGENCY", "ROUTINE_CHECKUP"])
+    .default("CONSULTATION"),
   notes: z.string().optional(),
-})
+});
 
 // Load hospital settings
 function loadHospitalSettings() {
   try {
-    const settingsPath = path.join(process.cwd(), 'data', 'hospital-settings.json')
-    const settingsData = fs.readFileSync(settingsPath, 'utf8')
-    return JSON.parse(settingsData)
+    const settingsPath = path.join(
+      process.cwd(),
+      "data",
+      "hospital-settings.json",
+    );
+    const settingsData = fs.readFileSync(settingsPath, "utf8");
+    return JSON.parse(settingsData);
   } catch (error) {
-    console.error('Error loading hospital settings:', error)
+    console.error("Error loading hospital settings:", error);
     return {
-      tokenPrefix: 'T',
-      sessionPrefix: 'S'
-    }
+      tokenPrefix: "T",
+      sessionPrefix: "S",
+    };
   }
 }
 
@@ -37,95 +43,95 @@ async function generateTokenNumber(sessionId: string): Promise<string> {
     include: {
       appointments: {
         where: {
-          status: { notIn: ['CANCELLED'] }
+          status: { notIn: ["CANCELLED"] },
         },
-        orderBy: { tokenNumber: 'desc' },
-        take: 1
-      }
-    }
-  })
+        orderBy: { tokenNumber: "desc" },
+        take: 1,
+      },
+    },
+  });
 
   if (!session) {
-    throw new Error('Session not found')
+    throw new Error("Session not found");
   }
 
   // Load hospital settings for token prefix
-  const settings = loadHospitalSettings()
-  const tokenPrefix = settings.tokenPrefix || 'T'
+  const settings = loadHospitalSettings();
+  const tokenPrefix = settings.tokenPrefix || "T";
 
   // Generate next token number
-  const lastToken = session.appointments[0]?.tokenNumber
-  let nextNumber = 1
+  const lastToken = session.appointments[0]?.tokenNumber;
+  let nextNumber = 1;
 
   if (lastToken) {
     // Extract number from token (e.g., "MED-M-015" -> 15)
-    const match = lastToken.match(/-(\d+)$/)
+    const match = lastToken.match(/-(\d+)$/);
     if (match) {
-      nextNumber = parseInt(match[1]) + 1
+      nextNumber = parseInt(match[1]) + 1;
     }
   }
 
   // Format: {tokenPrefix}-{sessionShortCode}-{number}
-  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, '0')}`
-  return tokenNumber
+  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, "0")}`;
+  return tokenNumber;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date')
-    const from = searchParams.get('from')
-    const to = searchParams.get('to')
-    const doctorId = searchParams.get('doctorId')
-    const patientId = searchParams.get('patientId')
-    const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const skip = (page - 1) * limit
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const doctorId = searchParams.get("doctorId");
+    const patientId = searchParams.get("patientId");
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
 
     // Date filtering: supports either single-day (date) or range (from,to)
     if (from && to) {
-      const startDate = new Date(from)
-      const endDate = new Date(to)
+      const startDate = new Date(from);
+      const endDate = new Date(to);
       where.dateTime = {
         gte: startDate,
         lt: endDate,
-      }
+      };
     } else if (date) {
-      const startDate = new Date(date)
-      const endDate = new Date(date)
-      endDate.setDate(endDate.getDate() + 1)
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
       where.dateTime = {
         gte: startDate,
         lt: endDate,
-      }
+      };
     }
-    
+
     if (doctorId) {
-      where.doctorId = doctorId
+      where.doctorId = doctorId;
     }
 
     if (patientId) {
-      where.patientId = patientId
+      where.patientId = patientId;
     }
-    
+
     if (status) {
-      const statusArray = status.split(',')
+      const statusArray = status.split(",");
       where.status = {
-        in: statusArray
-      }
+        in: statusArray,
+      };
     }
 
     // If user is a doctor, only show their appointments
-    if (session.user.role === 'DOCTOR') {
-      where.doctorId = session.user.id
+    if (session.user.role === "DOCTOR") {
+      where.doctorId = session.user.id;
     }
 
     const [appointments, total] = await Promise.all([
@@ -133,9 +139,7 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: [
-          { dateTime: 'asc' },
-        ],
+        orderBy: [{ dateTime: "asc" }],
         include: {
           patient: {
             select: {
@@ -155,7 +159,7 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.appointment.count({ where }),
-    ])
+    ]);
 
     return NextResponse.json({
       appointments,
@@ -165,62 +169,65 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error('Error fetching appointments:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error fetching appointments:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const validatedData = appointmentSchema.parse(body)
+    const body = await request.json();
+    const validatedData = appointmentSchema.parse(body);
 
     // Check if doctor exists
     const doctor = await prisma.user.findFirst({
       where: {
         id: validatedData.doctorId,
-        role: 'DOCTOR',
+        role: "DOCTOR",
         isActive: true,
       },
-    })
+    });
 
     if (!doctor) {
-      return NextResponse.json({ error: 'Doctor not found' }, { status: 400 })
+      return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
     }
 
     // Check if patient exists
     const patient = await prisma.patient.findUnique({
       where: { id: validatedData.patientId },
-    })
+    });
 
     if (!patient) {
-      return NextResponse.json({ error: 'Patient not found' }, { status: 400 })
+      return NextResponse.json({ error: "Patient not found" }, { status: 400 });
     }
 
     // Check for conflicting appointments
-    const appointmentDateTime = new Date(validatedData.dateTime)
+    const appointmentDateTime = new Date(validatedData.dateTime);
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         doctorId: validatedData.doctorId,
         dateTime: appointmentDateTime,
         status: {
-          not: 'CANCELLED',
+          not: "CANCELLED",
         },
       },
-    })
+    });
 
     if (conflictingAppointment) {
       return NextResponse.json(
-        { error: 'Doctor is not available at this time' },
-        { status: 400 }
-      )
+        { error: "Doctor is not available at this time" },
+        { status: 400 },
+      );
     }
 
     const appointment = await prisma.appointment.create({
@@ -232,7 +239,7 @@ export async function POST(request: NextRequest) {
         type: validatedData.type,
         notes: validatedData.notes,
         tokenNumber: await generateTokenNumber(validatedData.sessionId),
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
       },
       include: {
         patient: {
@@ -255,23 +262,26 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             shortCode: true,
-          }
-        }
+          },
+        },
       },
-    })
+    });
 
     // Update session currentTokens to keep counts accurate
     await prisma.appointmentSession.update({
       where: { id: validatedData.sessionId },
-      data: { currentTokens: { increment: 1 } }
-    })
+      data: { currentTokens: { increment: 1 } },
+    });
 
-    return NextResponse.json(appointment, { status: 201 })
+    return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 })
+      return NextResponse.json({ error: error.errors }, { status: 400 });
     }
-    console.error('Error creating appointment:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error creating appointment:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

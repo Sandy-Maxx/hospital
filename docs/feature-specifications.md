@@ -5,44 +5,47 @@
 ### 1. User Authentication & Role Management
 
 #### Authentication System
+
 - **Technology**: NextAuth.js with JWT strategy
 - **Supported Methods**: Email/Password credentials
 - **Session Management**: JWT tokens with configurable expiration
 - **Password Security**: bcrypt hashing with salt rounds
 
 #### Role-Based Access Control
+
 ```typescript
 enum UserRole {
-  ADMIN = 'ADMIN',
-  DOCTOR = 'DOCTOR', 
-  RECEPTIONIST = 'RECEPTIONIST'
+  ADMIN = "ADMIN",
+  DOCTOR = "DOCTOR",
+  RECEPTIONIST = "RECEPTIONIST",
 }
 
 interface RolePermissions {
   [UserRole.ADMIN]: {
-    patients: ['create', 'read', 'update', 'delete'];
-    appointments: ['create', 'read', 'update', 'delete'];
-    billing: ['create', 'read', 'update', 'delete'];
-    reports: ['read'];
-    settings: ['read', 'update'];
-    users: ['create', 'read', 'update', 'delete'];
+    patients: ["create", "read", "update", "delete"];
+    appointments: ["create", "read", "update", "delete"];
+    billing: ["create", "read", "update", "delete"];
+    reports: ["read"];
+    settings: ["read", "update"];
+    users: ["create", "read", "update", "delete"];
   };
   [UserRole.DOCTOR]: {
-    patients: ['read'];
-    appointments: ['read', 'update'];
-    prescriptions: ['create', 'read', 'update'];
-    consultations: ['create', 'read', 'update'];
+    patients: ["read"];
+    appointments: ["read", "update"];
+    prescriptions: ["create", "read", "update"];
+    consultations: ["create", "read", "update"];
   };
   [UserRole.RECEPTIONIST]: {
-    patients: ['create', 'read', 'update'];
-    appointments: ['create', 'read', 'update'];
-    billing: ['create', 'read', 'update'];
-    queue: ['read', 'update'];
+    patients: ["create", "read", "update"];
+    appointments: ["create", "read", "update"];
+    billing: ["create", "read", "update"];
+    queue: ["read", "update"];
   };
 }
 ```
 
 #### User Management Features
+
 - User registration with role assignment
 - Profile management
 - Password reset functionality (planned)
@@ -52,6 +55,7 @@ interface RolePermissions {
 ### 2. Patient Management System
 
 #### Patient Registration
+
 - **Comprehensive Demographics**: Name, contact, DOB, gender, address
 - **Medical Information**: Blood group, allergies, emergency contacts
 - **Identification**: Multiple ID proof types support
@@ -59,13 +63,14 @@ interface RolePermissions {
 - **Data Validation**: Real-time validation with error feedback
 
 #### Patient Search & Filtering
+
 ```typescript
 interface PatientSearchFilters {
   name?: string;
   phone?: string;
   email?: string;
   dateOfBirth?: DateRange;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  gender?: "MALE" | "FEMALE" | "OTHER";
   bloodGroup?: string;
   registrationDate?: DateRange;
 }
@@ -79,6 +84,7 @@ interface PatientSearchResult {
 ```
 
 #### Patient History Tracking
+
 - Appointment history with outcomes
 - Prescription records
 - Billing history
@@ -88,6 +94,7 @@ interface PatientSearchResult {
 ### 3. Token-Based Appointment System
 
 #### Session Management
+
 ```typescript
 interface AppointmentSession {
   id: string;
@@ -103,6 +110,7 @@ interface AppointmentSession {
 ```
 
 #### Token Generation System
+
 - **Format**: `{tokenPrefix}-{sessionShortCode}-{sequentialNumber}`
 - **Example**: `MED-M-001`, `MED-E-025`
 - **Sequential Numbering**: Auto-increment within session
@@ -110,6 +118,7 @@ interface AppointmentSession {
 - **Print Support**: Professional token design with hospital branding
 
 #### Appointment Workflow
+
 ```mermaid
 graph TD
     A[Patient Books Appointment] --> B[Session Selection]
@@ -119,12 +128,13 @@ graph TD
     E --> F[Queue Management - WAITING]
     F --> G[Doctor Consultation - IN_CONSULTATION]
     G --> H[Consultation Complete - COMPLETED]
-    
+
     D --> I[No Show - NO_SHOW]
     D --> J[Cancelled - CANCELLED]
 ```
 
 #### Priority System
+
 - **EMERGENCY**: Immediate attention, bypasses queue
 - **HIGH**: Urgent but not emergency
 - **NORMAL**: Standard appointment priority
@@ -133,6 +143,7 @@ graph TD
 ### 4. Doctor Dashboard & Queue Management
 
 #### Real-Time Queue Display
+
 ```typescript
 interface QueueItem {
   appointment: Appointment;
@@ -153,6 +164,7 @@ interface QueueStats {
 ```
 
 #### Consultation Management
+
 - Start/pause/complete consultation tracking
 - Actual time vs estimated time recording
 - Patient history quick access
@@ -160,9 +172,10 @@ interface QueueStats {
 - SOAP notes documentation
 
 #### Doctor Availability Management
+
 ```typescript
 interface DoctorAvailability {
-  type: 'UNAVAILABLE' | 'LEAVE' | 'HOLIDAY' | 'CUSTOM';
+  type: "UNAVAILABLE" | "LEAVE" | "HOLIDAY" | "CUSTOM";
   startDate: Date;
   endDate?: Date;
   startTime?: string;
@@ -176,6 +189,7 @@ interface DoctorAvailability {
 ### 5. Prescription Management with SOAP Notes
 
 #### SOAP Documentation Structure
+
 ```typescript
 interface SOAPNotes {
   subjective: {
@@ -206,6 +220,7 @@ interface SOAPNotes {
 ```
 
 #### Medicine Management
+
 ```typescript
 interface Medicine {
   name: string;
@@ -227,6 +242,7 @@ interface PrescriptionItem {
 ```
 
 #### Quick Selection Tools
+
 - Common symptoms checklist
 - Vital signs input templates
 - Frequent diagnoses shortcuts
@@ -236,6 +252,7 @@ interface PrescriptionItem {
 ### 6. GST-Compliant Billing System
 
 #### Bill Structure
+
 ```typescript
 interface Bill {
   billNumber: string; // Auto-generated sequential
@@ -243,9 +260,9 @@ interface Bill {
   doctor: User;
   appointment?: Appointment;
   prescription?: Prescription;
-  
+
   items: BillItem[];
-  
+
   // Financial calculations
   subtotal: number;
   cgst: number; // Central GST
@@ -253,13 +270,13 @@ interface Bill {
   igst?: number; // Integrated GST (inter-state)
   discountAmount: number;
   finalAmount: number;
-  
+
   // Payment tracking
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
   paidAmount: number;
   balanceAmount: number;
-  
+
   // Metadata
   createdBy: User;
   notes?: string;
@@ -268,27 +285,33 @@ interface Bill {
 ```
 
 #### GST Calculation Logic
+
 ```typescript
-const calculateGST = (amount: number, gstRate: number, isInterState: boolean = false) => {
+const calculateGST = (
+  amount: number,
+  gstRate: number,
+  isInterState: boolean = false,
+) => {
   const gstAmount = (amount * gstRate) / 100;
-  
+
   if (isInterState) {
     return {
       cgst: 0,
       sgst: 0,
-      igst: gstAmount
+      igst: gstAmount,
     };
   } else {
     return {
       cgst: gstAmount / 2,
       sgst: gstAmount / 2,
-      igst: 0
+      igst: 0,
     };
   }
 };
 ```
 
 #### Bill Item Types
+
 - **CONSULTATION**: Doctor consultation fees
 - **MEDICINE**: Prescribed medications
 - **LAB_TEST**: Laboratory investigations
@@ -297,27 +320,29 @@ const calculateGST = (amount: number, gstRate: number, isInterState: boolean = f
 - **OTHER**: Miscellaneous charges
 
 #### Payment Processing
+
 ```typescript
 enum PaymentStatus {
-  PENDING = 'PENDING',
-  PARTIAL = 'PARTIAL',
-  PAID = 'PAID',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED'
+  PENDING = "PENDING",
+  PARTIAL = "PARTIAL",
+  PAID = "PAID",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
 }
 
 enum PaymentMethod {
-  CASH = 'CASH',
-  UPI = 'UPI',
-  CARD = 'CARD',
-  CHEQUE = 'CHEQUE',
-  BANK_TRANSFER = 'BANK_TRANSFER'
+  CASH = "CASH",
+  UPI = "UPI",
+  CARD = "CARD",
+  CHEQUE = "CHEQUE",
+  BANK_TRANSFER = "BANK_TRANSFER",
 }
 ```
 
 ### 7. Hospital Configuration System
 
 #### Settings Management
+
 ```typescript
 interface HospitalSettings {
   // Basic Information
@@ -329,11 +354,11 @@ interface HospitalSettings {
   address: string;
   vision: string;
   mission: string;
-  
+
   // Branding
   primaryColor: string;
   secondaryColor: string;
-  
+
   // Appointment Configuration
   tokenPrefix: string; // "MED", "HMS"
   sessionPrefix: string; // "S"
@@ -343,16 +368,16 @@ interface HospitalSettings {
   requirePatientDetails: boolean;
   autoAssignTokens: boolean;
   enableCarryForward: boolean;
-  
+
   // Business Hours
   businessStartTime: string; // "09:00"
   businessEndTime: string; // "22:00"
   lunchBreakStart: string; // "13:00"
   lunchBreakEnd: string; // "14:00"
-  
+
   // Session Templates
   sessionTemplates: SessionTemplate[];
-  
+
   // Social Media
   socialMedia: {
     facebook?: string;
@@ -364,6 +389,7 @@ interface HospitalSettings {
 ```
 
 #### Session Template Configuration
+
 ```typescript
 interface SessionTemplate {
   id: string;
@@ -380,6 +406,7 @@ interface SessionTemplate {
 ### 8. Public Appointment Booking
 
 #### Anonymous Booking Flow
+
 1. **Session Selection**: Choose available time slot
 2. **Patient Information**: Provide/update patient details
 3. **Appointment Details**: Set priority and notes
@@ -387,6 +414,7 @@ interface SessionTemplate {
 5. **Confirmation**: Print/download token with QR code
 
 #### Patient Registration Integration
+
 ```typescript
 interface PublicBookingRequest {
   patient: {
@@ -407,6 +435,7 @@ interface PublicBookingRequest {
 ```
 
 #### Booking Validation
+
 - Session capacity checking
 - Duplicate booking prevention
 - Patient information validation
@@ -415,6 +444,7 @@ interface PublicBookingRequest {
 ### 9. Reporting & Analytics
 
 #### Dashboard Metrics
+
 ```typescript
 interface DashboardMetrics {
   today: {
@@ -439,6 +469,7 @@ interface DashboardMetrics {
 ```
 
 #### Report Types
+
 - **Patient Demographics**: Age, gender, location distribution
 - **Appointment Analytics**: Booking patterns, no-show rates
 - **Revenue Reports**: Daily, weekly, monthly financial summaries
@@ -448,6 +479,7 @@ interface DashboardMetrics {
 ### 10. Print & Document Generation
 
 #### Token Printing
+
 - Professional token design with hospital branding
 - QR code with appointment details
 - Priority-based styling (emergency tokens have special highlighting)
@@ -455,6 +487,7 @@ interface DashboardMetrics {
 - Mobile-responsive design
 
 #### Bill Printing
+
 - GST-compliant bill format
 - Hospital letterhead integration
 - Itemized billing with tax breakdown
@@ -462,6 +495,7 @@ interface DashboardMetrics {
 - Digital signature support
 
 #### Prescription Printing
+
 - Standard prescription format
 - Doctor information and signature
 - Medicine list with detailed instructions
@@ -471,13 +505,14 @@ interface DashboardMetrics {
 ## Feature Integration Points
 
 ### 1. Appointment → Consultation → Prescription → Billing
+
 ```mermaid
 sequenceDiagram
     participant P as Patient
     participant R as Receptionist
     participant D as Doctor
     participant S as System
-    
+
     P->>R: Books Appointment
     R->>S: Creates Appointment with Token
     S->>P: Generates Token with QR Code
@@ -491,12 +526,14 @@ sequenceDiagram
 ```
 
 ### 2. Real-Time Updates
+
 - Queue status updates every 30 seconds
 - Appointment status changes broadcast to relevant users
 - Dashboard metrics refresh automatically
 - Notification system for critical events
 
 ### 3. Data Synchronization
+
 - Hospital settings sync across all components
 - Session templates update appointment booking
 - Doctor availability affects appointment scheduling
@@ -505,6 +542,7 @@ sequenceDiagram
 ## Future Feature Enhancements
 
 ### 1. Advanced Features (Planned)
+
 - **Telemedicine Integration**: Video consultation support
 - **Mobile App**: React Native application
 - **Offline Support**: Local SQLite synchronization
@@ -515,6 +553,7 @@ sequenceDiagram
 - **Pharmacy Integration**: Medicine inventory management
 
 ### 2. API Extensions
+
 - **Webhook Support**: Real-time event notifications
 - **Third-party Integrations**: EMR systems, payment gateways
 - **Mobile API**: Optimized endpoints for mobile apps
@@ -522,6 +561,7 @@ sequenceDiagram
 - **Advanced Search**: Elasticsearch integration
 
 ### 3. User Experience Enhancements
+
 - **Progressive Web App**: Offline functionality
 - **Dark Mode**: Theme customization
 - **Accessibility**: WCAG 2.1 compliance

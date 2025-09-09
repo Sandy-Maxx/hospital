@@ -1,11 +1,13 @@
 # Database Schema Documentation
 
 ## Overview
+
 The Hospital Management System uses SQLite with Prisma ORM for data persistence. The schema is designed with strong relationships, audit trails, and scalability in mind.
 
 ## Core Models
 
 ### User Model
+
 **Purpose**: Manages all system users (Admin, Doctor, Receptionist)
 
 ```prisma
@@ -25,6 +27,7 @@ model User {
 ```
 
 **Key Relationships**:
+
 - One-to-many with Appointments (as doctor)
 - One-to-many with Consultations
 - One-to-many with Prescriptions
@@ -32,12 +35,14 @@ model User {
 - One-to-many with DoctorConsultationFee
 
 **Business Rules**:
+
 - Email must be unique across system
 - Password stored as bcrypt hash
 - isActive flag for soft deletion
 - Role-based access control implementation
 
 ### Patient Model
+
 **Purpose**: Stores patient demographic and medical information
 
 ```prisma
@@ -61,6 +66,7 @@ model Patient {
 ```
 
 **Key Relationships**:
+
 - One-to-many with Appointments
 - One-to-many with Prescriptions
 - One-to-many with Bills
@@ -68,12 +74,14 @@ model Patient {
 - One-to-many with Consultations
 
 **Business Rules**:
+
 - Phone number must be unique (primary identifier)
 - Email is optional (for walk-in patients)
 - Supports multiple ID proof types
 - Emergency contact for critical situations
 
 ### Appointment Model
+
 **Purpose**: Manages appointment scheduling with token-based system
 
 ```prisma
@@ -97,12 +105,14 @@ model Appointment {
 ```
 
 **Appointment Types**:
+
 - CONSULTATION: Regular doctor consultation
 - FOLLOW_UP: Follow-up appointment
 - EMERGENCY: Emergency consultation
 - ROUTINE_CHECKUP: Preventive care
 
 **Appointment Status Flow**:
+
 ```
 SCHEDULED → ARRIVED → WAITING → IN_CONSULTATION → COMPLETED
                                       ↓
@@ -110,12 +120,14 @@ SCHEDULED → ARRIVED → WAITING → IN_CONSULTATION → COMPLETED
 ```
 
 **Priority Levels**:
+
 - EMERGENCY: Immediate attention required
 - HIGH: Urgent but not emergency
 - NORMAL: Standard appointment
 - LOW: Non-urgent consultation
 
 ### AppointmentSession Model
+
 **Purpose**: Manages time-based appointment sessions
 
 ```prisma
@@ -135,12 +147,14 @@ model AppointmentSession {
 ```
 
 **Session Configuration**:
+
 - Sessions defined in hospital-settings.json
 - Daily session creation based on templates
 - Token capacity management per session
 - Unique constraint on date + shortCode
 
 ### Consultation Model
+
 **Purpose**: Detailed consultation records
 
 ```prisma
@@ -162,12 +176,14 @@ model Consultation {
 ```
 
 **SOAP Integration**:
+
 - chiefComplaint: Subjective (S)
 - examination: Objective (O)
 - diagnosis: Assessment (A)
 - treatment: Plan (P)
 
 ### Prescription Model
+
 **Purpose**: Medicine prescriptions with SOAP notes
 
 ```prisma
@@ -188,6 +204,7 @@ model Prescription {
 ```
 
 **Medicine JSON Structure**:
+
 ```json
 [
   {
@@ -201,6 +218,7 @@ model Prescription {
 ```
 
 ### Bill Model
+
 **Purpose**: GST-compliant billing system
 
 ```prisma
@@ -230,6 +248,7 @@ model Bill {
 ```
 
 **Payment Status Flow**:
+
 ```
 PENDING → PARTIAL → PAID
     ↓         ↓
@@ -237,11 +256,13 @@ CANCELLED  REFUNDED
 ```
 
 **GST Calculation Logic**:
+
 - CGST = GST Rate / 2
 - SGST = GST Rate / 2
 - IGST = GST Rate (for inter-state transactions)
 
 ### BillItem Model
+
 **Purpose**: Individual items in a bill
 
 ```prisma
@@ -258,6 +279,7 @@ model BillItem {
 ```
 
 **Item Types**:
+
 - CONSULTATION: Doctor consultation fees
 - MEDICINE: Prescribed medications
 - LAB_TEST: Laboratory investigations
@@ -268,6 +290,7 @@ model BillItem {
 ## Configuration Models
 
 ### HospitalSettings Model
+
 **Purpose**: Centralized hospital configuration
 
 ```prisma
@@ -297,6 +320,7 @@ model HospitalSettings {
 ```
 
 ### DoctorConsultationFee Model
+
 **Purpose**: Doctor-specific consultation rates
 
 ```prisma
@@ -312,6 +336,7 @@ model DoctorConsultationFee {
 ```
 
 **Consultation Types**:
+
 - GENERAL: Standard consultation
 - SPECIALIST: Specialized consultation
 - EMERGENCY: Emergency consultation
@@ -319,6 +344,7 @@ model DoctorConsultationFee {
 ## Audit and Tracking Models
 
 ### AppointmentAssignmentLog Model
+
 **Purpose**: Audit trail for doctor reassignments
 
 ```prisma
@@ -334,6 +360,7 @@ model AppointmentAssignmentLog {
 ```
 
 ### DoctorAvailability Model
+
 **Purpose**: Doctor schedule and availability management
 
 ```prisma
@@ -357,6 +384,7 @@ model DoctorAvailability {
 ## Supporting Models
 
 ### Medicine Model
+
 **Purpose**: Master medicine database
 
 ```prisma
@@ -375,6 +403,7 @@ model Medicine {
 ```
 
 ### Vital Model
+
 **Purpose**: Patient vital signs tracking
 
 ```prisma
@@ -396,6 +425,7 @@ model Vital {
 ## Database Constraints and Indexes
 
 ### Unique Constraints
+
 - User.email
 - Patient.phone
 - Bill.billNumber
@@ -404,9 +434,11 @@ model Vital {
 - DoctorConsultationFee(doctorId, consultationType)
 
 ### Foreign Key Relationships
+
 All models maintain referential integrity through Prisma foreign key constraints with appropriate cascade behaviors.
 
 ### Performance Indexes
+
 - User: email, role
 - Patient: phone, firstName, lastName
 - Appointment: patientId, doctorId, dateTime, status, tokenNumber
@@ -416,12 +448,14 @@ All models maintain referential integrity through Prisma foreign key constraints
 ## Data Migration Considerations
 
 ### SQLite to PostgreSQL/MySQL
+
 - CUID primary keys are database-agnostic
 - DateTime fields compatible across databases
 - JSON fields supported in modern databases
 - Float fields can be migrated to DECIMAL for financial data
 
 ### Backup and Recovery
+
 - Regular database backups recommended
 - Export scripts for data migration
 - Seed scripts for initial data setup
@@ -430,12 +464,14 @@ All models maintain referential integrity through Prisma foreign key constraints
 ## Security Considerations
 
 ### Data Protection
+
 - Password hashing with bcrypt
 - No sensitive data in logs
 - Audit trails for critical operations
 - Soft deletion for user records
 
 ### Access Control
+
 - Role-based data access
 - User session management
 - API endpoint protection

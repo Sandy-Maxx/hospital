@@ -1,133 +1,144 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  ArrowLeft, 
-  User, 
-  Phone, 
-  Mail, 
-  Calendar, 
-  MapPin, 
-  Heart, 
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  MapPin,
+  Heart,
   Activity,
   FileText,
   Clock,
-  Edit
-} from 'lucide-react'
-import Link from 'next/link'
+  Edit,
+} from "lucide-react";
+import Link from "next/link";
 
 interface Patient {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string
-  phone: string
-  dateOfBirth?: string
-  gender?: string
-  bloodGroup?: string
-  address?: string
-  emergencyContact?: string
-  medicalHistory?: string[]
-  allergies?: string[]
-  createdAt: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  address?: string;
+  emergencyContact?: string;
+  medicalHistory?: string[];
+  allergies?: string[];
+  createdAt: string;
 }
 
 interface Appointment {
-  id: string
-  date: string
-  time: string
+  id: string;
+  date: string;
+  time: string;
   doctor: {
-    id: string
-    name: string
-    department?: string
-  }
-  department: string
-  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
-  notes?: string
+    id: string;
+    name: string;
+    department?: string;
+  };
+  department: string;
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  notes?: string;
 }
 
 export default function PatientDetails() {
-  const params = useParams()
-  const router = useRouter()
-  const [patient, setPatient] = useState<Patient | null>(null)
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
+  const params = useParams();
+  const router = useRouter();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
       try {
-        setLoading(true)
-        
+        setLoading(true);
+
         // Skip if the ID is not a valid patient ID (e.g., "register", "new", etc.)
-        if (!params.id || params.id === 'register' || params.id === 'new') {
-          setLoading(false)
-          return
+        if (!params.id || params.id === "register" || params.id === "new") {
+          setLoading(false);
+          return;
         }
-        
+
         // Fetch actual patient data from API
-        const response = await fetch(`/api/patients/${params.id}`)
+        const response = await fetch(`/api/patients/${params.id}`);
         if (response.ok) {
-          const data = await response.json()
-          setPatient(data.patient)
+          const data = await response.json();
+          setPatient(data.patient);
         } else {
-          console.error('Failed to fetch patient details for ID:', params.id)
-          console.error('Response status:', response.status)
+          console.error("Failed to fetch patient details for ID:", params.id);
+          console.error("Response status:", response.status);
         }
 
         // Fetch patient appointments
-        const appointmentsResponse = await fetch(`/api/appointments?patientId=${params.id}`)
+        const appointmentsResponse = await fetch(
+          `/api/appointments?patientId=${params.id}`,
+        );
         if (appointmentsResponse.ok) {
-          const appointmentsData = await appointmentsResponse.json()
-          setAppointments(appointmentsData.appointments || [])
+          const appointmentsData = await appointmentsResponse.json();
+          setAppointments(appointmentsData.appointments || []);
         }
       } catch (error) {
-        console.error('Error fetching patient details:', error)
+        console.error("Error fetching patient details:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (params.id) {
-      fetchPatientDetails()
+      fetchPatientDetails();
     }
-  }, [params.id])
+  }, [params.id]);
 
   const calculateAge = (dateOfBirth: string) => {
-    const today = new Date()
-    const birthDate = new Date(dateOfBirth)
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
     }
-    
-    return age
-  }
+
+    return age;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800'
-      case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-800'
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800'
+      case "COMPLETED":
+        return "bg-green-100 text-green-800";
+      case "SCHEDULED":
+        return "bg-blue-100 text-blue-800";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800'
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
       </div>
-    )
+    );
   }
 
   if (!patient) {
@@ -139,7 +150,7 @@ export default function PatientDetails() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -178,22 +189,35 @@ export default function PatientDetails() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Full Name</label>
-                  <p className="text-gray-900">{patient.firstName} {patient.lastName}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Age</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Full Name
+                  </label>
                   <p className="text-gray-900">
-                    {patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A'} years
+                    {patient.firstName} {patient.lastName}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Gender</label>
-                  <p className="text-gray-900">{patient.gender || 'N/A'}</p>
+                  <label className="text-sm font-medium text-gray-600">
+                    Age
+                  </label>
+                  <p className="text-gray-900">
+                    {patient.dateOfBirth
+                      ? calculateAge(patient.dateOfBirth)
+                      : "N/A"}{" "}
+                    years
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Blood Group</label>
-                  <p className="text-gray-900">{patient.bloodGroup || 'N/A'}</p>
+                  <label className="text-sm font-medium text-gray-600">
+                    Gender
+                  </label>
+                  <p className="text-gray-900">{patient.gender || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Blood Group
+                  </label>
+                  <p className="text-gray-900">{patient.bloodGroup || "N/A"}</p>
                 </div>
               </div>
             </CardContent>
@@ -210,7 +234,9 @@ export default function PatientDetails() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Phone</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Phone
+                  </label>
                   <p className="text-gray-900 flex items-center">
                     <Phone className="w-4 h-4 mr-2" />
                     {patient.phone}
@@ -218,7 +244,9 @@ export default function PatientDetails() {
                 </div>
                 {patient.email && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Email</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Email
+                    </label>
                     <p className="text-gray-900 flex items-center">
                       <Mail className="w-4 h-4 mr-2" />
                       {patient.email}
@@ -227,7 +255,9 @@ export default function PatientDetails() {
                 )}
                 {patient.address && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Address</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Address
+                    </label>
                     <p className="text-gray-900 flex items-center">
                       <MapPin className="w-4 h-4 mr-2" />
                       {patient.address}
@@ -236,7 +266,9 @@ export default function PatientDetails() {
                 )}
                 {patient.emergencyContact && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Emergency Contact</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Emergency Contact
+                    </label>
                     <p className="text-gray-900 flex items-center">
                       <Phone className="w-4 h-4 mr-2" />
                       {patient.emergencyContact}
@@ -258,7 +290,9 @@ export default function PatientDetails() {
             <CardContent className="space-y-4">
               {patient.medicalHistory && patient.medicalHistory.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Medical History</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Medical History
+                  </label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {patient.medicalHistory.map((condition, index) => (
                       <Badge key={index} variant="secondary">
@@ -270,7 +304,9 @@ export default function PatientDetails() {
               )}
               {patient.allergies && patient.allergies.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Allergies</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Allergies
+                  </label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {patient.allergies.map((allergy, index) => (
                       <Badge key={index} className="bg-red-100 text-red-800">
@@ -298,16 +334,16 @@ export default function PatientDetails() {
                   Book Appointment
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => router.push(`/patients/${patient.id}/records`)}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 View Records
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => router.push(`/patients/${patient.id}/history`)}
               >
@@ -333,17 +369,23 @@ export default function PatientDetails() {
                   appointments.map((appointment) => (
                     <div key={appointment.id} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-sm">Dr. {appointment.doctor?.name || 'Unknown Doctor'}</span>
+                        <span className="font-medium text-sm">
+                          Dr. {appointment.doctor?.name || "Unknown Doctor"}
+                        </span>
                         <Badge className={getStatusColor(appointment.status)}>
                           {appointment.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">{appointment.department}</p>
+                      <p className="text-sm text-gray-600">
+                        {appointment.department}
+                      </p>
                       <p className="text-xs text-gray-500">
                         {appointment.date} at {appointment.time}
                       </p>
                       {appointment.notes && (
-                        <p className="text-xs text-gray-500 mt-1">{appointment.notes}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {appointment.notes}
+                        </p>
                       )}
                     </div>
                   ))
@@ -354,5 +396,5 @@ export default function PatientDetails() {
         </div>
       </div>
     </div>
-  )
+  );
 }

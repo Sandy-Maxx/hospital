@@ -1,128 +1,142 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
-import { X } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { X } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface Patient {
-  id: string
-  firstName: string
-  lastName: string
-  phone: string
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
 }
 
 interface Doctor {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface BookAppointmentModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppointmentModalProps) {
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
+export function BookAppointmentModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: BookAppointmentModalProps) {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
-    patientId: '',
-    doctorId: '',
-    date: '',
-    time: '',
-    type: 'CONSULTATION',
-    notes: '',
-  })
+    patientId: "",
+    doctorId: "",
+    date: "",
+    time: "",
+    type: "CONSULTATION",
+    notes: "",
+  });
 
   useEffect(() => {
     if (isOpen) {
-      fetchDoctors()
+      fetchDoctors();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   useEffect(() => {
     if (searchTerm.length >= 2) {
-      searchPatients()
+      searchPatients();
     } else {
-      setPatients([])
+      setPatients([]);
     }
-  }, [searchTerm])
+  }, [searchTerm]);
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('/api/users?role=DOCTOR')
+      const response = await fetch("/api/users?role=DOCTOR");
       if (response.ok) {
-        const data = await response.json()
-        setDoctors(data)
+        const data = await response.json();
+        setDoctors(data);
       }
     } catch (error) {
-      console.error('Error fetching doctors:', error)
+      console.error("Error fetching doctors:", error);
     }
-  }
+  };
 
   const searchPatients = async () => {
     try {
-      const response = await fetch(`/api/patients?search=${searchTerm}&limit=10`)
+      const response = await fetch(
+        `/api/patients?search=${searchTerm}&limit=10`,
+      );
       if (response.ok) {
-        const data = await response.json()
-        setPatients(data.patients)
+        const data = await response.json();
+        setPatients(data.patients);
       }
     } catch (error) {
-      console.error('Error searching patients:', error)
+      console.error("Error searching patients:", error);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
+      const response = await fetch("/api/appointments", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      })
+      });
 
       if (response.ok) {
-        toast.success('Appointment booked successfully!')
-        onSuccess()
-        onClose()
+        toast.success("Appointment booked successfully!");
+        onSuccess();
+        onClose();
         setFormData({
-          patientId: '',
-          doctorId: '',
-          date: '',
-          time: '',
-          type: 'CONSULTATION',
-          notes: '',
-        })
+          patientId: "",
+          doctorId: "",
+          date: "",
+          time: "",
+          type: "CONSULTATION",
+          notes: "",
+        });
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to book appointment')
+        const error = await response.json();
+        toast.error(error.error || "Failed to book appointment");
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -131,7 +145,9 @@ export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppoint
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Book Appointment</CardTitle>
-              <CardDescription>Schedule a new patient appointment</CardDescription>
+              <CardDescription>
+                Schedule a new patient appointment
+              </CardDescription>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -156,13 +172,19 @@ export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppoint
                         type="button"
                         className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
                         onClick={() => {
-                          setFormData({ ...formData, patientId: patient.id })
-                          setSearchTerm(`${patient.firstName} ${patient.lastName} - ${patient.phone}`)
-                          setPatients([])
+                          setFormData({ ...formData, patientId: patient.id });
+                          setSearchTerm(
+                            `${patient.firstName} ${patient.lastName} - ${patient.phone}`,
+                          );
+                          setPatients([]);
                         }}
                       >
-                        <div className="font-medium">{patient.firstName} {patient.lastName}</div>
-                        <div className="text-sm text-gray-500">{patient.phone}</div>
+                        <div className="font-medium">
+                          {patient.firstName} {patient.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {patient.phone}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -198,7 +220,7 @@ export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppoint
                     type="date"
                     value={formData.date}
                     onChange={handleChange}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toISOString().split("T")[0]}
                     required
                   />
                 </div>
@@ -248,7 +270,7 @@ export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppoint
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading || !formData.patientId}>
-                  {loading ? 'Booking...' : 'Book Appointment'}
+                  {loading ? "Booking..." : "Book Appointment"}
                 </Button>
               </div>
             </form>
@@ -256,5 +278,5 @@ export function BookAppointmentModal({ isOpen, onClose, onSuccess }: BookAppoint
         </Card>
       </div>
     </div>
-  )
+  );
 }

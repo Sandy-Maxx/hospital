@@ -5,12 +5,14 @@ This documentation provides comprehensive information for AI models to understan
 ## Documentation Structure
 
 ### Core Documentation
+
 - [`project-overview.md`](./project-overview.md) - Complete system overview and architecture
 - [`database-schema.md`](./database-schema.md) - Database design and relationships
 - [`api-documentation.md`](./api-documentation.md) - API endpoints and specifications
 - [`component-architecture.md`](./component-architecture.md) - Frontend components and structure
 
 ### Development & Maintenance
+
 - [`security-analysis.md`](./security-analysis.md) - Security risks and hardening recommendations
 - [`performance-optimization.md`](./performance-optimization.md) - Performance issues and optimization strategies
 - [`ui-ux-improvements.md`](./ui-ux-improvements.md) - User experience enhancement recommendations
@@ -18,16 +20,19 @@ This documentation provides comprehensive information for AI models to understan
 - [`development-guidelines.md`](./development-guidelines.md) - Coding standards and best practices
 
 ### Feature Documentation
+
 - [`feature-specifications.md`](./feature-specifications.md) - Detailed feature descriptions and workflows
 - [`business-logic.md`](./business-logic.md) - Business rules and validation logic
 - [`integration-points.md`](./integration-points.md) - External integrations and APIs
 
 ### Quality Assurance
+
 - [`testing-strategy.md`](./testing-strategy.md) - Testing approaches and test cases
 - [`bug-tracking.md`](./bug-tracking.md) - Known issues and resolution strategies
 - [`code-quality.md`](./code-quality.md) - Code quality metrics and improvement areas
 
 ### Future Development
+
 - [`roadmap.md`](./roadmap.md) - Feature roadmap and enhancement plans
 - [`mobile-app-strategy.md`](./mobile-app-strategy.md) - React Native conversion strategy
 - [`offline-support.md`](./offline-support.md) - Local SQLite and offline functionality
@@ -61,7 +66,7 @@ This documentation provides comprehensive information for AI models to understan
 ✅ Hospital Settings Configuration  
 ✅ Public Appointment Booking  
 ✅ Token Printing with QR Codes  
-✅ Real-time Queue Management  
+✅ Real-time Queue Management
 
 ## Critical Development Rules
 
@@ -69,6 +74,6 @@ This documentation provides comprehensive information for AI models to understan
 ⚠️ **NEVER** bypass NextAuth.js authentication  
 ⚠️ **ALWAYS** check existing components before creating new ones  
 ⚠️ **MAINTAIN** backward compatibility with existing features  
-⚠️ **USE** existing API routes and component patterns  
+⚠️ **USE** existing API routes and component patterns
 
 For detailed development rules, see [`development-guidelines.md`](./development-guidelines.md).
