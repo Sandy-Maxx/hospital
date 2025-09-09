@@ -18,6 +18,7 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
   const [patient, setPatient] = useState<{ email?: string; phone?: string; name?: string } | null>(null)
   const [sending, setSending] = useState(false)
   const [sendStatus, setSendStatus] = useState<string>('')
+  const [history, setHistory] = useState<{ link: { url: string; passcode: string; expiresAt?: string } | null; sends: { channel: string; to?: string; at: string }[] }>({ link: null, sends: [] })
 
   useEffect(() => {
     if (!open) return
@@ -31,6 +32,14 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
         if (p) setPatient({ email: p.email, phone: p.phone, name: `${p.firstName} ${p.lastName}` })
       }
     })
+    // fetch existing link + send history
+    fetch(`/api/lab/reports-state?prescriptionId=${prescriptionId}`).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        setHistory({ link: data.link || null, sends: Array.isArray(data.sends) ? data.sends : [] })
+        if (data.link) setLink(data.link)
+      }
+    }).catch(() => {})
   }, [open, prescriptionId])
 
   const upload = async (testName: string, file: File) => {
@@ -52,7 +61,13 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
 
   const generateLink = async () => {
     const res = await fetch('/api/reports/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId }) })
-    if (res.ok) setLink(await res.json())
+    if (res.ok) {
+      const l = await res.json();
+      setLink(l)
+      // persist to lab state so others can see later
+      await fetch('/api/lab/reports-state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId, link: l }) })
+      setHistory((h) => ({ ...h, link: l }))
+    }
   }
 
   const sendToPatient = async (channel: 'email' | 'sms' | 'whatsapp') => {
@@ -63,8 +78,13 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prescriptionId, channel, linkUrl: link.url, passcode: link.passcode })
       })
-      if (res.ok) setSendStatus('Sent successfully')
-      else setSendStatus('Failed to send')
+      if (res.ok) {
+        setSendStatus('Sent successfully')
+        // persist send log with inferred recipient
+        const to = channel === 'email' ? (patient?.email || '') : (patient?.phone || '')
+        await fetch('/api/lab/reports-state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId, send: { channel, to } }) })
+        setHistory((h) => ({ ...h, sends: [...(h.sends || []), { channel, to, at: new Date().toISOString() }] }))
+      } else setSendStatus('Failed to send')
     } catch { setSendStatus('Failed to send') } finally { setSending(false) }
   }
 
@@ -104,11 +124,11 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
 
           <div className="flex items-center gap-2">
             <Button onClick={generateLink} disabled={reports.length === 0}>Generate Share Link</Button>
-            {link && (
+            {(link || history.link) && (
               <div className="text-sm text-gray-700">
-                <div>Link: <a className="text-blue-600 underline" href={link.url} target="_blank">{link.url}</a></div>
-                <div>Passcode (last 6 of Prescription No.): <span className="font-mono">{link.passcode}</span></div>
-                <div>Expires: <span className="font-mono">{new Date(link.expiresAt || Date.now()).toLocaleString()}</span></div>
+                <div>Link: <a className="text-blue-600 underline" href={(link || history.link)?.url} target="_blank">{(link || history.link)?.url}</a></div>
+                <div>Passcode (last 6 of Prescription No.): <span className="font-mono">{(link || history.link)?.passcode}</span></div>
+                <div>Expires: <span className="font-mono">{new Date(((link || history.link)?.expiresAt) || Date.now()).toLocaleString()}</span></div>
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-gray-500">Send to patient:</span>
                   <Button variant="outline" size="sm" disabled={sending} onClick={() => sendToPatient('email')}>Email</Button>
@@ -116,6 +136,16 @@ export default function LabReportsUpload({ open, onClose, prescriptionId, labTes
                   <Button variant="outline" size="sm" disabled={sending} onClick={() => sendToPatient('whatsapp')}>WhatsApp</Button>
                   {sendStatus && <span className="text-xs text-gray-600">{sendStatus}</span>}
                 </div>
+                {history.sends && history.sends.length > 0 && (
+                  <div className="mt-3 text-xs text-gray-600">
+                    <div className="font-medium text-gray-800">Send History</div>
+                    <ul className="list-disc ml-4">
+                      {history.sends.map((s, i) => (
+                        <li key={i}>{s.channel.toUpperCase()} to {s.to || 'N/A'} on {new Date(s.at).toLocaleString()}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>

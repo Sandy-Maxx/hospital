@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
               department: true,
             }
           },
+          prescription: true,
           billItems: true,
         },
       }),
@@ -200,6 +201,10 @@ export async function POST(request: NextRequest) {
         cgst,
         sgst,
         finalAmount,
+        // Consider bill paid on creation
+        paymentStatus: 'PAID',
+        paidAmount: finalAmount,
+        balanceAmount: 0,
       },
       include: {
         patient: {
@@ -215,6 +220,7 @@ export async function POST(request: NextRequest) {
             department: true,
           },
         },
+        prescription: true,
         billItems: true,
       },
     })
@@ -247,55 +253,61 @@ export async function PUT(request: NextRequest) {
         quantity: z.number().min(1),
         unitPrice: z.number().min(0),
         gstRate: z.number().min(0).max(100).optional(),
-      })),
-      discountAmount: z.number().min(0).default(0),
+      })).optional(),
+      discountAmount: z.number().min(0).default(0).optional(),
       paymentMethod: z.string().optional(),
+      paymentStatus: z.enum(['PENDING','PARTIAL','PAID','REFUNDED']).optional(),
+      paidAmount: z.number().min(0).optional(),
+      balanceAmount: z.number().min(0).optional(),
       notes: z.string().optional(),
     })
 
     const data = updateSchema.parse(body)
 
-    // Recalculate totals
     let totalAmount = 0
     let cgst = 0
     let sgst = 0
 
-    // Replace bill items
-    await prisma.billItem.deleteMany({ where: { billId: id } })
+    let finalAmount: number | undefined = undefined
 
-    await Promise.all(
-      data.items.map(async (item) => {
-        const line = (item.unitPrice || 0) * item.quantity
-        const gstAmount = item.gstRate ? (line * item.gstRate) / 100 : 0
-        totalAmount += line
-        cgst += gstAmount / 2
-        sgst += gstAmount / 2
-        await prisma.billItem.create({
-          data: {
-            billId: id,
-            itemType: item.itemType,
-            itemName: item.itemName,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: line,
-            gstRate: item.gstRate,
-          },
+    if (data.items) {
+      // Replace bill items when provided
+      await prisma.billItem.deleteMany({ where: { billId: id } })
+
+      await Promise.all(
+        data.items.map(async (item) => {
+          const line = (item.unitPrice || 0) * item.quantity
+          const gstAmount = item.gstRate ? (line * item.gstRate) / 100 : 0
+          totalAmount += line
+          cgst += gstAmount / 2
+          sgst += gstAmount / 2
+          await prisma.billItem.create({
+            data: {
+              billId: id,
+              itemType: item.itemType,
+              itemName: item.itemName,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: line,
+              gstRate: item.gstRate,
+            },
+          })
         })
-      })
-    )
+      )
 
-    const finalAmount = totalAmount + cgst + sgst - data.discountAmount
+      finalAmount = totalAmount + cgst + sgst - (data.discountAmount ?? 0)
+    }
 
     const updatedBill = await prisma.bill.update({
       where: { id },
       data: {
-        totalAmount,
-        cgst,
-        sgst,
-        discountAmount: data.discountAmount,
-        finalAmount,
-        paymentMethod: data.paymentMethod,
-        notes: data.notes,
+        ...(finalAmount !== undefined ? { totalAmount, cgst, sgst, finalAmount } : {}),
+        ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+        ...(data.paymentMethod !== undefined ? { paymentMethod: data.paymentMethod } : {}),
+        ...(data.paymentStatus !== undefined ? { paymentStatus: data.paymentStatus } : {}),
+        ...(data.paidAmount !== undefined ? { paidAmount: data.paidAmount } : {}),
+        ...(data.balanceAmount !== undefined ? { balanceAmount: data.balanceAmount } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : {}),
       },
       include: {
         patient: {

@@ -43,6 +43,10 @@ interface Bill {
     totalPrice: number
     gstRate?: number
   }>
+  prescription?: {
+    id: string
+    medicines?: string
+  }
 }
 
 const paymentStatusColors = {
@@ -54,6 +58,7 @@ const paymentStatusColors = {
 
 export default function Billing() {
   const [bills, setBills] = useState<Bill[]>([])
+  const [dispatchMap, setDispatchMap] = useState<Record<string, boolean>>({})
   const [prescriptions, setPrescriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -81,6 +86,19 @@ export default function Billing() {
         const data = await response.json()
         setBills(data.bills)
         if (data.pagination?.total !== undefined) setBillsCount(data.pagination.total)
+        // Prefetch dispatch status for bills' prescriptions
+        const uniquePresc = Array.from(new Set((data.bills || []).map((b: any) => b.prescription?.id).filter(Boolean)))
+        if (uniquePresc.length) {
+          await Promise.all(uniquePresc.map(async (pid: string) => {
+            try {
+              const res = await fetch(`/api/lab/dispatch?prescriptionId=${pid}`)
+              if (res.ok) {
+                const d = await res.json()
+                setDispatchMap((m) => ({ ...m, [pid]: !!d.allDispatched }))
+              }
+            } catch {}
+          }))
+        }
       } else {
         toast.error('Failed to fetch bills')
       }
@@ -312,7 +330,7 @@ export default function Billing() {
                         </div>
                       </div>
                       
-                      <div className="text-right">
+                        <div className="text-right">
                         <div className="flex flex-col items-end gap-2">
                           <Button
                             onClick={() => setSelectedPrescription(prescription)}
@@ -327,18 +345,6 @@ export default function Billing() {
                             >
                               View/Print Prescription
                             </button>
-                            <button
-                              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                              onClick={() => {
-                                try {
-                                  const meds = prescription.medicines ? JSON.parse(prescription.medicines) : {}
-                                  const tests = (meds.labTests || []).map((t:any) => ({ name: t.name }))
-                                  setLabUpload({ id: prescription.id, open: true, tests })
-                                } catch { setLabUpload({ id: prescription.id, open: true, tests: [] }) }
-                              }}
-                            >
-                              Upload Lab Reports
-                            </button>
                           </div>
                           <div className="text-sm text-gray-500">
                             {prescription.doctor.department}
@@ -348,25 +354,30 @@ export default function Billing() {
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Medicines:</span>
-                          <span className="ml-2 font-medium">
-                            {prescription.medicines ? JSON.parse(prescription.medicines || '[]').length || prescription.medicines.split('\n').filter(Boolean).length : 0} items
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Lab Tests:</span>
-                          <span className="ml-2 font-medium">
-                            {prescription.labTests ? JSON.parse(prescription.labTests || '[]').length || prescription.labTests.split('\n').filter(Boolean).length : 0} tests
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Therapies:</span>
-                          <span className="ml-2 font-medium">
-                            {prescription.therapies ? JSON.parse(prescription.therapies || '[]').length || prescription.therapies.split('\n').filter(Boolean).length : 0} sessions
-                          </span>
-                        </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                        {(() => {
+                          let medsObj: any = {}
+                          try { medsObj = prescription.medicines ? JSON.parse(prescription.medicines) : {} } catch {}
+                          const medsCount = Array.isArray(medsObj?.medicines) ? medsObj.medicines.length : (Array.isArray(medsObj) ? medsObj.length : 0)
+                          const testsCount = Array.isArray(medsObj?.labTests) ? medsObj.labTests.length : 0
+                          const therapiesCount = Array.isArray(medsObj?.therapies) ? medsObj.therapies.length : 0
+                          return (
+                            <>
+                              <div>
+                                <span className="text-gray-500">Medicines:</span>
+                                <span className="ml-2 font-medium">{medsCount} items</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Lab Tests:</span>
+                                <span className="ml-2 font-medium">{testsCount} tests</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Therapies:</span>
+                                <span className="ml-2 font-medium">{therapiesCount} sessions</span>
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -428,11 +439,11 @@ export default function Billing() {
                         <div className="flex items-center space-x-2 mt-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             paymentStatusColors[bill.paymentStatus as keyof typeof paymentStatusColors]
-                          }`}>
+                          }`} title={bill.paymentStatus === 'PENDING' ? 'Awaiting payment' : ''}>
                             {bill.paymentStatus}
                           </span>
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                            {bill.paymentMethod}
+                            {bill.paymentMethod || '-'}
                           </span>
                         </div>
                       </div>
@@ -455,7 +466,7 @@ export default function Billing() {
               </div>
 
               {/* Actions */}
-              <div className="mt-4 flex justify-end space-x-2">
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <button
                   className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
                   onClick={() => { setViewBill(bill as any); setShowBillModal(true) }}
@@ -467,6 +478,50 @@ export default function Billing() {
                   onClick={() => { setViewBill(bill as any); setShowEditModal(true) }}
                 >
                   <Pencil className="inline w-4 h-4 mr-1" /> Edit
+                </button>
+                <button
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  onClick={() => {
+                    try {
+                      const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
+                      const tests = (meds.labTests || []).map((t:any) => ({ name: t.name }))
+                      setLabUpload({ id: bill.prescription?.id!, open: true, tests })
+                    } catch { setLabUpload({ id: bill.prescription?.id!, open: true, tests: [] }) }
+                  }}
+                  disabled={!(bill.prescription && dispatchMap[bill.prescription.id])}
+                  title={!bill.prescription ? 'No linked prescription' : (!dispatchMap[bill.prescription.id] ? 'Send tests to lab before uploading reports' : '')}
+                >
+                  Upload Reports
+                </button>
+                <button
+                  className={`px-3 py-2 text-sm border rounded-md ${bill.prescription && dispatchMap[bill.prescription.id] ? 'border-green-300 text-green-700 bg-green-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`}
+                  onClick={async () => {
+                    try {
+                      const presId = bill.prescription?.id
+                      if (!presId) { toast.error('No linked prescription'); return }
+                      const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
+                      const tests = (meds.labTests || []) as any[]
+                      if (!tests.length) { toast('No lab tests in this bill'); return }
+                      const testNames = tests.map((t:any) => t.name).filter(Boolean)
+                      const res = await fetch('/api/lab/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: presId, tests: testNames }) })
+                      if (res.ok) {
+                        setDispatchMap((m) => ({ ...m, [presId]: true }))
+                        // Also ensure bill is marked PAID (backfill older bills)
+                        if (bill.paymentStatus !== 'PAID') {
+                          await fetch(`/api/bills?id=${bill.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentStatus: 'PAID', paidAmount: bill.finalAmount ?? bill.totalAmount ?? 0, balanceAmount: 0 }) })
+                        }
+                        toast.success('Tests sent to Lab')
+                        // Refresh to reflect latest status
+                        fetchBills()
+                      } else {
+                        toast.error('Failed to send tests')
+                      }
+                    } catch { toast.error('Unable to process tests') }
+                  }}
+                  disabled={!(bill.prescription) || !!(bill.prescription && dispatchMap[bill.prescription.id])}
+                  title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : undefined}
+                >
+                  {bill.prescription && dispatchMap[bill.prescription.id] ? 'Sent to Lab' : 'Send Tests to Lab'}
                 </button>
                 <button
                   className="px-3 py-2 text-sm border border-red-300 text-red-700 rounded-md hover:bg-red-50"

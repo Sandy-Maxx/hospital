@@ -21,7 +21,10 @@ import {
   Activity,
   Pill,
   Shield,
-  Clock
+  Clock,
+  BarChart2,
+  Megaphone,
+  FlaskConical
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -39,8 +42,9 @@ const menuItems = {
     { icon: UserPlus, label: 'Patients', href: '/patients' },
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
     { icon: CreditCard, label: 'Billing', href: '/billing' },
-    { icon: Activity, label: 'Reports', href: '/reports' },
-    { icon: Activity, label: 'Marketing', href: '/marketing' },
+    { icon: BarChart2, label: 'Reports', href: '/reports' },
+    { icon: Megaphone, label: 'Marketing', href: '/marketing' },
+    { icon: FlaskConical, label: 'Path Lab', href: '/lab' },
     { icon: Users, label: 'My Profile', href: '/profile' },
   ],
   DOCTOR: [
@@ -88,6 +92,26 @@ export function Sidebar({ className }: SidebarProps) {
 
   const userMenuItems = menuItems[session.user.role as keyof typeof menuItems] || []
 
+  // Colorful icon palette per route for a modern look
+  const colorByHref: Record<string, string> = {
+    '/dashboard': 'text-sky-600',
+    '/admin': 'text-indigo-600',
+    '/admin/users': 'text-purple-600',
+    '/admin/doctor-availability': 'text-amber-600',
+    '/admin/settings': 'text-gray-700',
+    '/staff': 'text-teal-600',
+    '/patients': 'text-emerald-600',
+    '/appointments': 'text-cyan-600',
+    '/billing': 'text-rose-600',
+    '/reports': 'text-violet-600',
+    '/marketing': 'text-fuchsia-600',
+    '/lab': 'text-orange-600',
+    '/profile': 'text-slate-600',
+    '/doctor': 'text-emerald-700',
+    '/queue': 'text-amber-700',
+    '/prescriptions': 'text-pink-600',
+  }
+
   return (
     <div
       className={cn(
@@ -114,7 +138,7 @@ export function Sidebar({ className }: SidebarProps) {
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
-          {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+          {isCollapsed ? <Menu className="w-6 h-6" /> : <X className="w-6 h-6" />}
         </button>
       </div>
 
@@ -144,19 +168,28 @@ export function Sidebar({ className }: SidebarProps) {
         {userMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-          
+          const color = colorByHref[item.href] || 'text-gray-500'
+          const iconClasses = cn(
+            'shrink-0',
+            isCollapsed ? 'w-7 h-7' : 'w-6 h-6',
+            isActive ? 'text-primary-600' : color
+          )
           return (
             <Link
               key={item.href}
               href={item.href}
+              title={isCollapsed ? item.label : undefined}
               className={cn(
                 'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                'min-h-[40px]',
                 isActive
                   ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
               )}
             >
-              <Icon className={cn('w-5 h-5', isActive ? 'text-primary-600' : 'text-gray-400')} />
+              <div className="flex items-center justify-center w-8 h-8">
+                <Icon className={iconClasses} />
+              </div>
               {!isCollapsed && <span>{item.label}</span>}
             </Link>
           )
