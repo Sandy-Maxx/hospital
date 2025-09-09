@@ -30,7 +30,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import TokenPrint from "@/components/appointments/token-print";
+import dynamic from "next/dynamic";
+const TokenPrint = dynamic(
+  () => import("@/components/appointments/token-print"),
+  { ssr: false },
+);
 import toast from "react-hot-toast";
 
 interface Doctor {

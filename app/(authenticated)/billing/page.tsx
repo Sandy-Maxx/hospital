@@ -29,11 +29,23 @@ import {
   Check,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import BillForm from "@/components/billing/bill-form";
-import BillPrint from "@/components/billing/bill-print";
-import EditBillForm from "@/components/billing/edit-bill-form";
-import PrescriptionPrint from "@/components/prescriptions/prescription-print";
-import LabReportsUpload from "@/components/prescriptions/lab-reports-upload";
+const BillPrint = dynamic(() => import("@/components/billing/bill-print"), {
+  ssr: false,
+});
+const EditBillForm = dynamic(
+  () => import("@/components/billing/edit-bill-form"),
+  { ssr: false },
+);
+const PrescriptionPrint = dynamic(
+  () => import("@/components/prescriptions/prescription-print"),
+  { ssr: false },
+);
+const LabReportsUpload = dynamic(
+  () => import("@/components/prescriptions/lab-reports-upload"),
+  { ssr: false },
+);
 import toast from "react-hot-toast";
 import { formatBillNumber, formatPrescriptionNumber } from "@/lib/identifiers";
 import Breadcrumb from "@/components/navigation/breadcrumb";

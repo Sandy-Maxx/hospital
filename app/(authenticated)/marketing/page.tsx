@@ -9,8 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import CampaignForm from "@/components/marketing/campaign-form";
-import CampaignViewModal from "@/components/marketing/campaign-view-modal";
+import dynamic from "next/dynamic";
+const CampaignForm = dynamic(
+  () => import("@/components/marketing/campaign-form"),
+  { ssr: false },
+);
+const CampaignViewModal = dynamic(
+  () => import("@/components/marketing/campaign-view-modal"),
+  { ssr: false },
+);
 import Breadcrumb from "@/components/navigation/breadcrumb";
 
 export default function MarketingPage() {

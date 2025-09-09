@@ -19,9 +19,19 @@ import {
   Activity,
   TrendingUp,
 } from "lucide-react";
-import ReceptionistDashboard from "@/app/(authenticated)/receptionist/page";
-import PatientChartModal from "@/components/charts/patient-chart-modal";
-import RevenueChartModal from "@/components/charts/revenue-chart-modal";
+import dynamic from "next/dynamic";
+const ReceptionistDashboard = dynamic(
+  () => import("@/app/(authenticated)/receptionist/page"),
+  { ssr: false },
+);
+const PatientChartModal = dynamic(
+  () => import("@/components/charts/patient-chart-modal"),
+  { ssr: false },
+);
+const RevenueChartModal = dynamic(
+  () => import("@/components/charts/revenue-chart-modal"),
+  { ssr: false },
+);
 
 const recentActivities = [
   {

@@ -64,6 +64,10 @@ model Patient {
   bills           Bill[]
   vitals          Vital[]
   consultations   Consultation[]
+
+  @@index([phone])
+  @@index([firstName, lastName])
+  @@index([createdAt])
   @@map("patients")
 }
 
@@ -92,6 +96,10 @@ model Appointment {
   consultation  Consultation?
   assignmentLogs AppointmentAssignmentLog[]
 
+  @@index([tokenNumber])
+  @@index([patientId, dateTime])
+  @@index([doctorId, status])
+  @@index([sessionId, status])
   @@map("appointments")
 }
 
@@ -200,6 +208,9 @@ model Bill {
   createdByUser   User         @relation("CreatedBills", fields: [createdBy], references: [id])
   billItems       BillItem[]
   
+  @@index([billNumber])
+  @@index([patientId, createdAt])
+  @@index([paymentStatus])
   @@map("bills")
 }
 
