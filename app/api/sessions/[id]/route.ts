@@ -21,12 +21,6 @@ export async function GET(
     const session = await prisma.appointmentSession.findUnique({
       where: { id: params.id },
       include: {
-        doctor: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         appointments: {
           select: {
             id: true,
@@ -50,7 +44,17 @@ export async function GET(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    return NextResponse.json(session);
+    // Hydrate doctor info separately to keep response shape
+    let doctor: { id: string; name: string } | null = null;
+    if ((session as any).doctorId) {
+      const d = await prisma.user.findUnique({
+        where: { id: (session as any).doctorId },
+        select: { id: true, name: true },
+      });
+      if (d) doctor = d;
+    }
+
+    return NextResponse.json({ ...session, doctor });
   } catch (error) {
     console.error("Error fetching session:", error);
     return NextResponse.json(
@@ -103,17 +107,19 @@ export async function PATCH(
     const updatedSession = await prisma.appointmentSession.update({
       where: { id: params.id },
       data: validatedData,
-      include: {
-        doctor: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
     });
 
-    return NextResponse.json(updatedSession);
+    // Hydrate doctor info separately to keep response shape
+    let doctor: { id: string; name: string } | null = null;
+    if ((updatedSession as any).doctorId) {
+      const d = await prisma.user.findUnique({
+        where: { id: (updatedSession as any).doctorId },
+        select: { id: true, name: true },
+      });
+      if (d) doctor = d;
+    }
+
+    return NextResponse.json({ ...updatedSession, doctor });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });

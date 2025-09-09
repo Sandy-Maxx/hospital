@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       whereClause.doctorId = doctorId;
     }
 
-    const prescriptions = await prisma.prescription.findMany({
+const prescriptions = await prisma.prescription.findMany({
       where: whereClause,
       include: {
         patient: {
@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
             firstName: true,
             lastName: true,
             phone: true,
-            email: true,
           },
         },
         doctor: {
@@ -58,20 +57,9 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             department: true,
-            specialization: true,
           },
         },
-        consultation: {
-          include: {
-            appointment: {
-              select: {
-                id: true,
-                tokenNumber: true,
-                type: true,
-              },
-            },
-          },
-        },
+        // Exclude consultation/appointment to reduce payload; not used in Billing listing
       },
       orderBy: { createdAt: "desc" },
     });

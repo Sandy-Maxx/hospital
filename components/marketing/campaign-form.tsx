@@ -32,10 +32,10 @@ export default function CampaignForm({
     whatsapp: boolean;
     push: boolean;
   }>({
-    email: !!existing?.channels?.email ?? true,
-    sms: !!existing?.channels?.sms ?? false,
-    whatsapp: !!existing?.channels?.whatsapp ?? false,
-    push: !!existing?.channels?.push ?? false,
+    email: (existing?.channels?.email ?? true) as boolean,
+    sms: (existing?.channels?.sms ?? false) as boolean,
+    whatsapp: (existing?.channels?.whatsapp ?? false) as boolean,
+    push: (existing?.channels?.push ?? false) as boolean,
   });
   const [audience, setAudience] = useState<any>(
     existing?.audience || {

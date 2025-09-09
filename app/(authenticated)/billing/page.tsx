@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -30,7 +30,9 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import dynamic from "next/dynamic";
-import BillForm from "@/components/billing/bill-form";
+const BillForm = dynamic(() => import("@/components/billing/bill-form"), {
+  ssr: false,
+});
 const BillPrint = dynamic(() => import("@/components/billing/bill-print"), {
   ssr: false,
 });
@@ -122,7 +124,7 @@ export default function Billing() {
   const [prescPage, setPrescPage] = useState(1);
   const [prescLimit, setPrescLimit] = useState(10);
 
-  const fetchBills = async () => {
+  const fetchBills = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -140,11 +142,11 @@ export default function Billing() {
         if (data.pagination?.pages !== undefined)
           setTotalPages(data.pagination.pages);
         // Prefetch dispatch status for bills' prescriptions
-        const uniquePresc = Array.from(
-          new Set(
-            (data.bills || [])
-              .map((b: any) => b.prescription?.id)
-              .filter(Boolean),
+        const uniquePresc: string[] = Array.from(
+          new Set<string>(
+            ((data.bills || []) as any[])
+              .map((b) => (b as any).prescription?.id as string | undefined)
+              .filter((id): id is string => !!id),
           ),
         );
         if (uniquePresc.length) {
@@ -170,9 +172,9 @@ export default function Billing() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate, statusFilter, page, limit]);
 
-  const fetchBillsCount = async () => {
+  const fetchBillsCount = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (selectedDate) params.set("date", selectedDate);
@@ -186,9 +188,9 @@ export default function Billing() {
           setBillsCount(data.pagination.total);
       }
     } catch {}
-  };
+  }, [selectedDate, statusFilter]);
 
-  const fetchPrescriptions = async () => {
+  const fetchPrescriptions = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -208,7 +210,7 @@ export default function Billing() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
 
   useEffect(() => {
     if (activeTab === "bills") {
@@ -218,7 +220,7 @@ export default function Billing() {
       // keep bills count updated even when not on the bills tab
       fetchBillsCount();
     }
-  }, [selectedDate, statusFilter, activeTab, page, limit]);
+  }, [activeTab, fetchBills, fetchPrescriptions, fetchBillsCount]);
 
   // Reset pages when filters change
   useEffect(() => {
@@ -246,7 +248,7 @@ export default function Billing() {
     prescPage * prescLimit,
   );
 
-  const updateBillStatus = async (bill: Bill, status: string) => {
+  const updateBillStatus = useCallback(async (bill: Bill, status: string) => {
     try {
       const payload: any = { paymentStatus: status };
       if (status === "PAID") {
@@ -265,7 +267,7 @@ export default function Billing() {
     } catch (e: any) {
       toast.error(e?.message || "Failed to update status");
     }
-  };
+  }, [fetchBills]);
 
   return (
     <div className="space-y-6">
@@ -680,32 +682,17 @@ export default function Billing() {
                           ).toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
-                          {bill.paymentStatus === "PENDING" ||
-                          bill.paymentStatus === "REFUNDED" ? (
-                            <select
-                              value={bill.paymentStatus}
-                              onChange={(e) =>
-                                updateBillStatus(bill, e.target.value)
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded text-xs"
-                              title="Update payment status"
-                            >
-                              <option value="PENDING">Pending</option>
-                              <option value="PARTIAL">Partial</option>
-                              <option value="PAID">Paid</option>
-                              <option value="REFUNDED">Refunded</option>
-                            </select>
-                          ) : (
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                paymentStatusColors[
-                                  bill.paymentStatus as keyof typeof paymentStatusColors
-                                ]
-                              }`}
-                            >
-                              {bill.paymentStatus}
-                            </span>
-                          )}
+                          <select
+                            value={bill.paymentStatus}
+                            onChange={(e) => updateBillStatus(bill, e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            title="Update payment status"
+                          >
+                            <option value="PENDING">Pending</option>
+                            <option value="PARTIAL">Partial</option>
+                            <option value="PAID">Paid</option>
+                            <option value="REFUNDED">Refunded</option>
+                          </select>
                           <span
                             className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
                             title="Payment method"

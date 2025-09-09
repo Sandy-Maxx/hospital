@@ -23,9 +23,19 @@ import {
   ClipboardList,
   Activity,
 } from "lucide-react";
-import PrescriptionForm from "@/components/prescriptions/prescription-form";
-import ConsultationNotes from "@/components/soap/consultation-notes";
-import PrescriptionViewModal from "@/components/prescriptions/prescription-view-modal";
+import dynamic from "next/dynamic";
+const PrescriptionForm = dynamic(
+  () => import("@/components/prescriptions/prescription-form"),
+  { ssr: false },
+);
+const ConsultationNotes = dynamic(
+  () => import("@/components/soap/consultation-notes"),
+  { ssr: false },
+);
+const PrescriptionViewModal = dynamic(
+  () => import("@/components/prescriptions/prescription-view-modal"),
+  { ssr: false },
+);
 import { formatDateTime } from "@/lib/utils";
 import toast from "react-hot-toast";
 interface Patient {
@@ -50,6 +60,7 @@ interface Prescription {
     id: string;
     symptoms: string;
     diagnosis: string;
+    appointmentId?: string;
   };
 }
 

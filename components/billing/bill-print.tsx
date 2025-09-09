@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, X } from "lucide-react";
@@ -22,8 +22,9 @@ interface HospitalSettings {
   primaryColor?: string;
 }
 
-export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
+function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
   const [settings, setSettings] = useState<HospitalSettings>({});
+  const [fullBill, setFullBill] = useState<any | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -33,13 +34,37 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
       .catch(() => {});
   }, [isOpen]);
 
+  useEffect(() => {
+    // Lazy-load full bill details (including items) if not present
+    if (!isOpen || !bill?.id) return;
+    const hasItems = Array.isArray((bill as any).billItems) && (bill as any).billItems.length > 0;
+    if (hasItems) {
+      setFullBill(bill);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`/api/bills?id=${bill.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setFullBill(data.bill || bill);
+        } else {
+          setFullBill(bill);
+        }
+      } catch {
+        setFullBill(bill);
+      }
+    })();
+  }, [isOpen, bill]);
+
   if (!isOpen || !bill) return null;
 
-  const subtotal = bill.totalAmount || 0;
-  const cgst = bill.cgst || 0;
-  const sgst = bill.sgst || 0;
-  const discount = bill.discountAmount || 0;
-  const final = bill.finalAmount ?? subtotal + cgst + sgst - discount;
+  const b = fullBill || bill;
+  const subtotal = b.totalAmount || 0;
+  const cgst = b.cgst || 0;
+  const sgst = b.sgst || 0;
+  const discount = b.discountAmount || 0;
+  const final = b.finalAmount ?? subtotal + cgst + sgst - discount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -89,27 +114,27 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
               <div className="text-gray-500">Bill No.</div>
               <div className="font-semibold">
                 {formatBillNumber({
-                  billNumber: bill.billNumber,
-                  id: bill.id,
-                  createdAt: bill.createdAt,
+                  billNumber: b.billNumber,
+                  id: b.id,
+                  createdAt: b.createdAt,
                 })}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Date</div>
               <div className="font-semibold">
-                {new Date(bill.createdAt).toLocaleString()}
+                {new Date(b.createdAt).toLocaleString()}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Patient</div>
               <div className="font-semibold">
-                {bill.patient?.firstName} {bill.patient?.lastName}
+                {b.patient?.firstName} {b.patient?.lastName}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Doctor</div>
-              <div className="font-semibold">{bill.doctor?.name || "-"}</div>
+              <div className="font-semibold">{b.doctor?.name || "-"}</div>
             </div>
           </div>
 
@@ -129,7 +154,7 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(bill.billItems || []).map((it: any, idx: number) => (
+                  {(b.billItems || []).map((it: any, idx: number) => (
                     <tr key={idx} className="border-b">
                       <td className="px-4 py-2">{it.itemType}</td>
                       <td className="px-4 py-2">{it.itemName}</td>
@@ -180,3 +205,5 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
     </div>
   );
 }
+
+export default memo(BillPrint);

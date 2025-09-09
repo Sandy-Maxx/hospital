@@ -140,13 +140,16 @@ model Prescription {
   vitals         String? // SOAP - Objective (JSON)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
+  
   // Relations
   consultation Consultation? @relation(fields: [consultationId], references: [id])
   patient      Patient       @relation(fields: [patientId], references: [id])
   doctor       User          @relation(fields: [doctorId], references: [id])
   bills         Bill[]
-
+  
+  @@index([createdAt])
+  @@index([patientId])
+  @@index([doctorId])
   @@map("prescriptions")
 }
 
@@ -162,12 +165,13 @@ model AppointmentSession {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
+  
   // Relations
   appointments      Appointment[]
   doctorAssignments DoctorSessionAssignment[]
-
+  
   @@unique([date, shortCode])
+  @@index([date])
   @@map("appointment_sessions")
 }
 
@@ -211,6 +215,9 @@ model Bill {
   @@index([billNumber])
   @@index([patientId, createdAt])
   @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([doctorId])
+  @@index([prescriptionId])
   @@map("bills")
 }
 
@@ -227,6 +234,7 @@ model BillItem {
   // Relations
   bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
   
+  @@index([billId])
   @@map("bill_items")
 }
 
@@ -243,6 +251,7 @@ model DoctorConsultationFee {
   doctor        User    @relation("DoctorFees", fields: [doctorId], references: [id])
   
   @@unique([doctorId, consultationType])
+  @@index([doctorId])
   @@map("doctor_consultation_fees")
 }
 

@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { date, doctorId } = await request.json();
+    const { date } = await request.json();
 
     if (!date) {
       return NextResponse.json({ error: "Date is required" }, { status: 400 });
@@ -128,16 +128,6 @@ export async function POST(request: NextRequest) {
             maxTokens: template.maxTokens,
             currentTokens: 0,
             isActive: true,
-            doctorId: doctorId || null,
-          },
-          include: {
-            doctor: {
-              select: {
-                id: true,
-                name: true,
-                specialization: true,
-              },
-            },
           },
         });
         createdSessions.push(newSession);

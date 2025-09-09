@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +36,7 @@ interface BillItem {
   gstRate: number | null;
 }
 
-export default function EditBillForm({
+function EditBillForm({
   isOpen,
   bill,
   onClose,
@@ -48,9 +48,96 @@ export default function EditBillForm({
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
 
+  // If the provided bill lacks items (due to list query optimization), fetch full bill
+  useEffect(() => {
+    if (!isOpen || !bill?.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/bills?id=${bill.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const b = data.bill || bill;
+
+          // Base items from existing bill items
+          const baseItems: BillItem[] = (b.billItems || []).map((it: any) => ({
+            itemType: it.itemType,
+            itemName: it.itemName,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            gstRate: it.gstRate ?? 0,
+          }));
+
+          // Merge-in candidates from linked prescription (if present) for easier editing
+          const merged = [...baseItems];
+          const existingKeys = new Set(
+            baseItems.map((i) => `${i.itemType}::${i.itemName.trim().toLowerCase()}`),
+          );
+
+          const addIfMissing = (item: BillItem) => {
+            const key = `${item.itemType}::${item.itemName.trim().toLowerCase()}`;
+            if (!existingKeys.has(key)) {
+              merged.push(item);
+              existingKeys.add(key);
+            }
+          };
+
+          try {
+            const pres = b.prescription;
+            const raw = pres?.medicines;
+            if (raw) {
+              const bundle = typeof raw === "string" ? JSON.parse(raw) : raw;
+              const resolveArr = (arr: any) => (Array.isArray(arr) ? arr : []);
+
+              // Medicines
+              resolveArr(bundle?.medicines).forEach((m: any) => {
+                const name = m?.name || m?.itemName || "Medicine";
+                const dosage = m?.dosage ? ` - ${m.dosage}` : "";
+                addIfMissing({
+                  itemType: "MEDICINE",
+                  itemName: `${name}${dosage}`,
+                  quantity: 1,
+                  unitPrice: null,
+                  gstRate: 12,
+                });
+              });
+              // Lab Tests
+              resolveArr(bundle?.labTests).forEach((t: any) => {
+                const name = t?.name || t?.itemName || String(t);
+                addIfMissing({
+                  itemType: "LAB_TEST",
+                  itemName: name,
+                  quantity: 1,
+                  unitPrice: null,
+                  gstRate: 5,
+                });
+              });
+              // Therapies
+              resolveArr(bundle?.therapies).forEach((th: any) => {
+                const name = th?.name || th?.itemName || String(th);
+                const qty = parseInt(th?.sessions) || 1;
+                addIfMissing({
+                  itemType: "THERAPY",
+                  itemName: name,
+                  quantity: qty,
+                  unitPrice: null,
+                  gstRate: 18,
+                });
+              });
+            }
+          } catch {}
+
+          setBillItems(merged);
+          setDiscountAmount(b.discountAmount || 0);
+          setPaymentMethod(b.paymentMethod || "CASH");
+          setNotes(b.notes || "");
+        }
+      } catch {}
+    })();
+  }, [isOpen, bill]);
+
   useEffect(() => {
     if (!isOpen || !bill) return;
-    // Prefill items from bill
+    // Prefill from whatever data is available; full details will merge from fetch effect
     const items: BillItem[] = (bill.billItems || []).map((it: any) => ({
       itemType: it.itemType,
       itemName: it.itemName,
@@ -349,3 +436,5 @@ export default function EditBillForm({
     </div>
   );
 }
+
+export default memo(EditBillForm);

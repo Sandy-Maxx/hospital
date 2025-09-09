@@ -56,14 +56,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const notesPayload =
+      notes ?? (symptoms || diagnosis ? JSON.stringify({ symptoms, diagnosis }) : "");
+
     const consultation = await prisma.consultation.create({
       data: {
         patientId: appointment.patientId,
         doctorId: appointment.doctorId,
         appointmentId: appointmentId,
-        symptoms,
-        diagnosis,
-        notes: notes || "",
+        notes: notesPayload,
       },
       include: {
         patient: true,

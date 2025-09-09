@@ -267,6 +267,95 @@ async function main() {
     createdPatients.push(createdPatient);
   }
 
+  // Augment with Indian dataset (users, patients, medicines) - upsert-only
+  const indianDoctors = [
+    {
+      email: "dr.rajesh@hospital.com",
+      name: "Dr. Rajesh Kumar",
+      role: "DOCTOR",
+      department: "General Medicine",
+      specialization: "Internal Medicine",
+      password: await bcrypt.hash("doctor123", 10),
+    },
+    {
+      email: "dr.priya@hospital.com",
+      name: "Dr. Priya Sharma",
+      role: "DOCTOR",
+      department: "Pediatrics",
+      specialization: "Child Health",
+      password: await bcrypt.hash("doctor123", 10),
+    },
+    {
+      email: "dr.amit@hospital.com",
+      name: "Dr. Amit Patel",
+      role: "DOCTOR",
+      department: "Orthopedics",
+      specialization: "Joint Replacement",
+      password: await bcrypt.hash("doctor123", 10),
+    },
+    {
+      email: "dr.neha@hospital.com",
+      name: "Dr. Neha Gupta",
+      role: "DOCTOR",
+      department: "Gynecology",
+      specialization: "Obstetrics & Gynae",
+      password: await bcrypt.hash("doctor123", 10),
+    },
+    {
+      email: "dr.arjun@hospital.com",
+      name: "Dr. Arjun Iyer",
+      role: "DOCTOR",
+      department: "Cardiology",
+      specialization: "Interventional Cardiology",
+      password: await bcrypt.hash("doctor123", 10),
+    },
+  ];
+
+  for (const doc of indianDoctors) {
+    await prisma.user.upsert({ where: { email: doc.email }, update: {
+      name: doc.name, department: doc.department, specialization: doc.specialization, isActive: true,
+    }, create: doc });
+  }
+
+  const indianMeds = [
+    { name: "Dolo 650", genericName: "Paracetamol", category: "Analgesic", dosageForm: "Tablet", strength: "650mg" },
+    { name: "Crocin Advance", genericName: "Paracetamol", category: "Analgesic", dosageForm: "Tablet", strength: "500mg" },
+    { name: "Combiflam", genericName: "Ibuprofen + Paracetamol", category: "NSAID", dosageForm: "Tablet", strength: "400mg/325mg" },
+    { name: "Azithral 500", genericName: "Azithromycin", category: "Antibiotic", dosageForm: "Tablet", strength: "500mg" },
+    { name: "Augmentin 625", genericName: "Amoxicillin + Clavulanate", category: "Antibiotic", dosageForm: "Tablet", strength: "625mg" },
+    { name: "Pantocid DSR", genericName: "Pantoprazole + Domperidone", category: "PPI", dosageForm: "Capsule", strength: "40mg/30mg" },
+    { name: "Shelcal 500", genericName: "Calcium + Vitamin D3", category: "Supplement", dosageForm: "Tablet", strength: "500mg" },
+    { name: "Allegra 120", genericName: "Fexofenadine", category: "Antihistamine", dosageForm: "Tablet", strength: "120mg" },
+    { name: "Zerodol SP", genericName: "Aceclofenac + Paracetamol + Serratiopeptidase", category: "NSAID", dosageForm: "Tablet", strength: "100mg/325mg/15mg" },
+    { name: "Betadine Gargle", genericName: "Povidone Iodine", category: "Antiseptic", dosageForm: "Solution", strength: "2%" },
+  ];
+  for (const med of indianMeds) {
+    await prisma.medicine.upsert({ where: { name: med.name }, update: {}, create: med });
+  }
+
+  const indianPatients = [
+    { firstName: "Rahul", lastName: "Verma", phone: "+91-9876543210", email: "rahul.verma@example.in", gender: "MALE", bloodGroup: "B+", dateOfBirth: new Date("1991-04-10"), address: "DLF Phase 3, Gurugram, Haryana", emergencyContact: "Anita Verma - +91-9876500011" },
+    { firstName: "Anjali", lastName: "Singh", phone: "+91-9811122233", email: "anjali.singh@example.in", gender: "FEMALE", bloodGroup: "O+", dateOfBirth: new Date("1993-09-22"), address: "Powai, Mumbai, Maharashtra", emergencyContact: "Ravi Singh - +91-9811100000" },
+    { firstName: "Rohan", lastName: "Mehta", phone: "+91-9900012345", email: "rohan.mehta@example.in", gender: "MALE", bloodGroup: "A+", dateOfBirth: new Date("1987-12-01"), address: "Banjara Hills, Hyderabad, Telangana", emergencyContact: "Neha Mehta - +91-9900010001" },
+    { firstName: "Kavya", lastName: "Nair", phone: "+91-9887788899", email: "kavya.nair@example.in", gender: "FEMALE", bloodGroup: "AB+", dateOfBirth: new Date("1996-05-18"), address: "Indiranagar, Bengaluru, Karnataka", emergencyContact: "Arjun Nair - +91-9887700000" },
+    { firstName: "Vivek", lastName: "Rao", phone: "+91-9797979797", email: "vivek.rao@example.in", gender: "MALE", bloodGroup: "O-", dateOfBirth: new Date("1982-07-29"), address: "Gachibowli, Hyderabad, Telangana", emergencyContact: "Sneha Rao - +91-9797900000" },
+  ];
+  for (const p of indianPatients) {
+    const cp = await prisma.patient.upsert({ where: { phone: p.phone }, update: {}, create: p });
+    createdPatients.push(cp);
+  }
+
+  // Seed General consultation fees for all doctors
+  const allDoctors = await prisma.user.findMany({ where: { role: "DOCTOR", isActive: true } });
+  for (const d of allDoctors) {
+    const fee = 400 + Math.floor(Math.random() * 6) * 100; // 400,500,...,900
+    await prisma.doctorConsultationFee.upsert({
+      where: { doctorId_consultationType: { doctorId: d.id, consultationType: "GENERAL" } },
+      update: { fee, isActive: true },
+      create: { doctorId: d.id, consultationType: "GENERAL", fee, isActive: true },
+    });
+  }
+
   // Create sample appointments
   const appointmentTypes = [
     "CONSULTATION",
@@ -322,6 +411,42 @@ async function main() {
   for (const appointment of appointments) {
     await prisma.appointment.create({
       data: appointment,
+    });
+  }
+
+  // Create a handful of Indian-style prescriptions (pending billing)
+  const sampleBundles = [
+    {
+      medicines: [
+        { name: "Dolo 650", dosage: "1 tablet", frequency: "twice daily", duration: "5 days", instructions: "After food" },
+        { name: "Pantocid DSR", dosage: "1 capsule", frequency: "once daily", duration: "10 days", instructions: "Before breakfast" },
+      ],
+      labTests: [ { name: "CBC", instructions: "Fasting not required" } ],
+      therapies: [],
+    },
+    {
+      medicines: [
+        { name: "Azithral 500", dosage: "1 tablet", frequency: "once daily", duration: "3 days", instructions: "After food" },
+        { name: "Allegra 120", dosage: "1 tablet", frequency: "once daily", duration: "7 days", instructions: "Night" },
+      ],
+      labTests: [ { name: "LFT", instructions: "Overnight fasting" } ],
+      therapies: [],
+    },
+  ];
+
+  const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+  for (let i = 0; i < 8; i++) {
+    const pt = pick(createdPatients);
+    const doc = pick(allDoctors);
+    const bundle = pick(sampleBundles);
+    await prisma.prescription.create({
+      data: {
+        patientId: pt.id,
+        doctorId: doc.id,
+        medicines: JSON.stringify(bundle),
+        notes: "Seeded prescription",
+        createdAt: new Date(Date.now() - Math.floor(Math.random() * 5) * 24 * 60 * 60 * 1000),
+      },
     });
   }
 

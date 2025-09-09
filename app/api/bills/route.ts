@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
     const patientId = searchParams.get("patientId");
     const date = searchParams.get("date");
     const from = searchParams.get("from");
@@ -57,6 +58,23 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
+
+    // If a specific bill id is requested, return full details for that bill only
+    if (id) {
+      const bill = await prisma.bill.findUnique({
+        where: { id },
+        include: {
+          patient: { select: { firstName: true, lastName: true, phone: true } },
+          doctor: { select: { name: true, department: true } },
+          prescription: { select: { id: true, medicines: true, createdAt: true } },
+          billItems: true,
+        },
+      });
+      if (!bill) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      return NextResponse.json({ bill });
+    }
 
     const where: any = {};
 
@@ -93,20 +111,14 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         include: {
           patient: {
-            select: {
-              firstName: true,
-              lastName: true,
-              phone: true,
-            },
+            select: { firstName: true, lastName: true, phone: true },
           },
           doctor: {
-            select: {
-              name: true,
-              department: true,
-            },
+            select: { name: true, department: true },
           },
-          prescription: true,
-          billItems: true,
+          // Only minimal prescription fields needed by listing UI
+          prescription: { select: { id: true, medicines: true } },
+          // Do NOT include billItems for the list to reduce payload
         },
       }),
       prisma.bill.count({ where }),
@@ -216,10 +228,10 @@ export async function POST(request: NextRequest) {
         cgst,
         sgst,
         finalAmount,
-        // Consider bill paid on creation
-        paymentStatus: "PAID",
-        paidAmount: finalAmount,
-        balanceAmount: 0,
+        // Default to PENDING until explicitly marked otherwise
+        paymentStatus: "PENDING",
+        paidAmount: 0,
+        balanceAmount: finalAmount,
       },
       include: {
         patient: {

@@ -39,8 +39,12 @@ export async function GET(request: NextRequest) {
   if (!session?.user || session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const bills = await prisma.bill.findMany({
-    include: { patient: true, doctor: true, prescription: true },
+const bills = await prisma.bill.findMany({
+    include: {
+      patient: { select: { id: true, firstName: true, lastName: true } },
+      doctor: { select: { id: true, name: true } },
+      prescription: { select: { id: true, createdAt: true, medicines: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 

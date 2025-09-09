@@ -18,6 +18,7 @@ interface LabJob {
   id: string;
   billId: string;
   prescriptionId: string;
+  prescriptionCreatedAt?: string;
   patient: any;
   doctor: any;
   test: { name: string; instructions?: string };

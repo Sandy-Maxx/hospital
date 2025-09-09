@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,7 @@ interface BillItem {
   gstRate: number | null;
 }
 
-export default function BillForm({
+function BillForm({
   prescription,
   onClose,
   onSuccess,
@@ -627,3 +627,5 @@ export default function BillForm({
     </div>
   );
 }
+
+export default memo(BillForm);
