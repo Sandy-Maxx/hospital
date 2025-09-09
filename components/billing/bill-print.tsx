@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Printer, X } from 'lucide-react'
+import { formatBillNumber } from '@/lib/identifiers'
 
 interface BillPrintProps {
   isOpen: boolean
@@ -74,7 +75,7 @@ export default function BillPrint({ isOpen, onClose, bill }: BillPrintProps) {
           <div className="grid grid-cols-2 gap-4 text-sm mb-6">
             <div>
               <div className="text-gray-500">Bill No.</div>
-              <div className="font-semibold">{bill.billNumber || bill.id}</div>
+              <div className="font-semibold">{formatBillNumber({ billNumber: bill.billNumber, id: bill.id, createdAt: bill.createdAt })}</div>
             </div>
             <div>
               <div className="text-gray-500">Date</div>

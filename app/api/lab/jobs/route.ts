@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         id,
         billId: b.id,
         prescriptionId: pres.id,
+        prescriptionCreatedAt: pres.createdAt,
         patient: b.patient,
         doctor: b.doctor,
         test: { name: t.name, instructions: t.instructions || '' },

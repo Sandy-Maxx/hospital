@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import LabReportsUpload from '@/components/prescriptions/lab-reports-upload'
+import { formatPrescriptionNumber } from '@/lib/identifiers'
 
 interface LabJob {
   id: string
@@ -107,7 +108,11 @@ export default function LabPage() {
                   <div key={g.prescriptionId} className="p-4 border rounded">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="font-semibold text-gray-900">Prescription: {g.prescriptionId.slice(-8)}</div>
+                        <div className="font-semibold text-gray-900">Prescription: {(() => {
+                          const createdAt = g.tests?.[0]?.prescriptionCreatedAt || undefined
+                          const id = g.prescriptionId
+                          return formatPrescriptionNumber({ id, createdAt })
+                        })()}</div>
                         <div className="text-sm text-gray-700">
                           Patient: {g.patient?.firstName} {g.patient?.lastName} • Doctor: {g.doctor?.name}
                         </div>

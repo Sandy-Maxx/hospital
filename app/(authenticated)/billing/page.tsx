@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { CreditCard, Plus, Receipt, Search, FileText, Download, Printer, QrCode, Eye, Pencil, Trash2 } from 'lucide-react'
+import { CreditCard, Plus, Receipt, Search, FileText, Download, Printer, QrCode, Eye, Pencil, Trash2, Upload, FlaskConical, Check } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import BillForm from '@/components/billing/bill-form'
 import BillPrint from '@/components/billing/bill-print'
@@ -14,6 +14,7 @@ import EditBillForm from '@/components/billing/edit-bill-form'
 import PrescriptionPrint from '@/components/prescriptions/prescription-print'
 import LabReportsUpload from '@/components/prescriptions/lab-reports-upload'
 import toast from 'react-hot-toast'
+import { formatBillNumber, formatPrescriptionNumber } from '@/lib/identifiers'
 
 interface Bill {
   id: string
@@ -61,7 +62,7 @@ export default function Billing() {
   const [dispatchMap, setDispatchMap] = useState<Record<string, boolean>>({})
   const [prescriptions, setPrescriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateBill, setShowCreateBill] = useState(false)
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
@@ -72,20 +73,27 @@ export default function Billing() {
   const [showBillModal, setShowBillModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [billsCount, setBillsCount] = useState<number>(0)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [prescPage, setPrescPage] = useState(1)
+  const [prescLimit, setPrescLimit] = useState(10)
 
   const fetchBills = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        date: selectedDate,
-        ...(statusFilter && { status: statusFilter }),
-      })
+      const params = new URLSearchParams()
+      if (selectedDate) params.set('date', selectedDate)
+      if (statusFilter) params.set('status', statusFilter)
+      params.set('page', String(page))
+      params.set('limit', String(limit))
 
       const response = await fetch(`/api/bills?${params}`)
       if (response.ok) {
         const data = await response.json()
         setBills(data.bills)
         if (data.pagination?.total !== undefined) setBillsCount(data.pagination.total)
+        if (data.pagination?.pages !== undefined) setTotalPages(data.pagination.pages)
         // Prefetch dispatch status for bills' prescriptions
         const uniquePresc = Array.from(new Set((data.bills || []).map((b: any) => b.prescription?.id).filter(Boolean)))
         if (uniquePresc.length) {
@@ -111,12 +119,11 @@ export default function Billing() {
 
   const fetchBillsCount = async () => {
     try {
-      const params = new URLSearchParams({
-        date: selectedDate,
-        ...(statusFilter && { status: statusFilter }),
-        page: '1',
-        limit: '1'
-      })
+      const params = new URLSearchParams()
+      if (selectedDate) params.set('date', selectedDate)
+      if (statusFilter) params.set('status', statusFilter)
+      params.set('page', '1')
+      params.set('limit', '1')
       const response = await fetch(`/api/bills?${params}`)
       if (response.ok) {
         const data = await response.json()
@@ -128,9 +135,8 @@ export default function Billing() {
   const fetchPrescriptions = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        date: selectedDate,
-      })
+      const params = new URLSearchParams()
+      if (selectedDate) params.set('date', selectedDate)
 
       const response = await fetch(`/api/prescriptions/pending-billing?${params}`)
       if (response.ok) {
@@ -154,7 +160,16 @@ export default function Billing() {
       // keep bills count updated even when not on the bills tab
       fetchBillsCount()
     }
-  }, [selectedDate, statusFilter, activeTab])
+  }, [selectedDate, statusFilter, activeTab, page, limit])
+
+  // Reset pages when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [selectedDate, statusFilter])
+
+  useEffect(() => {
+    setPrescPage(1)
+  }, [selectedDate])
 
   // Initial prefetch counts
   useEffect(() => {
@@ -164,6 +179,25 @@ export default function Billing() {
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.totalAmount, 0)
   const paidBills = bills.filter(bill => bill.paymentStatus === 'PAID')
   const pendingBills = bills.filter(bill => bill.paymentStatus === 'PENDING')
+  const prescTotalPages = Math.max(1, Math.ceil((prescriptions.length || 0) / prescLimit))
+  const pagedPrescriptions = prescriptions.slice((prescPage - 1) * prescLimit, prescPage * prescLimit)
+
+  const updateBillStatus = async (bill: Bill, status: string) => {
+    try {
+      const payload: any = { paymentStatus: status }
+      if (status === 'PAID') {
+        const amt = bill.finalAmount ?? bill.totalAmount ?? 0
+        payload.paidAmount = amt
+        payload.balanceAmount = 0
+      }
+      const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      if (!res.ok) throw new Error('Failed to update status')
+      toast.success('Payment status updated')
+      fetchBills()
+    } catch (e:any) {
+      toast.error(e?.message || 'Failed to update status')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -306,7 +340,7 @@ export default function Billing() {
               </div>
             ) : (
               <div className="space-y-4">
-                {prescriptions.map((prescription) => (
+                {pagedPrescriptions.map((prescription) => (
                   <div
                     key={prescription.id}
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
@@ -332,18 +366,20 @@ export default function Billing() {
                       
                         <div className="text-right">
                         <div className="flex flex-col items-end gap-2">
-                          <Button
-                            onClick={() => setSelectedPrescription(prescription)}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Create Bill
-                          </Button>
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-2">
                             <button
-                              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                              onClick={() => setPrintPrescription({ id: prescription.id, open: true })}
+                              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                              onClick={() => setSelectedPrescription(prescription)}
+                              title="Create Bill"
                             >
-                              View/Print Prescription
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                              onClick={() => setPrintPrescription({ id: prescription.id, open: true })}
+                              title="View / Print Prescription"
+                            >
+                              <Download className="w-4 h-4" />
                             </button>
                           </div>
                           <div className="text-sm text-gray-500">
@@ -384,13 +420,35 @@ export default function Billing() {
                 ))}
               </div>
             )}
+          {!loading && prescriptions.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-gray-600">
+                Showing {(prescPage - 1) * prescLimit + 1} - {Math.min(prescPage * prescLimit, prescriptions.length)} of {prescriptions.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Per page</label>
+                <select value={prescLimit} onChange={(e) => { setPrescPage(1); setPrescLimit(parseInt(e.target.value)) }} className="p-2 border border-gray-300 rounded-md">
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setPrescPage(1)} disabled={prescPage === 1}>First</Button>
+                <Button variant="outline" onClick={() => setPrescPage((p) => Math.max(1, p - 1))} disabled={prescPage === 1}>Prev</Button>
+                <span className="text-sm">Page {prescPage} of {prescTotalPages}</span>
+                <Button variant="outline" onClick={() => setPrescPage((p) => Math.min(prescTotalPages, p + 1))} disabled={prescPage >= prescTotalPages}>Next</Button>
+                <Button variant="outline" onClick={() => setPrescPage(prescTotalPages)} disabled={prescPage >= prescTotalPages}>Last</Button>
+              </div>
+            </div>
+          )}
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader>
             <CardTitle>
-              Bills for {formatDate(selectedDate)}
+              Bills for {selectedDate ? formatDate(selectedDate) : 'All Dates'}
             </CardTitle>
             <CardDescription>
               {bills.length} bills found
@@ -424,7 +482,7 @@ export default function Billing() {
                               {bill.patient.firstName} {bill.patient.lastName}
                             </h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                              <span>Bill #{bill.id.slice(-8)}</span>
+                              <span className="text-gray-700 font-medium">{formatBillNumber({ billNumber: (bill as any).billNumber as any, id: bill.id, createdAt: bill.createdAt })}</span>
                               <span>{bill.patient.phone}</span>
                               <span>{formatDate(bill.createdAt)}</span>
                             </div>
@@ -437,12 +495,26 @@ export default function Billing() {
                           ₹{(bill.finalAmount ?? bill.totalAmount ?? 0).toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            paymentStatusColors[bill.paymentStatus as keyof typeof paymentStatusColors]
-                          }`} title={bill.paymentStatus === 'PENDING' ? 'Awaiting payment' : ''}>
-                            {bill.paymentStatus}
-                          </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          {bill.paymentStatus === 'PENDING' || bill.paymentStatus === 'REFUNDED' ? (
+                            <select
+                              value={bill.paymentStatus}
+                              onChange={(e) => updateBillStatus(bill, e.target.value)}
+                              className="px-2 py-1 border border-gray-300 rounded text-xs"
+                              title="Update payment status"
+                            >
+                              <option value="PENDING">Pending</option>
+                              <option value="PARTIAL">Partial</option>
+                              <option value="PAID">Paid</option>
+                              <option value="REFUNDED">Refunded</option>
+                            </select>
+                          ) : (
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              paymentStatusColors[bill.paymentStatus as keyof typeof paymentStatusColors]
+                            }`}>
+                              {bill.paymentStatus}
+                            </span>
+                          )}
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs" title="Payment method">
                             {bill.paymentMethod || '-'}
                           </span>
                         </div>
@@ -465,90 +537,128 @@ export default function Billing() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                  onClick={() => { setViewBill(bill as any); setShowBillModal(true) }}
-                >
-                  <Eye className="inline w-4 h-4 mr-1" /> View/Print
-                </button>
-                <button
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                  onClick={() => { setViewBill(bill as any); setShowEditModal(true) }}
-                >
-                  <Pencil className="inline w-4 h-4 mr-1" /> Edit
-                </button>
-                <button
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                  onClick={() => {
-                    try {
-                      const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
-                      const tests = (meds.labTests || []).map((t:any) => ({ name: t.name }))
-                      setLabUpload({ id: bill.prescription?.id!, open: true, tests })
-                    } catch { setLabUpload({ id: bill.prescription?.id!, open: true, tests: [] }) }
-                  }}
-                  disabled={!(bill.prescription && dispatchMap[bill.prescription.id])}
-                  title={!bill.prescription ? 'No linked prescription' : (!dispatchMap[bill.prescription.id] ? 'Send tests to lab before uploading reports' : '')}
-                >
-                  Upload Reports
-                </button>
-                <button
-                  className={`px-3 py-2 text-sm border rounded-md ${bill.prescription && dispatchMap[bill.prescription.id] ? 'border-green-300 text-green-700 bg-green-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`}
-                  onClick={async () => {
-                    try {
+              {/* Actions - compact icon bar; only enabled when status is PAID or PARTIAL */}
+              {(bill.paymentStatus === 'PAID' || bill.paymentStatus === 'PARTIAL') ? (
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <button
+                    className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                    onClick={() => { setViewBill(bill as any); setShowBillModal(true) }}
+                    title="View / Print Bill"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                    onClick={() => { setViewBill(bill as any); setShowEditModal(true) }}
+                    title="Edit Bill"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                    onClick={() => {
+                      try {
+                        const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
+                        const tests = (meds.labTests || []).map((t:any) => ({ name: t.name }))
+                        setLabUpload({ id: bill.prescription?.id!, open: true, tests })
+                      } catch { setLabUpload({ id: bill.prescription?.id!, open: true, tests: [] }) }
+                    }}
+                    disabled={!(bill.prescription && dispatchMap[bill.prescription.id])}
+                    title={!bill.prescription ? 'No linked prescription' : (!dispatchMap[bill.prescription.id] ? 'Send tests to lab before uploading reports' : 'Upload Lab Reports')}
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                  <button
+                    className={`p-2 border rounded-md ${bill.prescription && dispatchMap[bill.prescription.id] ? 'border-green-300 text-green-700 bg-green-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`}
+                    onClick={async () => {
+                      try {
+                        const presId = bill.prescription?.id
+                        if (!presId) { toast.error('No linked prescription'); return }
+                        const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
+                        const tests = (meds.labTests || []) as any[]
+                        if (!tests.length) { toast('No lab tests in this bill'); return }
+                        const testNames = tests.map((t:any) => t.name).filter(Boolean)
+                        const res = await fetch('/api/lab/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: presId, tests: testNames }) })
+                        if (res.ok) {
+                          setDispatchMap((m) => ({ ...m, [presId]: true }))
+                          toast.success('Tests sent to Lab')
+                          fetchBills()
+                        } else {
+                          toast.error('Failed to send tests')
+                        }
+                      } catch { toast.error('Unable to process tests') }
+                    }}
+                    disabled={!(bill.prescription) || !!(bill.prescription && dispatchMap[bill.prescription.id])}
+                    title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : 'Send Tests to Lab'}
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                    onClick={() => {
                       const presId = bill.prescription?.id
                       if (!presId) { toast.error('No linked prescription'); return }
-                      const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {}
-                      const tests = (meds.labTests || []) as any[]
-                      if (!tests.length) { toast('No lab tests in this bill'); return }
-                      const testNames = tests.map((t:any) => t.name).filter(Boolean)
-                      const res = await fetch('/api/lab/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: presId, tests: testNames }) })
-                      if (res.ok) {
-                        setDispatchMap((m) => ({ ...m, [presId]: true }))
-                        // Also ensure bill is marked PAID (backfill older bills)
-                        if (bill.paymentStatus !== 'PAID') {
-                          await fetch(`/api/bills?id=${bill.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentStatus: 'PAID', paidAmount: bill.finalAmount ?? bill.totalAmount ?? 0, balanceAmount: 0 }) })
+                      setPrintPrescription({ id: presId, open: true })
+                    }}
+                    title="View / Print Prescription"
+                    disabled={!bill.prescription?.id}
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50"
+                    onClick={async () => {
+                      const ok = typeof window !== 'undefined' ? window.confirm('Delete this bill? This cannot be undone.') : true
+                      if (!ok) return
+                      try {
+                        const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'DELETE' })
+                        if (res.ok) {
+                          toast.success('Bill deleted')
+                          fetchBills()
+                        } else {
+                          toast.error('Failed to delete bill')
                         }
-                        toast.success('Tests sent to Lab')
-                        // Refresh to reflect latest status
-                        fetchBills()
-                      } else {
-                        toast.error('Failed to send tests')
-                      }
-                    } catch { toast.error('Unable to process tests') }
-                  }}
-                  disabled={!(bill.prescription) || !!(bill.prescription && dispatchMap[bill.prescription.id])}
-                  title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : undefined}
-                >
-                  {bill.prescription && dispatchMap[bill.prescription.id] ? 'Sent to Lab' : 'Send Tests to Lab'}
-                </button>
-                <button
-                  className="px-3 py-2 text-sm border border-red-300 text-red-700 rounded-md hover:bg-red-50"
-                  onClick={async () => {
-                    const ok = typeof window !== 'undefined' ? window.confirm('Delete this bill? This cannot be undone.') : true
-                    if (!ok) return
-                    try {
-                      const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'DELETE' })
-                      if (res.ok) {
-                        toast.success('Bill deleted')
-                        fetchBills()
-                      } else {
+                      } catch {
                         toast.error('Failed to delete bill')
                       }
-                    } catch {
-                      toast.error('Failed to delete bill')
-                    }
-                  }}
-                >
-                  <Trash2 className="inline w-4 h-4 mr-1" /> Delete
-                </button>
-              </div>
+                    }}
+                    title="Delete Bill"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 text-right text-xs text-gray-500">
+                  Update payment status to enable actions
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
             )}
+          {!loading && billsCount > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-gray-600">
+                Showing {(page - 1) * limit + 1} - {Math.min(page * limit, billsCount)} of {billsCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Per page</label>
+                <select value={limit} onChange={(e) => { setPage(1); setLimit(parseInt(e.target.value)) }} className="p-2 border border-gray-300 rounded-md">
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setPage(1)} disabled={page === 1}>First</Button>
+                <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
+                <span className="text-sm">Page {page} of {totalPages}</span>
+                <Button variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next</Button>
+                <Button variant="outline" onClick={() => setPage(totalPages)} disabled={page >= totalPages}>Last</Button>
+              </div>
+            </div>
+          )}
           </CardContent>
         </Card>
       )}

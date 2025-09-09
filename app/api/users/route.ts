@@ -32,7 +32,22 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     })
 
-    return NextResponse.json(users)
+    // Merge with profile JSON (phone, address, designation history, etc.) if present
+    const fs = await import('fs')
+    const path = await import('path')
+    const baseDir = path.join(process.cwd(), 'data', 'user-profiles')
+    const withProfiles = users.map(u => {
+      try {
+        const file = path.join(baseDir, `${u.id}.json`)
+        if (fs.existsSync(file)) {
+          const profile = JSON.parse(fs.readFileSync(file, 'utf8'))
+          return { ...u, profile }
+        }
+      } catch {}
+      return { ...u, profile: {} }
+    })
+
+    return NextResponse.json(withProfiles)
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

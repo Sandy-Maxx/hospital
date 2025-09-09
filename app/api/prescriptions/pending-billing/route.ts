@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!session || !role) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (!['ADMIN', 'RECEPTIONIST'].includes(role)) {
+    if (!['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

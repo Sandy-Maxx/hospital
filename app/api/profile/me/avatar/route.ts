@@ -22,10 +22,12 @@ function saveDataUrl(filePath: string, dataUrl: string) {
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { dataUrl } = await request.json()
-  const dir = ensureUserDir(session.user.id)
+  const body = await request.json()
+  const dataUrl = body?.dataUrl as string
+  const targetUserId = ((session.user as any).role === 'ADMIN' && body?.userId) ? String(body.userId) : session.user.id
+  const dir = ensureUserDir(targetUserId)
   const filePath = path.join(dir, 'avatar.png')
   saveDataUrl(filePath, dataUrl)
-  return NextResponse.json({ url: `/uploads/users/${session.user.id}/avatar.png` })
+  return NextResponse.json({ url: `/uploads/users/${targetUserId}/avatar.png` })
 }
 

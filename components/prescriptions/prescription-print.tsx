@@ -10,14 +10,7 @@ interface Props {
   id: string
 }
 
-function formatPrescNumber(id: string) {
-  const short = id.slice(-6).toUpperCase()
-  const d = new Date()
-  const y = d.getFullYear().toString().slice(-2)
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `PR-${y}${m}${day}-${short}`
-}
+import { formatPrescriptionNumber } from '@/lib/identifiers'
 
 export default function PrescriptionPrint({ open, onClose, id }: Props) {
   const [data, setData] = useState<any>(null)
@@ -43,7 +36,7 @@ export default function PrescriptionPrint({ open, onClose, id }: Props) {
   const parseMedicines = (json: string) => { try { return JSON.parse(json) } catch { return {} } }
   const meds = data ? parseMedicines(data.medicines) : {}
 
-  const prescNo = data ? formatPrescNumber(data.id) : ''
+  const prescNo = data ? formatPrescriptionNumber({ id: data.id, createdAt: data.createdAt }) : ''
 
   const qrData = data ? JSON.stringify({
     prescriptionNo: prescNo,

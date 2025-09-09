@@ -58,10 +58,18 @@ export default function UserManagement() {
     { value: 'RECEPTIONIST', label: 'Receptionist', color: 'bg-purple-100 text-purple-800' }
   ]
 
-  const departments = [
-    'Cardiology', 'Emergency', 'General Medicine', 'Pediatrics', 'Orthopedics', 
-    'Neurology', 'Oncology', 'Radiology', 'Surgery', 'Psychiatry'
-  ]
+  const [departments, setDepartments] = useState<string[]>([])
+  const [designations, setDesignations] = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/settings/lookups').then(async (res) => {
+      if (res.ok) {
+        const data = await res.json()
+        setDepartments(Array.isArray(data.departments) ? data.departments : [])
+        setDesignations(Array.isArray(data.designations) ? data.designations : [])
+      }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetchUsers()
@@ -75,8 +83,8 @@ export default function UserManagement() {
         const data = await response.json()
         setUsers(data)
       } else {
-        // Mock data for demonstration
-        const mockUsers: User[] = [
+        // API failed; show fallback mock data
+        setUsers([
           {
             id: '1',
             name: 'System Administrator',
@@ -127,8 +135,8 @@ export default function UserManagement() {
             createdAt: '2024-01-19T13:00:00Z',
             lastLogin: '2024-01-18T17:00:00Z'
           }
-        ]
-        setUsers(mockUsers)
+        ])
+        toast.error('Failed to fetch users - showing sample data')
       }
     } catch (error) {
       toast.error('Failed to fetch users')
@@ -379,6 +387,13 @@ export default function UserManagement() {
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
+                    <a
+                      className="inline-flex items-center justify-center px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                      href={`/profile?userId=${user.id}`}
+                      title="Edit Profile"
+                    >
+                      Profile
+                    </a>
                     <Button
                       variant="outline"
                       size="sm"
@@ -452,7 +467,7 @@ export default function UserManagement() {
                       className="w-full p-2 border border-gray-300 rounded-md bg-white"
                     >
                       <option value="">Select Department</option>
-                      {departments.map((dept) => (
+                  {departments.map((dept) => (
                         <option key={dept} value={dept}>
                           {dept}
                         </option>

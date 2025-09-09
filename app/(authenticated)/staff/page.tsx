@@ -13,7 +13,7 @@ interface Staff {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST'
+  role: 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST'
   department: string
   phone: string
   status: 'ACTIVE' | 'INACTIVE'
@@ -30,7 +30,7 @@ export default function StaffManagement() {
   const [newStaff, setNewStaff] = useState<{
     name: string
     email: string
-    role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST'
+    role: 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST'
     department: string
     phone: string
   }>({
@@ -110,7 +110,7 @@ export default function StaffManagement() {
       ...newStaff,
       status: 'ACTIVE',
       joinDate: new Date().toISOString().split('T')[0]
-    }
+    } as Staff
     setStaff([...staff, newMember])
     setNewStaff({
       name: '',
@@ -182,6 +182,8 @@ export default function StaffManagement() {
         return <Stethoscope className="w-4 h-4" />
       case 'RECEPTIONIST':
         return <UserCheck className="w-4 h-4" />
+      case 'NURSE':
+        return <Users className="w-4 h-4" />
       default:
         return <Users className="w-4 h-4" />
     }
@@ -195,6 +197,8 @@ export default function StaffManagement() {
         return 'bg-blue-100 text-blue-800'
       case 'RECEPTIONIST':
         return 'bg-green-100 text-green-800'
+      case 'NURSE':
+        return 'bg-emerald-100 text-emerald-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -321,10 +325,11 @@ export default function StaffManagement() {
                 <select
                   id="role"
                   value={newStaff.role}
-                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' })}
+                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value as 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST' })}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="RECEPTIONIST">Receptionist</option>
+                  <option value="NURSE">Nurse</option>
                   <option value="DOCTOR">Doctor</option>
                   <option value="ADMIN">Admin</option>
                 </select>

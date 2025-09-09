@@ -1,1 +1,20 @@
-{}
+{
+  "qualifications": [
+    {
+      "degree": "High School",
+      "stream": "General Medicine"
+    },
+    {
+      "degree": "MBBS",
+      "stream": "Arts"
+    }
+  ],
+  "experience": [],
+  "designation": {
+    "current": "Administrator",
+    "changelog": []
+  },
+  "fullName": "EARH AET",
+  "phone": "3456765456",
+  "department": "Cardiology"
+}
