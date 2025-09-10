@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/authz";
 import fs from "fs";
 import path from "path";
 
@@ -53,6 +54,23 @@ async function ensureSessionsExist(date: Date) {
     settings.sessionTemplates?.filter((template: any) => template.isActive) ||
     [];
 
+  // Respect hospital weekly schedule (open/close days and hours)
+  const dayKey = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][date.getDay()];
+  const daySchedule = settings.weeklySchedule?.[dayKey];
+  if (!daySchedule || !daySchedule.isOpen) {
+    // Closed day: do not create any sessions
+    return [];
+  }
+  const parse = (t: string) => {
+    const [h, m] = (t || "0:0").split(":").map((n: string) => parseInt(n, 10));
+    return h * 60 + m;
+  };
+  const dayStart = parse(daySchedule.startTime || settings.businessStartTime || "09:00");
+  const dayEnd = parse(daySchedule.endTime || settings.businessEndTime || "17:00");
+  const hasLunch = settings.lunchBreakStart && settings.lunchBreakEnd;
+  const lbStart = hasLunch ? parse(settings.lunchBreakStart) : null;
+  const lbEnd = hasLunch ? parse(settings.lunchBreakEnd) : null;
+
   // First, clean up any sessions that don't match current templates
   const validShortCodes = activeTemplates.map((t: any) => t.shortCode);
   await prisma.appointmentSession.deleteMany({
@@ -64,9 +82,35 @@ async function ensureSessionsExist(date: Date) {
     },
   });
 
-  const createdSessions = [];
+  const createdSessions = [] as any[];
+  // Track occupied intervals to avoid overlaps
+  const occupied: Array<{ start: number; end: number; code: string }> = [];
 
-  for (const template of activeTemplates) {
+  // Sort templates by start time for consistent overlap detection
+  const templatesSorted = [...activeTemplates].sort(
+    (a: any, b: any) => parse(a.startTime) - parse(b.startTime)
+  );
+
+  for (const template of templatesSorted) {
+    const tStart = parse(template.startTime);
+    const tEnd = parse(template.endTime);
+
+    // Validate within day hours
+    if (tStart < dayStart || tEnd > dayEnd || tStart >= tEnd) {
+      // Skip invalid template for this day
+      continue;
+    }
+    // Respect lunch break if configured
+    if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd))) {
+      continue;
+    }
+
+    // Check overlap with already created/updated sessions for the day
+    const overlaps = occupied.some((o) => Math.max(o.start, tStart) < Math.min(o.end, tEnd));
+    if (overlaps) {
+      continue;
+    }
+
     const existingSession = await prisma.appointmentSession.findFirst({
       where: {
         date: date,
@@ -89,7 +133,7 @@ async function ensureSessionsExist(date: Date) {
       });
       createdSessions.push(newSession);
     } else {
-      // Update existing session with current template values
+      // Update existing session with current template values (if valid)
       await prisma.appointmentSession.update({
         where: { id: existingSession.id },
         data: {
@@ -101,6 +145,8 @@ async function ensureSessionsExist(date: Date) {
         },
       });
     }
+
+    occupied.push({ start: tStart, end: tEnd, code: template.shortCode });
   }
 
   return createdSessions;
@@ -119,6 +165,8 @@ const sessionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     const doctorId = searchParams.get("doctorId");
@@ -200,10 +248,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !["ADMIN", "RECEPTIONIST"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request, ["ADMIN", "RECEPTIONIST"]);
+    if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
     const validatedData = sessionSchema.parse(body);

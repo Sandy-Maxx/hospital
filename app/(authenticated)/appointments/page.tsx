@@ -13,10 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import HospitalDateInput from "@/components/ui/hospital-date-input";
 import { Calendar, Clock, User, Phone, Plus } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/utils";
 import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
+import { apiClient } from "@/lib/api-client";
 
 interface Appointment {
   id: string;
@@ -25,7 +27,7 @@ interface Appointment {
   type: string;
   status: string;
   notes?: string;
-  tokenNumber?: number;
+  tokenNumber?: string;
   patient: {
     id: string;
     firstName: string;
@@ -66,15 +68,13 @@ export default function Appointments() {
         ...(statusFilter && { status: statusFilter }),
       });
 
-      const response = await fetch(`/api/appointments?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setAppointments(data.appointments);
-      } else {
-        toast.error("Failed to fetch appointments");
-      }
+      const data = await apiClient.getJSON<{ appointments: any[] }>(
+        `/api/appointments?${params}`,
+        { cacheKey: `appointments:${params.toString()}`, ttl: 60_000 }
+      );
+      setAppointments(data.appointments || []);
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to fetch appointments");
     } finally {
       setLoading(false);
     }
@@ -89,22 +89,18 @@ export default function Appointments() {
     newStatus: string,
   ) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
+        body: { status: newStatus },
       });
-
-      if (response.ok) {
-        toast.success("Status updated successfully");
-        fetchAppointments();
+      if (res.queued) {
+        toast.success("Status change queued (offline) — will sync when online");
       } else {
-        toast.error("Failed to update status");
+        toast.success("Status updated successfully");
       }
+      fetchAppointments();
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to update status");
     }
   };
 
@@ -212,15 +208,12 @@ export default function Appointments() {
       <Card>
         <CardContent className="p-6">
           <div className="flex space-x-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <Input
-                type="date"
+            <div className="w-48">
+              <HospitalDateInput
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-40"
+                onChange={setSelectedDate}
+                label="Filter by Date"
+                className="w-full"
               />
             </div>
             <div>

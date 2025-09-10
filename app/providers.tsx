@@ -2,8 +2,52 @@
 
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
+import { useKeyboardShortcuts } from "@/components/navigation/use-keyboard-shortcuts";
+import { apiClient } from "@/lib/api-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      // Register service worker for PWA/offline support (prod only)
+      navigator.serviceWorker
+        .register("/sw.js")
+        .catch(() => {
+          // Ignore registration failures
+        });
+    }
+
+    // Initialize Web Vitals reporting in production only
+    if (process.env.NODE_ENV === "production") {
+      import("@/lib/web-vitals-client").then((m) => m.initWebVitals());
+    }
+
+    // Attempt to register a Background Sync to flush pending actions (prod only)
+    if (process.env.NODE_ENV === "production" && 'serviceWorker' in navigator && 'SyncManager' in window) {
+      try {
+        navigator.serviceWorker.ready
+          .then((reg: any) => reg.sync?.register?.('sync-pending-actions'))
+          .catch(() => {});
+      } catch {}
+    }
+
+    // Initialize push notifications (if public key is configured) - prod only
+    if (process.env.NODE_ENV === "production") {
+      import("@/lib/notifications-client").then((m) => m.initPushNotifications());
+    }
+  }, []);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts();
+
+  // Try to sync queued offline actions when app mounts and when back online
+  useEffect(() => {
+    apiClient.syncQueued();
+    const h = () => apiClient.syncQueued();
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
+  }, []);
+
   return (
     <SessionProvider>
       {children}

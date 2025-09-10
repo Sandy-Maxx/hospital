@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Hospital Management System",
   description: "Complete hospital management solution for modern healthcare",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

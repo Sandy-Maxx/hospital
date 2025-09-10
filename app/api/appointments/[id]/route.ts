@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/authz";
+import { broadcast } from "@/lib/sse";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { id } = params;
     const appointment = await prisma.appointment.findUnique({
@@ -51,10 +51,8 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { id } = params;
     const body = await request.json();
@@ -92,6 +90,7 @@ export async function PATCH(
       },
     });
 
+    try { broadcast('queue-update', { id: appointment.id, status: appointment.status }); } catch {}
     return NextResponse.json(appointment);
   } catch (error) {
     console.error("Error updating appointment:", error);

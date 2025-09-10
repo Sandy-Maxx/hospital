@@ -73,6 +73,9 @@ const defaultSettings = {
     instagram: "",
     linkedin: "",
   },
+
+  // Public URLs
+  publicBaseUrl: "",
 };
 
 // Path to store settings file
@@ -135,6 +138,62 @@ export async function POST(request: NextRequest) {
     // Load current settings and merge with new data
     const currentSettings = loadSettings();
     const updatedSettings = { ...currentSettings, ...data };
+
+    // Validate hospital timings
+    const timeToMinutes = (t: string) => {
+      const [h, m] = (t || "0:0").split(":").map((n: string) => parseInt(n, 10));
+      return h * 60 + m;
+    };
+
+    const bStart = timeToMinutes(updatedSettings.businessStartTime || "");
+    const bEnd = timeToMinutes(updatedSettings.businessEndTime || "");
+    if (!updatedSettings.businessStartTime || !updatedSettings.businessEndTime || bStart >= bEnd) {
+      return NextResponse.json({ error: "Invalid Business Hours. Please set valid opening and closing times." }, { status: 400 });
+    }
+
+    // Validate lunch break (optional but must be within business hours if provided)
+    const hasLunch = updatedSettings.lunchBreakStart && updatedSettings.lunchBreakEnd;
+    const lbStart = hasLunch ? timeToMinutes(updatedSettings.lunchBreakStart) : null;
+    const lbEnd = hasLunch ? timeToMinutes(updatedSettings.lunchBreakEnd) : null;
+    if (hasLunch && lbStart !== null && lbEnd !== null) {
+      if (lbStart >= lbEnd || lbStart < bStart || lbEnd > bEnd) {
+        return NextResponse.json({ error: "Invalid Lunch Break: must be within Business Hours and start before end." }, { status: 400 });
+      }
+    }
+
+    // Validate session templates: start < end, within business hours, no overlap with lunch, no overlaps with other sessions
+    const templates = Array.isArray(updatedSettings.sessionTemplates) ? updatedSettings.sessionTemplates : [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < templates.length; i++) {
+      const t = templates[i];
+      if (!t?.name || !t?.shortCode || !t?.startTime || !t?.endTime) {
+        errors.push(`Template #${i + 1}: Missing required fields`);
+        continue;
+      }
+      const s = timeToMinutes(t.startTime);
+      const e = timeToMinutes(t.endTime);
+      if (s >= e) errors.push(`Template "${t.name}": start must be before end.`);
+      if (s < bStart || e > bEnd) errors.push(`Template "${t.name}": must be within Business Hours (${updatedSettings.businessStartTime} - ${updatedSettings.businessEndTime}).`);
+      if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(s, lbStart) < Math.min(e, lbEnd))) {
+        errors.push(`Template "${t.name}": cannot overlap lunch break (${updatedSettings.lunchBreakStart} - ${updatedSettings.lunchBreakEnd}).`);
+      }
+    }
+
+    // Overlap check among active templates
+    const active = templates.filter((t: any) => t.isActive);
+    const sorted = [...active].sort((a: any, b: any) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (timeToMinutes(curr.startTime) < timeToMinutes(prev.endTime)) {
+        errors.push(`Templates "${prev.name}" and "${curr.name}" overlap.`);
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json({ error: errors[0], errors }, { status: 400 });
+    }
 
     // Save to file
     const saved = saveSettings(updatedSettings);

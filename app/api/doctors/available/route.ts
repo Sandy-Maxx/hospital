@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import fs from "fs";
+
+export const dynamic = 'force-dynamic';
+
+const fsExists = (p: string) => {
+  try { return fs.existsSync(p); } catch { return false; }
+};
+const fsRead = async (p: string) => fs.readFileSync(p, "utf8");
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,12 +62,16 @@ export async function GET(request: NextRequest) {
           select: { date: true },
         });
 
-        if (sessionDate) {
-          const availableDoctors = await getAvailableDoctorsForDate(
-            allDoctors,
-            sessionDate.date,
-          );
-          return NextResponse.json({ doctors: availableDoctors });
+      if (sessionDate) {
+          const session = await prisma.appointmentSession.findUnique({ where: { id: sessionId }, select: { shortCode: true, date: true } });
+          if (session) {
+            const availableDoctors = await getAvailableDoctorsForSession(
+              allDoctors,
+              session.date,
+              session.shortCode,
+            );
+            return NextResponse.json({ doctors: availableDoctors });
+          }
         }
       }
 
@@ -69,13 +81,14 @@ export async function GET(request: NextRequest) {
       );
       const session = await prisma.appointmentSession.findUnique({
         where: { id: sessionId },
-        select: { date: true },
+        select: { date: true, shortCode: true },
       });
 
       if (session) {
-        const availableDoctors = await getAvailableDoctorsForDate(
+        const availableDoctors = await getAvailableDoctorsForSession(
           assignedDoctors,
           session.date,
+          session.shortCode,
         );
         return NextResponse.json({ doctors: availableDoctors });
       }
@@ -102,23 +115,44 @@ export async function GET(request: NextRequest) {
 }
 
 async function getAvailableDoctorsForDate(doctors: any[], date: Date) {
-  const availableDoctors = [];
-
+  const availableDoctors = [] as any[];
   for (const doctor of doctors) {
     const isAvailable = await checkDoctorAvailability(doctor.id, date);
-    if (isAvailable) {
-      availableDoctors.push(doctor);
-    }
+    if (isAvailable) availableDoctors.push(doctor);
   }
+  return availableDoctors;
+}
 
+async function getAvailableDoctorsForSession(doctors: any[], date: Date, sessionShortCode: string) {
+  const availableDoctors = [] as any[];
+  for (const doctor of doctors) {
+    const isAvailable = await checkDoctorAvailability(doctor.id, date, sessionShortCode);
+    if (isAvailable) availableDoctors.push(doctor);
+  }
   return availableDoctors;
 }
 
 async function checkDoctorAvailability(
   doctorId: string,
   date: Date,
+  sessionShortCode?: string,
 ): Promise<boolean> {
   const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Weekly routine check (if configured): require working day and matching session if provided
+  try {
+    const filePath = `${process.cwd()}\\data\\doctor-routines\\${doctorId}.json`;
+    if (fsExists(filePath)) {
+      const raw = await fsRead(filePath);
+      const routine = JSON.parse(raw);
+      const dayKey = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][dayOfWeek];
+      const dayRule = routine?.[dayKey];
+      if (!dayRule || dayRule.isWorking === false) return false;
+      if (sessionShortCode && Array.isArray(dayRule.sessions)) {
+        if (!dayRule.sessions.includes(sessionShortCode)) return false;
+      }
+    }
+  } catch {}
 
   // Check for unavailability rules
   const unavailabilityRules = await prisma.doctorAvailability.findMany({

@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 const baseDir = path.join(process.cwd(), "data", "user-profiles");
 
 export async function GET(
@@ -14,16 +16,65 @@ export async function GET(
   if (!session?.user || (session.user as any).role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  
   const id = params.id;
-  const file = path.join(baseDir, `${id}.json`);
+  
   try {
+    // First try to get user from database
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+    
+    if (user) {
+      // Start with database user data
+      let profileData = {
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        fullName: user.name || '',
+        email: user.email,
+        role: user.role,
+        department: user.department || '',
+        specialization: user.specialization || '',
+        phone: '',
+        bio: '',
+        profileImage: '',
+        experience: [],
+        availability: {},
+        qualifications: [],
+        designation: {},
+      };
+      
+      // Try to merge with file system data if available
+      const file = path.join(baseDir, `${id}.json`);
+      if (fs.existsSync(file)) {
+        try {
+          const fileData = JSON.parse(fs.readFileSync(file, "utf8"));
+          profileData = { ...profileData, ...fileData };
+          // Ensure database data takes precedence for key fields
+          profileData.fullName = user.name || profileData.fullName;
+          profileData.email = user.email;
+          profileData.role = user.role;
+          profileData.department = user.department || profileData.department;
+          profileData.specialization = user.specialization || profileData.specialization;
+        } catch (error) {
+          console.warn('Failed to parse file profile data:', error);
+        }
+      }
+      
+      return NextResponse.json(profileData);
+    }
+    
+    // Fallback to file system if user not found in database
+    const file = path.join(baseDir, `${id}.json`);
     if (fs.existsSync(file)) {
       const data = JSON.parse(fs.readFileSync(file, "utf8"));
       return NextResponse.json(data);
     }
+    
     return NextResponse.json({});
-  } catch {
-    return NextResponse.json({});
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return NextResponse.json({}, { status: 500 });
   }
 }
 

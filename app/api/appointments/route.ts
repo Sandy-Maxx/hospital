@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { apiCache } from "@/lib/api-cache";
+import { broadcast } from "@/lib/sse";
+import { withAuth } from "@/lib/authz";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -64,26 +67,34 @@ async function generateTokenNumber(sessionId: string): Promise<string> {
   let nextNumber = 1;
 
   if (lastToken) {
-    // Extract number from token (e.g., "MED-M-015" -> 15)
-    const match = lastToken.match(/-(\d+)$/);
+    // Extract trailing number from token (supports old style with dashes and new concatenated style)
+    // Examples: "MED-M-015" => 15, "CREM001" => 1, "CRE-LE-099" => 99
+    const match = lastToken.match(/(\d+)$/);
     if (match) {
-      nextNumber = parseInt(match[1]) + 1;
+      nextNumber = parseInt(match[1], 10) + 1;
     }
   }
 
-  // Format: {tokenPrefix}-{sessionShortCode}-{number}
-  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, "0")}`;
+  // New unified format: {tokenPrefix}{sessionShortCode}{number}
+  const tokenNumber = `${tokenPrefix}${session.shortCode}${nextNumber
+    .toString()
+    .padStart(3, "0")}`;
   return tokenNumber;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const session = auth.session;
 
     const { searchParams } = new URL(request.url);
+
+    const cacheKey = request.url;
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
     const date = searchParams.get("date");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
@@ -156,12 +167,21 @@ export async function GET(request: NextRequest) {
               name: true,
             },
           },
+          session: {
+            select: {
+              id: true,
+              name: true,
+              shortCode: true,
+              startTime: true,
+              endTime: true,
+            },
+          },
         },
       }),
       prisma.appointment.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const result = {
       appointments,
       pagination: {
         page,
@@ -169,7 +189,9 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    });
+    };
+    apiCache.set(cacheKey, result, 60 * 1000);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching appointments:", error);
     return NextResponse.json(
@@ -181,10 +203,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const session = auth.session;
 
     const body = await request.json();
     const validatedData = appointmentSchema.parse(body);
@@ -273,6 +294,8 @@ export async function POST(request: NextRequest) {
       data: { currentTokens: { increment: 1 } },
     });
 
+    // Notify listeners (queue/dashboard) of new appointment
+    try { broadcast('queue-update', { id: appointment.id, status: appointment.status }); } catch {}
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -105,10 +105,51 @@ export async function POST(request: NextRequest) {
     }
 
     const targetDate = new Date(date);
-    const createdSessions = [];
+
+    // Respect weekly schedule
+    const dayKey = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][targetDate.getDay()];
+    const daySchedule = settings.weeklySchedule?.[dayKey];
+    if (!daySchedule || !daySchedule.isOpen) {
+      return NextResponse.json(
+        { error: "Hospital is closed on the selected date" },
+        { status: 400 }
+      );
+    }
+
+    const parse = (t: string) => {
+      const [h, m] = (t || "0:0").split(":").map((n: string) => parseInt(n, 10));
+      return h * 60 + m;
+    };
+    const dayStart = parse(daySchedule.startTime || settings.businessStartTime || "09:00");
+    const dayEnd = parse(daySchedule.endTime || settings.businessEndTime || "17:00");
+    const hasLunch = settings.lunchBreakStart && settings.lunchBreakEnd;
+    const lbStart = hasLunch ? parse(settings.lunchBreakStart) : null;
+    const lbEnd = hasLunch ? parse(settings.lunchBreakEnd) : null;
+
+    const createdSessions = [] as any[];
+    const occupied: Array<{ start: number; end: number; code: string }> = [];
+    const templatesSorted = [...activeTemplates].sort((a: any, b: any) => parse(a.startTime) - parse(b.startTime));
 
     // Create sessions for each active template
-    for (const template of activeTemplates) {
+    for (const template of templatesSorted) {
+      // Validate within hospital day hours
+      const tStart = parse(template.startTime);
+      const tEnd = parse(template.endTime);
+      if (tStart < dayStart || tEnd > dayEnd || tStart >= tEnd) {
+        continue;
+      }
+
+      // Respect lunch break if configured
+      if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd))) {
+        continue;
+      }
+
+      // Check for overlap
+      const overlaps = occupied.some((o) => Math.max(o.start, tStart) < Math.min(o.end, tEnd));
+      if (overlaps) {
+        continue;
+      }
+
       // Check if session already exists for this date and template
       const existingSession = await prisma.appointmentSession.findFirst({
         where: {
@@ -131,6 +172,7 @@ export async function POST(request: NextRequest) {
           },
         });
         createdSessions.push(newSession);
+        occupied.push({ start: tStart, end: tEnd, code: template.shortCode });
       }
     }
 

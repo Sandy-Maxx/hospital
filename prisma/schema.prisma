@@ -68,6 +68,10 @@ model Patient {
   @@index([phone])
   @@index([firstName, lastName])
   @@index([createdAt])
+  @@index([email])
+  @@index([dateOfBirth])
+  @@index([gender])
+  @@index([bloodGroup])
   @@map("patients")
 }
 
@@ -100,6 +104,10 @@ model Appointment {
   @@index([patientId, dateTime])
   @@index([doctorId, status])
   @@index([sessionId, status])
+  @@index([dateTime, status])
+  @@index([priority, status])
+  @@index([type, status])
+  @@index([status, createdAt])
   @@map("appointments")
 }
 
@@ -124,6 +132,10 @@ model Consultation {
   doctor       User          @relation(fields: [doctorId], references: [id])
   prescription Prescription?
 
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([createdAt])
+  @@index([followUpDate])
   @@map("consultations")
 }
 
@@ -150,6 +162,8 @@ model Prescription {
   @@index([createdAt])
   @@index([patientId])
   @@index([doctorId])
+  @@index([patientId, createdAt])
+  @@index([doctorId, createdAt])
   @@map("prescriptions")
 }
 
@@ -172,6 +186,8 @@ model AppointmentSession {
   
   @@unique([date, shortCode])
   @@index([date])
+  @@index([date, isActive])
+  @@index([isActive, date])
   @@map("appointment_sessions")
 }
 
@@ -309,6 +325,11 @@ model Medicine {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([name])
+  @@index([genericName])
+  @@index([category])
+  @@index([isActive])
+  @@index([name, isActive])
   @@map("medicines")
 }
 
@@ -328,6 +349,9 @@ model Vital {
   // Relations
   patient Patient @relation(fields: [patientId], references: [id])
 
+  @@index([patientId])
+  @@index([recordedAt])
+  @@index([patientId, recordedAt])
   @@map("vitals")
 }
 
@@ -345,6 +369,9 @@ model DoctorSessionAssignment {
   session AppointmentSession @relation(fields: [sessionId], references: [id])
 
   @@unique([doctorId, sessionId])
+  @@index([doctorId])
+  @@index([sessionId])
+  @@index([isActive])
   @@map("doctor_session_assignments")
 }
 
@@ -366,6 +393,12 @@ model DoctorAvailability {
   // Relations
   doctor User @relation(fields: [doctorId], references: [id])
 
+  @@index([doctorId])
+  @@index([startDate, endDate])
+  @@index([type])
+  @@index([isActive])
+  @@index([doctorId, isActive])
+  @@index([startDate, isActive])
   @@map("doctor_availability")
 }
 
@@ -385,6 +418,10 @@ model AppointmentAssignmentLog {
   toDoctor       User        @relation("ToDoctor", fields: [toDoctorId], references: [id])
   changedByUser  User        @relation("ChangedByUser", fields: [changedBy], references: [id])
 
+  @@index([appointmentId])
+  @@index([toDoctorId])
+  @@index([changedBy])
+  @@index([createdAt])
   @@map("appointment_assignment_logs")
 }
 

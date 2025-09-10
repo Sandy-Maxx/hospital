@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import SoapForm, { SoapNotes, Vitals } from "@/components/soap/soap-form";
+import BottomSheet from "@/components/ui/bottom-sheet";
 import {
   Clock,
   User,
@@ -22,14 +23,16 @@ import {
   UserCheck,
 } from "lucide-react";
 import { formatTime } from "@/lib/utils";
+import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
+import { apiClient } from "@/lib/api-client";
 
 interface QueueItem {
   id: string;
   date: string;
   time: string;
   status: string;
-  tokenNumber?: number;
+  tokenNumber?: string;
   patient: {
     id: string;
     firstName: string;
@@ -66,6 +69,7 @@ export default function Queue() {
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [soapOpen, setSoapOpen] = useState<{ [id: string]: boolean }>({});
+  const [selectedSoapId, setSelectedSoapId] = useState<string | null>(null);
   const [soapNotes, setSoapNotes] = useState<{
     [id: string]: {
       subjective: string;
@@ -88,18 +92,14 @@ export default function Queue() {
     try {
       setLoading(true);
       const today = new Date().toISOString().split("T")[0];
-      const response = await fetch(
-        `/api/appointments?date=${today}&status=SCHEDULED,ARRIVED,WAITING,IN_CONSULTATION`,
+      const url = `/api/appointments?date=${today}&status=SCHEDULED,ARRIVED,WAITING,IN_CONSULTATION`;
+      const data = await apiClient.getJSON<{ appointments: any[] }>(
+        url,
+        { cacheKey: `queue:${today}`, ttl: 30_000 }
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        setQueueItems(data.appointments);
-      } else {
-        toast.error("Failed to fetch queue");
-      }
+      setQueueItems(data.appointments || []);
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to fetch queue");
     } finally {
       setLoading(false);
     }
@@ -110,9 +110,38 @@ export default function Queue() {
     if (session?.user?.role && session.user.role !== "NURSE") {
       fetchDoctors();
     }
-    // Refresh queue every 30 seconds
-    const interval = setInterval(fetchQueue, 30000);
-    return () => clearInterval(interval);
+    // Refresh queue more frequently (every 10s)
+    const interval = setInterval(fetchQueue, 10000);
+
+    // Refresh when tab becomes visible
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchQueue();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Subscribe to SSE for immediate updates
+    let es: EventSource | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        es = new EventSource("/api/queue/stream");
+        es.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg?.event === "queue-update") {
+              fetchQueue();
+            }
+          } catch {}
+        };
+      } catch {}
+    }
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+      try { es?.close(); } catch {}
+    };
   }, []);
 
   const fetchDoctors = async () => {
@@ -129,20 +158,16 @@ export default function Queue() {
 
   const updateStatus = async (appointmentId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
+        body: { status: newStatus },
       });
-
-      if (response.ok) {
-        toast.success("Status updated successfully");
-        fetchQueue();
+      if (res.queued) {
+        toast.success("Status change queued (offline)");
       } else {
-        toast.error("Failed to update status");
+        toast.success("Status updated successfully");
       }
+      fetchQueue();
     } catch (error) {
       toast.error("Something went wrong");
     }
@@ -150,18 +175,16 @@ export default function Queue() {
 
   const reassignDoctor = async (appointmentId: string, newDoctorId: string) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doctorId: newDoctorId }),
+        body: { doctorId: newDoctorId },
       });
-
-      if (response.ok) {
-        toast.success("Doctor reassigned successfully");
-        fetchQueue();
+      if (res.queued) {
+        toast.success("Doctor reassignment queued (offline)");
       } else {
-        toast.error("Failed to reassign doctor");
+        toast.success("Doctor reassigned successfully");
       }
+      fetchQueue();
     } catch (error) {
       console.error("Error reassigning doctor:", error);
       toast.error("Something went wrong");
@@ -177,20 +200,18 @@ export default function Queue() {
         plan: "",
       };
       const vit = vitals[appointmentId] || {};
-      const response = await fetch(`/api/appointments/${appointmentId}/soap`, {
+      const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}/soap`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           soapNotes: notes,
           quickNotes: { vitalSigns: vit },
-        }),
+        },
       });
-      if (response.ok) {
+      if (res.queued) {
+        toast.success("SOAP update queued (offline)");
+      } else {
         toast.success("SOAP saved for this appointment");
         setSoapOpen((prev) => ({ ...prev, [appointmentId]: false }));
-      } else {
-        const err = await response.json();
-        toast.error(err.error || "Failed to save SOAP");
       }
     } catch (e) {
       toast.error("Something went wrong");
@@ -217,17 +238,13 @@ export default function Queue() {
 
       if (response.ok) {
         toast.success("Starting consultation...");
-        console.log("Queue: Redirecting to prescription page with:", {
-          patientId,
-          appointmentId,
-        });
 
         // Refresh queue to show updated status
         fetchQueue();
 
         // Navigate to prescription page with consultation parameters
         const url = `/prescriptions?patientId=${patientId}&appointmentId=${appointmentId}&consultation=true`;
-        console.log("Queue: Navigating to:", url);
+        // dev-only log: Navigating to
         window.location.href = url;
       } else {
         const errorData = await response.json();
@@ -331,6 +348,7 @@ export default function Queue() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Queue", href: "/queue" }]} />
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Clock className="w-8 h-8 mr-3 text-primary-600" />
@@ -460,8 +478,18 @@ export default function Queue() {
                               key={`soap-${item.id}`}
                               size="sm"
                               onClick={() => {
-                                const url = `/prescriptions?patientId=${item.patient.id}&appointmentId=${item.id}&consultation=true`;
-                                window.location.href = url;
+                                setSelectedSoapId(item.id);
+                                setSoapOpen((prev) => ({ ...prev, [item.id]: true }));
+                                // initialize default state if not present
+                                setSoapNotes((prev) => ({
+                                  ...prev,
+                                  [item.id]: prev[item.id] || {
+                                    subjective: "",
+                                    objective: "",
+                                    assessment: "",
+                                    plan: "",
+                                  },
+                                }));
                               }}
                             >
                               SOAP
@@ -477,6 +505,48 @@ export default function Queue() {
           )}
         </CardContent>
       </Card>
+      {/* Mobile SOAP Bottom Sheet */}
+      <BottomSheet
+        isOpen={!!(selectedSoapId && soapOpen[selectedSoapId])}
+        onClose={() => {
+          if (selectedSoapId) {
+            setSoapOpen((prev) => ({ ...prev, [selectedSoapId]: false }));
+          }
+          setSelectedSoapId(null);
+        }}
+        title="SOAP Notes"
+      >
+        {selectedSoapId && (
+          <div className="space-y-4">
+            <SoapForm
+              soap={soapNotes[selectedSoapId] || { subjective: "", objective: "", assessment: "", plan: "" }}
+              vitals={vitals[selectedSoapId] || {}}
+              onChangeSoap={(next) => setSoapNotes((prev) => ({ ...prev, [selectedSoapId]: next }))}
+              onChangeVitals={(next) => setVitals((prev) => ({ ...prev, [selectedSoapId]: next }))}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (selectedSoapId) {
+                    setSoapOpen((prev) => ({ ...prev, [selectedSoapId]: false }));
+                  }
+                  setSelectedSoapId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedSoapId) saveSoap(selectedSoapId);
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }

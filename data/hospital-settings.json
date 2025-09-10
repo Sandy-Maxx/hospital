@@ -1,14 +1,14 @@
 {
-  "name": "MediCare",
-  "tagline": "Your Health, Our Priority",
+  "name": "MediCaring",
+  "tagline": "Your Health, Our Priority, your life",
   "logo": "/uploads/logo-1757082394226.png",
   "primaryColor": "#3b24eb",
   "secondaryColor": "#5f1eae",
   "phone": "1234567890",
   "email": "info@medicare.com",
   "address": "kalyan",
-  "vision": "To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.qqqqqqqqqqq",
-  "mission": "We are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.qqqqqqqqqq",
+  "vision": "To be the leading healthcare provider, delivering exceptional medical care with compassion and innovation.qqqqqqqqqqqwwwwwwww",
+  "mission": "Wewwwww are committed to providing comprehensive, patient-centered healthcare services that promote healing, wellness, and quality of life for our community.qqqqqqqqqq",
   "tokenPrefix": "MED",
   "sessionPrefix": "S",
   "defaultSessionDuration": 240,
@@ -23,7 +23,7 @@
   "lunchBreakEnd": "14:00",
   "sessionTemplates": [
     {
-      "id": "1",
+      "id": "1757525550774",
       "name": "Morning",
       "shortCode": "M",
       "startTime": "09:00",
@@ -32,30 +32,21 @@
       "isActive": true
     },
     {
-      "id": "2",
-      "name": "Afternoon",
-      "shortCode": "N",
-      "startTime": "14:00",
-      "endTime": "17:00",
-      "maxTokens": 40,
-      "isActive": true
-    },
-    {
-      "id": "3",
+      "id": "1757525565510",
       "name": "Evening",
       "shortCode": "E",
-      "startTime": "17:00",
-      "endTime": "20:00",
-      "maxTokens": 30,
+      "startTime": "14:00",
+      "endTime": "18:06",
+      "maxTokens": 50,
       "isActive": true
     },
     {
-      "id": "1757128986770",
-      "name": "Late Eve",
+      "id": "1757525639689",
+      "name": "Late Evening",
       "shortCode": "LE",
-      "startTime": "20:00",
+      "startTime": "18:06",
       "endTime": "22:00",
-      "maxTokens": 20,
+      "maxTokens": 50,
       "isActive": true
     }
   ],
@@ -64,5 +55,43 @@
     "twitter": "",
     "instagram": "",
     "linkedin": ""
+  },
+  "publicBaseUrl": "http://192.168.1.10:3000",
+  "weeklySchedule": {
+    "monday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "23:00"
+    },
+    "tuesday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    },
+    "wednesday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    },
+    "thursday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    },
+    "friday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    },
+    "saturday": {
+      "isOpen": true,
+      "startTime": "09:00",
+      "endTime": "14:00"
+    },
+    "sunday": {
+      "isOpen": false,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    }
   }
 }

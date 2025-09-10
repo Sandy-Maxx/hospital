@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatDate, calculateAge } from "@/lib/utils";
 import toast from "react-hot-toast";
+import Breadcrumb from "@/components/navigation/breadcrumb";
+import { apiClient } from "@/lib/api-client";
 
 interface Patient {
   id: string;
@@ -36,6 +38,70 @@ interface PaginationData {
   pages: number;
 }
 
+const PatientListItem = React.memo(function PatientListItem({ patient }: { patient: Patient }) {
+  return (
+    <div
+      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+              <span className="text-primary-600 font-medium text-lg">
+                {patient.firstName.charAt(0)}
+                {patient.lastName.charAt(0)}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {patient.firstName} {patient.lastName}
+              </h3>
+              <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                <span className="flex items-center">
+                  <Phone className="w-4 h-4 mr-1" />
+                  {patient.phone}
+                </span>
+                {patient.email && (
+                  <span className="flex items-center">
+                    <Mail className="w-4 h-4 mr-1" />
+                    {patient.email}
+                  </span>
+                )}
+                {patient.dateOfBirth && (
+                  <span className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Age: {calculateAge(patient.dateOfBirth)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          {patient.gender && (
+            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+              {patient.gender}
+            </span>
+          )}
+          {patient.bloodGroup && (
+            <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+              {patient.bloodGroup}
+            </span>
+          )}
+          <Link href={`/patients/${patient.id}`}>
+            <Button variant="outline" size="sm">
+              View Details
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <div className="mt-3 text-xs text-gray-500">
+        Registered: {formatDate(patient.createdAt)}
+      </div>
+    </div>
+  );
+});
+
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +112,10 @@ export default function Patients() {
     total: 0,
     pages: 0,
   });
+  const [gender, setGender] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const fetchPatients = async (page = 1, search = "") => {
     try {
@@ -54,16 +124,18 @@ export default function Patients() {
         page: page.toString(),
         limit: "10",
         ...(search && { search }),
+        ...(gender && { gender }),
+        ...(bloodGroup && { bloodGroup }),
+        ...(from && { from }),
+        ...(to && { to }),
       });
 
-      const response = await fetch(`/api/patients?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPatients(data.patients);
-        setPagination(data.pagination);
-      } else {
-        toast.error("Failed to fetch patients");
-      }
+      const data = await apiClient.getJSON<{ patients: Patient[]; pagination: PaginationData }>(
+        `/api/patients?${params}`,
+        { cacheKey: `patients:${params.toString()}`, ttl: 5 * 60 * 1000 }
+      );
+      setPatients(data.patients || []);
+      setPagination(data.pagination || { page: 1, limit: 10, total: 0, pages: 0 });
     } catch (error) {
       toast.error("Something went wrong");
     } finally {
@@ -87,6 +159,7 @@ export default function Patients() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        <Breadcrumb items={[{ label: "Patients", href: "/patients" }]} />
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Users className="w-8 h-8 mr-3 text-primary-600" />
@@ -106,9 +179,9 @@ export default function Patients() {
 
       {/* Search */}
       <Card>
-        <CardContent className="p-6">
-          <form onSubmit={handleSearch} className="flex space-x-4">
-            <div className="flex-1 relative">
+        <CardContent className="p-6 space-y-4">
+          <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[240px] relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search by name, phone, or email..."
@@ -117,19 +190,57 @@ export default function Patients() {
                 className="pl-10"
               />
             </div>
-            <Button type="submit">Search</Button>
-            {searchTerm && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-40 p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">All</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+              <select
+                value={bloodGroup}
+                onChange={(e) => setBloodGroup(e.target.value)}
+                className="w-40 p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">All</option>
+                {[
+                  "A+","A-","B+","B-","AB+","AB-","O+","O-"
+                ].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button type="submit">Search</Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
                   setSearchTerm("");
+                  setGender("");
+                  setBloodGroup("");
+                  setFrom("");
+                  setTo("");
                   fetchPatients(1, "");
                 }}
               >
                 Clear
               </Button>
-            )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -155,66 +266,7 @@ export default function Patients() {
           ) : (
             <div className="space-y-4">
               {patients.map((patient) => (
-                <div
-                  key={patient.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                          <span className="text-primary-600 font-medium text-lg">
-                            {patient.firstName.charAt(0)}
-                            {patient.lastName.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {patient.firstName} {patient.lastName}
-                          </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span className="flex items-center">
-                              <Phone className="w-4 h-4 mr-1" />
-                              {patient.phone}
-                            </span>
-                            {patient.email && (
-                              <span className="flex items-center">
-                                <Mail className="w-4 h-4 mr-1" />
-                                {patient.email}
-                              </span>
-                            )}
-                            {patient.dateOfBirth && (
-                              <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Age: {calculateAge(patient.dateOfBirth)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {patient.gender && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                          {patient.gender}
-                        </span>
-                      )}
-                      {patient.bloodGroup && (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
-                          {patient.bloodGroup}
-                        </span>
-                      )}
-                      <Link href={`/patients/${patient.id}`}>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-xs text-gray-500">
-                    Registered: {formatDate(patient.createdAt)}
-                  </div>
-                </div>
+                <PatientListItem key={patient.id} patient={patient} />
               ))}
             </div>
           )}

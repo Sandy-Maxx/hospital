@@ -25,6 +25,7 @@ import {
   Edit,
 } from "lucide-react";
 import Link from "next/link";
+import { apiClient } from "@/lib/api-client";
 
 interface Patient {
   id: string;
@@ -75,23 +76,18 @@ export default function PatientDetails() {
         }
 
         // Fetch actual patient data from API
-        const response = await fetch(`/api/patients/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setPatient(data.patient);
-        } else {
-          console.error("Failed to fetch patient details for ID:", params.id);
-          console.error("Response status:", response.status);
-        }
+        const data = await apiClient.getJSON<{ patient: Patient }>(
+          `/api/patients/${params.id}`,
+          { cacheKey: `patient:${params.id}`, ttl: 10 * 60 * 1000 }
+        );
+        setPatient(data.patient);
 
         // Fetch patient appointments
-        const appointmentsResponse = await fetch(
+        const appointmentsData = await apiClient.getJSON<{ appointments: Appointment[] }>(
           `/api/appointments?patientId=${params.id}`,
+          { cacheKey: `patient:${params.id}:appointments`, ttl: 10 * 60 * 1000 }
         );
-        if (appointmentsResponse.ok) {
-          const appointmentsData = await appointmentsResponse.json();
-          setAppointments(appointmentsData.appointments || []);
-        }
+        setAppointments(appointmentsData.appointments || []);
       } catch (error) {
         console.error("Error fetching patient details:", error);
       } finally {

@@ -70,15 +70,17 @@ async function generateTokenNumber(sessionId: string): Promise<string> {
   let nextNumber = 1;
 
   if (lastToken) {
-    // Extract number from token (e.g., "MED-M-015" -> 15)
-    const match = lastToken.match(/-(\d+)$/);
+    // Extract trailing number from token (supports both old dashed and new concatenated styles)
+    const match = lastToken.match(/(\d+)$/);
     if (match) {
-      nextNumber = parseInt(match[1]) + 1;
+      nextNumber = parseInt(match[1], 10) + 1;
     }
   }
 
-  // Format: {tokenPrefix}-{sessionShortCode}-{number}
-  const tokenNumber = `${tokenPrefix}-${session.shortCode}-${nextNumber.toString().padStart(3, "0")}`;
+  // New unified format: {tokenPrefix}{sessionShortCode}{number}
+  const tokenNumber = `${tokenPrefix}${session.shortCode}${nextNumber
+    .toString()
+    .padStart(3, "0")}`;
   return tokenNumber;
 }
 

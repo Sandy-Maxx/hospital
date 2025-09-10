@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/authz";
+import { apiCache } from "@/lib/api-cache";
 import { z } from "zod";
 
 const billSchema = z.object({
@@ -43,12 +45,16 @@ function generateBillNumber(): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
+
+    const cacheKey = request.url;
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
     const id = searchParams.get("id");
     const patientId = searchParams.get("patientId");
     const date = searchParams.get("date");
@@ -124,7 +130,7 @@ export async function GET(request: NextRequest) {
       prisma.bill.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const result = {
       bills,
       pagination: {
         page,
@@ -132,7 +138,9 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    });
+    };
+    apiCache.set(cacheKey, result, 2 * 60 * 1000);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching bills:", error);
     return NextResponse.json(
@@ -144,10 +152,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request, ["ADMIN", "RECEPTIONIST"]);
+    if (auth instanceof NextResponse) return auth;
+    const session = auth.session;
 
     const body = await request.json();
     const validatedData = billSchema.parse(body);
@@ -267,10 +274,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await withAuth(request, ["ADMIN", "RECEPTIONIST"]);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

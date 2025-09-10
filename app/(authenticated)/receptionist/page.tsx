@@ -35,6 +35,7 @@ const TokenPrint = dynamic(
   () => import("@/components/appointments/token-print"),
   { ssr: false },
 );
+import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
 
 interface Doctor {
@@ -411,6 +412,7 @@ export default function Receptionist() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Reception", href: "/receptionist" }]} />
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

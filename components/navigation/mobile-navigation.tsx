@@ -62,7 +62,7 @@ export default function MobileNavigation() {
   const items = itemsForRole(role);
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 pb-[env(safe-area-inset-bottom)]">
       <div className="grid grid-cols-4 gap-1">
         {items.slice(0, 4).map((item) => {
           const Icon = item.icon;
@@ -71,10 +71,11 @@ export default function MobileNavigation() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-2 px-1 text-xs ${active ? "text-primary-600" : "text-gray-700"}`}
+              aria-label={item.label}
+              className={`flex flex-col items-center py-2 px-1 text-xs min-h-[48px] ${active ? "text-primary-600" : "text-gray-700"}`}
             >
               <Icon className="w-6 h-6 mb-1" />
-              <span>{item.label}</span>
+              <span className="hidden sm:block">{item.label}</span>
             </Link>
           );
         })}

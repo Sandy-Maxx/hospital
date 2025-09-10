@@ -1,0 +1,82 @@
+{
+  "qualifications": [
+    {
+      "degree": "MBBS",
+      "stream": "General Medicine",
+      "institute": "Medical College",
+      "year": "2017"
+    },
+    {
+      "degree": "MD",
+      "stream": "Cardiology",
+      "institute": "Postgraduate Institute",
+      "year": "2020"
+    }
+  ],
+  "experience": [
+    {
+      "position": "Junior Doctor",
+      "organization": "City Hospital",
+      "fromYear": 2018,
+      "toYear": 2021,
+      "description": "General medicine practice",
+      "designation": ""
+    },
+    {
+      "position": "Senior Doctor",
+      "organization": "Central Hospital",
+      "fromYear": 2021,
+      "toYear": null,
+      "description": "Specializing in cardiology"
+    }
+  ],
+  "specializations": [
+    "Interventional Cardiology",
+    "Heart Surgery",
+    "ECG Analysis",
+    "Pediatric Cardiology",
+    "Critical Care",
+    "Joint Replacement",
+    "Pediatric Neurology",
+    "Medical Oncology",
+    "Diagnostic Radiology"
+  ],
+  "designation": {
+    "current": "Senior Doctor",
+    "changelog": [
+      {
+        "designation": "Junior Doctor",
+        "fromYear": 2018,
+        "toYear": 2021,
+        "department": "General Medicine"
+      },
+      {
+        "designation": "Senior Doctor",
+        "fromYear": 2021,
+        "toYear": null,
+        "department": "Cardiology"
+      }
+    ]
+  },
+  "firstName": "Dr. John",
+  "lastName": "Smith",
+  "fullName": "Dr. John",
+  "phone": "1234321241",
+  "email": "dr.smith@hospital.com",
+  "department": "Cardiology",
+  "bio": "Experienced cardiologist with expertise in interventional procedures and heart surgery.",
+  "role": "DOCTOR",
+  "profileImage": "/uploads/users/cmfcsago90001san8n4w86suu/avatar.png",
+  "publicCard": {
+    "published": true,
+    "shape": "rectangle",
+    "updatedAt": "2025-09-10T14:44:32.446Z",
+    "imagePosition": {
+      "x": 51,
+      "y": 18
+    }
+  },
+  "address": "w4u",
+  "jobDescription": "eah we4tnn eswr t th",
+  "responsibilities": "Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools\nprofile-wizard-enhanced.tsx:210  GET http://localhost:3000/api/profile/cmfcsago90001san8n4w86suu/avatar 404 (Not Found)\nfetchProfile @ profile-wizard-enhanced.tsx:210\nawait in fetchProfile\neval @ profile-wizard-enhanced.tsx:192\ncommitHookEffectListMount @ react-dom.development.js:20998\ncommitHookPassiveMountEffects @ react-dom.development.js:23051\ncommitPassiveMountOnFiber @ react-dom.development.js:23156\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23153\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23267\nrecursivelyTraversePassiveMountEffects @ react-dom.development.js:23134\ncommitPassiveMountOnFiber @ react-dom.development.js:23164\ncommitPassiveMountEffects @ react-dom.development.js:23122\nflushPassiveEffectsImpl @ react-dom.development.js:26322\nflushPassiveEffects @ react-dom.development.js:26263\neval @ react-dom.development.js:26000\nworkLoop @ scheduler.development.js:261\nflushWork @ scheduler.development.js:230\nperformWorkUntilDeadline @ scheduler.development.js:534Understand this error\nprofile-wizard-enhanced.tsx:210  GET http://localhost:3000/api/profile/cmfcsago90001san8n4w86suu/avatar 404 (Not Found)\nfetchProfile @ profile-wizard-enhanced.tsx:210\nawait in fetchProfile\neval @ profile-wizard-enhanced.tsx:192\ncommitHookEffectListMount @ react-dom.development.js:20998\ninvokePassiveEffectMountInDEV @ react-dom.development.js:23877\ninvokeEffectsInDev @ react-dom.development.js:26666\nlegacyCommitDoubleInvokeEffectsInDEV @ react-dom.development.js:26649\ncommitDoubleInvokeEffectsInDEV @ react-dom.development.js:26630\nflushPassiveEffectsImpl @ react-dom.development.js:26339\nflushPassiveEffects @ react-dom.development.js:26263\neval @ react-dom.development.js:26000\nworkLoop @ scheduler.development.js:261\nflushWork @ scheduler.development.js:230\nperformWorkUntilDeadline @ scheduler.development.js:534Understand this error\n5hot-reloader-client.js:162 [Fast Refresh] rebuilding"
+}

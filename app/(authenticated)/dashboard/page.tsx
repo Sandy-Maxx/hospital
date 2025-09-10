@@ -148,7 +148,19 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboard();
     const id = setInterval(fetchDashboard, 60000); // refresh every 60s
-    return () => clearInterval(id);
+
+    // Refresh when tab becomes visible
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchDashboard();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const getDashboardTitle = () => {

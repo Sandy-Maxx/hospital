@@ -31,9 +31,19 @@ import {
   Phone,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import PatientChartModal from "@/components/charts/patient-chart-modal";
-import PrescriptionForm from "@/components/prescriptions/prescription-form";
-import MedicalTimeline from "@/components/timeline/medical-timeline";
+import dynamic from "next/dynamic";
+const PatientChartModal = dynamic(
+  () => import("@/components/charts/patient-chart-modal"),
+  { ssr: false },
+);
+const PrescriptionForm = dynamic(
+  () => import("@/components/prescriptions/prescription-form"),
+  { ssr: false },
+);
+const MedicalTimeline = dynamic(
+  () => import("@/components/timeline/medical-timeline"),
+  { ssr: false },
+);
 import toast from "react-hot-toast";
 
 interface Patient {
@@ -138,7 +148,7 @@ export default function DoctorDashboard() {
       );
       if (response.ok) {
         const data = await response.json();
-        console.log("Doctor dashboard appointments:", data.appointments);
+        // dev-only log: doctor dashboard appointments
         setAppointments(data.appointments || []);
       }
     } catch (error) {
@@ -164,10 +174,6 @@ export default function DoctorDashboard() {
     appointmentId: string,
     patientId: string,
   ) => {
-    console.log("Start consultation called with:", {
-      appointmentId,
-      patientId,
-    });
 
     // Redirect to queue management page
     router.push("/queue");
@@ -180,21 +186,17 @@ export default function DoctorDashboard() {
         body: JSON.stringify({ status: "IN_CONSULTATION" }),
       });
 
-      console.log("API response status:", response.status);
+      // dev-only log: response status
 
       if (response.ok) {
         // Refresh appointments to show updated status
         fetchAppointments();
 
         toast.success("Starting consultation...");
-        console.log("Redirecting to prescription page with:", {
-          patientId,
-          appointmentId,
-        });
 
         // Immediate navigation without delay
         const url = `/prescriptions?patientId=${patientId}&appointmentId=${appointmentId}&consultation=true`;
-        console.log("Navigating to:", url);
+        // dev-only log: navigating to
 
         // Force navigation using window.location for reliability
         window.location.href = url;

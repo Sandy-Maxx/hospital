@@ -19,6 +19,27 @@ function saveDataUrl(filePath: string, dataUrl: string) {
   fs.writeFileSync(filePath, buffer);
 }
 
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  const { searchParams } = new URL(request.url);
+  const targetUserId = searchParams.get("userId");
+  const isAdmin = (session.user as any)?.role === "ADMIN";
+  const userId = (isAdmin && targetUserId) ? targetUserId : session.user.id;
+  
+  const filePath = path.join(uploadDir, userId, "avatar.png");
+  
+  if (fs.existsSync(filePath)) {
+    return NextResponse.json({
+      avatarUrl: `/uploads/users/${userId}/avatar.png?t=${Date.now()}`,
+    });
+  }
+  
+  return NextResponse.json({ avatarUrl: null });
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user)
@@ -33,6 +54,6 @@ export async function POST(request: NextRequest) {
   const filePath = path.join(dir, "avatar.png");
   saveDataUrl(filePath, dataUrl);
   return NextResponse.json({
-    url: `/uploads/users/${targetUserId}/avatar.png`,
+    avatarUrl: `/uploads/users/${targetUserId}/avatar.png?t=${Date.now()}`,
   });
 }

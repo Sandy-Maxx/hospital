@@ -1,0 +1,35 @@
+{
+  "monday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "LE"
+    ]
+  },
+  "tuesday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "LE"
+    ]
+  },
+  "wednesday": {
+    "isWorking": true,
+    "sessions": [
+      "M"
+    ]
+  },
+  "thursday": {
+    "isWorking": true,
+    "sessions": [
+      "E"
+    ]
+  },
+  "friday": {
+    "isWorking": true,
+    "sessions": [
+      "LE"
+    ]
+  }
+}

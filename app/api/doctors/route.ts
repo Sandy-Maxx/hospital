@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 let DOCTORS_CACHE: { data: any; timestamp: number } | null = null;
 const DOCTORS_TTL = 5 * 60 * 1000;
 

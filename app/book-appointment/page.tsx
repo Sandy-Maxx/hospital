@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import HospitalDateInput from "@/components/ui/hospital-date-input";
 import {
   Calendar,
   Clock,
@@ -51,7 +52,7 @@ interface BookingResult {
   };
 }
 
-export default function PublicBookAppointment() {
+function BookingPageInner() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -100,15 +101,22 @@ export default function PublicBookAppointment() {
   };
 
   // Load available doctors
-  const loadDoctors = async () => {
+  const loadDoctorsForSession = async (sessionId: string) => {
     try {
-      const response = await fetch("/api/doctors/public");
+      const response = await fetch(`/api/doctors/available?sessionId=${encodeURIComponent(sessionId)}`);
       if (response.ok) {
         const data = await response.json();
         setDoctors(data.doctors || []);
+        // Auto-select first available doctor for public booking (doctor selection disabled)
+        const first = (data.doctors || [])[0];
+        if (first) {
+          setFormData((prev) => ({ ...prev, doctorId: first.id }));
+        } else {
+          setFormData((prev) => ({ ...prev, doctorId: "" }));
+        }
       }
     } catch (error) {
-      console.error("Failed to load doctors:", error);
+      console.error("Failed to load available doctors:", error);
     }
   };
 
@@ -137,7 +145,6 @@ export default function PublicBookAppointment() {
   useEffect(() => {
     if (selectedDate) {
       loadSessions(selectedDate);
-      loadDoctors();
     }
 
     // Auto-fill patient data if coming from patient details page
@@ -391,16 +398,13 @@ export default function PublicBookAppointment() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Select Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                />
-              </div>
+              <HospitalDateInput
+                value={selectedDate}
+                onChange={setSelectedDate}
+                label="Select Appointment Date"
+                required={true}
+                id="date"
+              />
 
               {/* Doctor Selection */}
               <div className="space-y-2">
@@ -455,6 +459,8 @@ export default function PublicBookAppointment() {
                           onClick={() => {
                             if (availableSlots > 0) {
                               handleInputChange("sessionId", session.id);
+                              // Auto-load doctors for this session
+                              loadDoctorsForSession(session.id);
                             }
                           }}
                         >
@@ -524,6 +530,19 @@ export default function PublicBookAppointment() {
                     <option value="HIGH">High</option>
                     <option value="EMERGENCY">Emergency</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Assigned doctor (auto based on availability); selection disabled in public form */}
+              <div className="space-y-2">
+                <Label>Assigned Doctor</Label>
+                <div className="p-2 border rounded bg-gray-50 text-sm">
+                  {formData.doctorId
+                    ? (() => {
+                        const d = doctors.find((x) => x.id === formData.doctorId);
+                        return d ? `Dr. ${d.name}` : "Auto-assigned (pending)";
+                      })()
+                    : "No available doctor for this session"}
                 </div>
               </div>
 
@@ -755,5 +774,13 @@ export default function PublicBookAppointment() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PublicBookAppointment() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading booking...</div>}>
+      <BookingPageInner />
+    </Suspense>
   );
 }

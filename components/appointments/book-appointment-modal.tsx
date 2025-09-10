@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import HospitalDateInput from "@/components/ui/hospital-date-input";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -213,15 +214,12 @@ export function BookAppointmentModal({
               {/* Date and Time */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="date"
+                  <HospitalDateInput
                     value={formData.date}
-                    onChange={handleChange}
-                    min={new Date().toISOString().split("T")[0]}
-                    required
+                    onChange={(date) => setFormData({ ...formData, date })}
+                    label="Appointment Date"
+                    required={true}
+                    id="date"
                   />
                 </div>
                 <div>

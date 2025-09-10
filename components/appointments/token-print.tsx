@@ -125,15 +125,12 @@ export default function TokenPrint({
     });
   };
 
-  const qrData = JSON.stringify({
-    tokenNumber: appointment.tokenNumber,
-    patientName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
-    doctorName: appointment.doctor?.name || "Not Assigned",
-    sessionName: appointment.session.name,
-    appointmentTime: `${appointment.session.startTime} - ${appointment.session.endTime}`,
-    status: appointment.status,
-    priority: appointment.priority,
-  });
+  // Encode a URL so scanners open a minimal token info card
+  const baseFromSettings = (hospitalSettings as any)?.publicBaseUrl?.trim?.() || "";
+  const baseFromEnv = (process as any)?.env?.NEXT_PUBLIC_BASE_URL || "";
+  const runtimeOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const base = (baseFromSettings || baseFromEnv || runtimeOrigin || '').replace(/\/$/, '');
+  const qrData = `${base}/token/${encodeURIComponent(appointment.tokenNumber)}`;
 
   // Pre-render QR to PNG to ensure html2canvas captures it fully
   useEffect(() => {

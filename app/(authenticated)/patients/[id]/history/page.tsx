@@ -22,7 +22,11 @@ import {
   Heart,
 } from "lucide-react";
 import Link from "next/link";
-import MedicalTimeline from "@/components/timeline/medical-timeline";
+import dynamic from "next/dynamic";
+const MedicalTimeline = dynamic(
+  () => import("@/components/timeline/medical-timeline"),
+  { ssr: false },
+);
 
 interface Patient {
   id: string;
