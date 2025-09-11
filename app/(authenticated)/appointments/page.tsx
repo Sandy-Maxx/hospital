@@ -214,6 +214,7 @@ export default function Appointments() {
                 onChange={setSelectedDate}
                 label="Filter by Date"
                 className="w-full"
+                variant="filter"
               />
             </div>
             <div>

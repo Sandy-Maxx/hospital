@@ -17,6 +17,12 @@ interface HospitalDateInputProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /**
+   * Variant indicates how the date input is used.
+   * - "booking": enforce future/open-day validation (default)
+   * - "filter": allow any date selection (including past) with no validation
+   */
+  variant?: "booking" | "filter";
 }
 
 export function HospitalDateInput({
@@ -29,6 +35,7 @@ export function HospitalDateInput({
   className = "",
   id,
   disabled = false,
+  variant = "booking",
 }: HospitalDateInputProps) {
   const [validationState, setValidationState] = useState<{
     valid: boolean;
@@ -36,17 +43,22 @@ export function HospitalDateInput({
   }>({ valid: true });
   const [isValidating, setIsValidating] = useState(false);
 
-  // Set default min date to today if not provided
-  const defaultMinDate = minDate || new Date().toISOString().split('T')[0];
+  // Set default min date when enforcing booking validation; allow past dates in filter mode
+  const isFilter = variant === "filter";
+  const defaultMinDate = isFilter ? (minDate ?? undefined) : (minDate || new Date().toISOString().split('T')[0]);
 
-  // Validate date whenever value changes
+  // Validate date whenever value changes (only in booking mode)
   useEffect(() => {
+    if (isFilter) {
+      setValidationState({ valid: true });
+      return;
+    }
     if (value) {
       validateDate(value);
     } else {
       setValidationState({ valid: true });
     }
-  }, [value]);
+  }, [value, isFilter]);
 
   const validateDate = async (dateString: string) => {
     if (!dateString) return;
@@ -94,7 +106,8 @@ export function HospitalDateInput({
   };
 
   const handleDateSelect = async () => {
-    // Auto-select next available date when input is focused but empty
+    // In booking mode: Auto-select next available date when input is focused but empty
+    if (isFilter) return;
     if (!value) {
       try {
         const nextOpenDate = await getNextOpenDate();
@@ -147,9 +160,11 @@ export function HospitalDateInput({
         </div>
       )}
       
-      <div className="mt-2 text-xs text-gray-500">
-        📅 Only days when the hospital is open can be selected for appointments
-      </div>
+      {!isFilter && (
+        <div className="mt-2 text-xs text-gray-500">
+          📅 Only days when the hospital is open can be selected for appointments
+        </div>
+      )}
       
       {/* Custom CSS to disable closed days in calendar picker */}
       <style jsx>{`
