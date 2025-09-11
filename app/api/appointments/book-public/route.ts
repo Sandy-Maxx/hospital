@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getOverallUrgencyLevel } from "@/lib/problem-categories";
 import fs from "fs";
 import path from "path";
 
@@ -21,6 +22,7 @@ const bookingSchema = z.object({
     .default("CONSULTATION"),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "EMERGENCY"]).default("NORMAL"),
   notes: z.string().optional(),
+  problemCategories: z.array(z.string()).min(1, "At least one health concern must be selected"),
 });
 
 // Load hospital settings
@@ -228,8 +230,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-adjust priority based on problem categories
+    const categoryBasedPriority = getOverallUrgencyLevel(validatedData.problemCategories);
+    const finalPriority = categoryBasedPriority === 'EMERGENCY' ? 'EMERGENCY' :
+                         categoryBasedPriority === 'HIGH' ? 'HIGH' : 
+                         validatedData.priority;
+
     // Generate token number
     const tokenNumber = await generateTokenNumber(validatedData.sessionId);
+
+    // Prepare notes with problem categories
+    const problemCategoriesNote = `Health Concerns: ${validatedData.problemCategories.join(', ')}`;
+    const finalNotes = validatedData.notes 
+      ? `${problemCategoriesNote}\n\n${validatedData.notes}`
+      : problemCategoriesNote;
 
     // Create appointment
     const appointment = await prisma.appointment.create({
@@ -239,8 +253,8 @@ export async function POST(request: NextRequest) {
         sessionId: validatedData.sessionId,
         dateTime: new Date(session.date), // Will be updated when session starts
         type: validatedData.type,
-        priority: validatedData.priority,
-        notes: validatedData.notes,
+        priority: finalPriority,
+        notes: finalNotes,
         tokenNumber: tokenNumber,
         status: "SCHEDULED",
       },

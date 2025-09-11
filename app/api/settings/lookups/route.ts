@@ -2,20 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const filePath = path.join(process.cwd(), "data", "hospital-settings.json");
+const settingsPath = path.join(process.cwd(), "data", "hospital-settings.json");
+const departmentsPath = path.join(process.cwd(), "data", "departments.json");
 
 function readSettings(): any {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return JSON.parse(fs.readFileSync(settingsPath, "utf8"));
   } catch {
     return {};
   }
 }
 
+function readDepartmentsList(): string[] {
+  try {
+    const raw = fs.readFileSync(departmentsPath, "utf8");
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      return arr.map((d: any) => (typeof d === 'string' ? d : d?.name)).filter(Boolean);
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 function writeSettings(s: any) {
-  const dir = path.dirname(filePath);
+  const dir = path.dirname(settingsPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(s, null, 2), "utf8");
+  fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), "utf8");
 }
 
 let __lookups_cache: { data: any; at: number } | null = null;
@@ -28,10 +42,10 @@ export async function GET() {
   }
   const s = readSettings();
   // ensure arrays
-  if (!Array.isArray(s.departments)) s.departments = [];
+  const deptFromFile = readDepartmentsList();
   if (!Array.isArray(s.designations)) s.designations = [];
   const resp = {
-    departments: s.departments,
+    departments: deptFromFile,
     designations: s.designations,
   };
   __lookups_cache = { data: resp, at: now };

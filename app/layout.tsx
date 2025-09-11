@@ -5,10 +5,28 @@ import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
+import fs from "fs";
+import path from "path";
+
+function readIconVersion() {
+  try {
+    const sPath = path.join(process.cwd(), "data", "hospital-settings.json");
+    const data = JSON.parse(fs.readFileSync(sPath, "utf8"));
+    return data.faviconVersion || 1;
+  } catch {
+    return 1;
+  }
+}
+
 export const metadata: Metadata = {
   title: "Hospital Management System",
   description: "Complete hospital management solution for modern healthcare",
   manifest: "/manifest.json",
+  icons: {
+    icon: `/favicon.ico?v=${readIconVersion()}`,
+    shortcut: `/favicon.ico?v=${readIconVersion()}`,
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -25,6 +25,7 @@ import {
   BarChart2,
   Megaphone,
   FlaskConical,
+  Tags,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -115,6 +116,7 @@ export function Sidebar({ className }: SidebarProps) {
     "/admin": "text-indigo-600",
     "/admin/users": "text-purple-600",
     "/admin/doctor-availability": "text-amber-600",
+    "/admin/problem-categories": "text-teal-600",
     "/admin/settings": "text-gray-700",
     "/patients": "text-emerald-600",
     "/appointments": "text-cyan-600",

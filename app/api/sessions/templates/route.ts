@@ -134,18 +134,36 @@ export async function POST(request: NextRequest) {
     for (const template of templatesSorted) {
       // Validate within hospital day hours
       const tStart = parse(template.startTime);
-      const tEnd = parse(template.endTime);
-      if (tStart < dayStart || tEnd > dayEnd || tStart >= tEnd) {
-        continue;
-      }
-
-      // Respect lunch break if configured
-      if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd))) {
-        continue;
+      let tEnd = parse(template.endTime);
+      
+      const isCrossMidnight = tEnd <= tStart; // e.g., 19:00 -> 02:00
+      
+      // For cross-midnight sessions, ensure start is within business hours
+      if (!isCrossMidnight) {
+        if (tStart < dayStart || tEnd > dayEnd) {
+          continue;
+        }
+        // Respect lunch break if configured (only for same-day sessions)
+        if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd))) {
+          continue;
+        }
+      } else {
+        // For cross-midnight, only validate start time within business hours
+        if (tStart < dayStart) {
+          continue;
+        }
+        // Normalize end time for overlap comparisons (add 24h)
+        tEnd = tEnd + 24 * 60;
       }
 
       // Check for overlap
-      const overlaps = occupied.some((o) => Math.max(o.start, tStart) < Math.min(o.end, tEnd));
+      const overlaps = occupied.some((o) => {
+        const aStart = tStart;
+        const aEnd = tEnd;
+        const bStart = o.start;
+        const bEnd = o.end;
+        return Math.max(aStart, bStart) < Math.min(aEnd, bEnd);
+      });
       if (overlaps) {
         continue;
       }

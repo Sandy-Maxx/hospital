@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sortDoctorsByProblemCategories } from "@/lib/problem-categories";
 import fs from "fs";
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
     const date = searchParams.get("date");
+    const problemCategoriesParam = searchParams.get("problemCategories");
+    
+    // Parse problem categories
+    const problemCategories = problemCategoriesParam 
+      ? problemCategoriesParam.split(',').filter(Boolean)
+      : [];
 
     if (!sessionId && !date) {
       return NextResponse.json(
@@ -64,14 +71,20 @@ export async function GET(request: NextRequest) {
 
       if (sessionDate) {
           const session = await prisma.appointmentSession.findUnique({ where: { id: sessionId }, select: { shortCode: true, date: true } });
-          if (session) {
-            const availableDoctors = await getAvailableDoctorsForSession(
-              allDoctors,
-              session.date,
-              session.shortCode,
-            );
-            return NextResponse.json({ doctors: availableDoctors });
-          }
+        if (session) {
+          const availableDoctors = await getAvailableDoctorsForSession(
+            allDoctors,
+            session.date,
+            session.shortCode,
+          );
+          
+          // Sort doctors by problem category match if provided
+          const sortedDoctors = problemCategories.length > 0 
+            ? sortDoctorsByProblemCategories(availableDoctors, problemCategories)
+            : availableDoctors;
+            
+          return NextResponse.json({ doctors: sortedDoctors });
+        }
         }
       }
 
@@ -90,7 +103,13 @@ export async function GET(request: NextRequest) {
           session.date,
           session.shortCode,
         );
-        return NextResponse.json({ doctors: availableDoctors });
+        
+        // Sort doctors by problem category match if provided
+        const sortedDoctors = problemCategories.length > 0 
+          ? sortDoctorsByProblemCategories(availableDoctors, problemCategories)
+          : availableDoctors;
+          
+        return NextResponse.json({ doctors: sortedDoctors });
       }
     }
 
@@ -101,7 +120,13 @@ export async function GET(request: NextRequest) {
         allDoctors,
         targetDate,
       );
-      return NextResponse.json({ doctors: availableDoctors });
+      
+      // Sort doctors by problem category match if provided
+      const sortedDoctors = problemCategories.length > 0 
+        ? sortDoctorsByProblemCategories(availableDoctors, problemCategories)
+        : availableDoctors;
+        
+      return NextResponse.json({ doctors: sortedDoctors });
     }
 
     return NextResponse.json({ doctors: allDoctors });

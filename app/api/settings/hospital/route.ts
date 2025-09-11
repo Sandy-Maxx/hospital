@@ -147,23 +147,57 @@ export async function POST(request: NextRequest) {
 
     const bStart = timeToMinutes(updatedSettings.businessStartTime || "");
     const bEnd = timeToMinutes(updatedSettings.businessEndTime || "");
-    if (!updatedSettings.businessStartTime || !updatedSettings.businessEndTime || bStart >= bEnd) {
+    if (!updatedSettings.businessStartTime || !updatedSettings.businessEndTime) {
       return NextResponse.json({ error: "Invalid Business Hours. Please set valid opening and closing times." }, { status: 400 });
     }
+    // Allow cross-midnight business hours (e.g., 09:00 to 02:00 next day)
+    // We'll validate this differently for sessions
 
     // Validate lunch break (optional but must be within business hours if provided)
     const hasLunch = updatedSettings.lunchBreakStart && updatedSettings.lunchBreakEnd;
     const lbStart = hasLunch ? timeToMinutes(updatedSettings.lunchBreakStart) : null;
     const lbEnd = hasLunch ? timeToMinutes(updatedSettings.lunchBreakEnd) : null;
     if (hasLunch && lbStart !== null && lbEnd !== null) {
-      if (lbStart >= lbEnd || lbStart < bStart || lbEnd > bEnd) {
-        return NextResponse.json({ error: "Invalid Lunch Break: must be within Business Hours and start before end." }, { status: 400 });
+      if (lbStart >= lbEnd) {
+        return NextResponse.json({ error: "Invalid Lunch Break: start must be before end." }, { status: 400 });
+      }
+      // For cross-midnight business hours, lunch should be within the operational window
+      const crossesMidnight = bEnd <= bStart;
+      if (!crossesMidnight) {
+        if (lbStart < bStart || lbEnd > bEnd) {
+          return NextResponse.json({ error: "Invalid Lunch Break: must be within Business Hours." }, { status: 400 });
+        }
+      } else {
+        // Cross-midnight business: lunch should not be in the closed period (bEnd to bStart)
+        if (lbStart >= bEnd && lbEnd <= bStart) {
+          return NextResponse.json({ error: "Invalid Lunch Break: cannot be during closed hours." }, { status: 400 });
+        }
       }
     }
 
-    // Validate session templates: start < end, within business hours, no overlap with lunch, no overlaps with other sessions
+    // Validate session templates: start < end (allow cross-midnight), within business hours, no overlap with lunch, no overlaps with other sessions
     const templates = Array.isArray(updatedSettings.sessionTemplates) ? updatedSettings.sessionTemplates : [];
     const errors: string[] = [];
+    const crossesMidnight = bEnd <= bStart;
+
+    // Helper function to check if time is within business hours (handles cross-midnight)
+    const isWithinBusinessHours = (time: number) => {
+      if (!crossesMidnight) {
+        return time >= bStart && time <= bEnd;
+      } else {
+        // Cross-midnight: time is valid if it's after start OR before end
+        return time >= bStart || time <= bEnd;
+      }
+    };
+
+    // Helper function to check session duration validity
+    const getSessionDuration = (start: number, end: number) => {
+      if (start <= end) {
+        return end - start; // Normal session within same day
+      } else {
+        return (24 * 60 - start) + end; // Cross-midnight session
+      }
+    };
 
     for (let i = 0; i < templates.length; i++) {
       const t = templates[i];
@@ -173,10 +207,27 @@ export async function POST(request: NextRequest) {
       }
       const s = timeToMinutes(t.startTime);
       const e = timeToMinutes(t.endTime);
-      if (s >= e) errors.push(`Template "${t.name}": start must be before end.`);
-      if (s < bStart || e > bEnd) errors.push(`Template "${t.name}": must be within Business Hours (${updatedSettings.businessStartTime} - ${updatedSettings.businessEndTime}).`);
-      if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(s, lbStart) < Math.min(e, lbEnd))) {
-        errors.push(`Template "${t.name}": cannot overlap lunch break (${updatedSettings.lunchBreakStart} - ${updatedSettings.lunchBreakEnd}).`);
+      
+      // Check if session duration is reasonable (max 12 hours)
+      const duration = getSessionDuration(s, e);
+      if (duration > 12 * 60) {
+        errors.push(`Template "${t.name}": session duration cannot exceed 12 hours.`);
+        continue;
+      }
+      
+      // For cross-midnight sessions, both start and end should be within business hours
+      if (!isWithinBusinessHours(s)) {
+        errors.push(`Template "${t.name}": start time must be within Business Hours (${updatedSettings.businessStartTime} - ${updatedSettings.businessEndTime}).`);
+      }
+      if (!isWithinBusinessHours(e)) {
+        errors.push(`Template "${t.name}": end time must be within Business Hours (${updatedSettings.businessStartTime} - ${updatedSettings.businessEndTime}).`);
+      }
+      
+      // Check lunch break overlap (only for sessions that don't cross midnight)
+      if (hasLunch && lbStart !== null && lbEnd !== null && s <= e) {
+        if (Math.max(s, lbStart) < Math.min(e, lbEnd)) {
+          errors.push(`Template "${t.name}": cannot overlap lunch break (${updatedSettings.lunchBreakStart} - ${updatedSettings.lunchBreakEnd}).`);
+        }
       }
     }
 

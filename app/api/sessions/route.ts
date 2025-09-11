@@ -70,6 +70,9 @@ async function ensureSessionsExist(date: Date) {
   const hasLunch = settings.lunchBreakStart && settings.lunchBreakEnd;
   const lbStart = hasLunch ? parse(settings.lunchBreakStart) : null;
   const lbEnd = hasLunch ? parse(settings.lunchBreakEnd) : null;
+  
+  // Check if business hours cross midnight
+  const businessCrossesMidnight = dayEnd <= dayStart;
 
   // First, clean up any sessions that don't match current templates
   const validShortCodes = activeTemplates.map((t: any) => t.shortCode);
@@ -93,20 +96,54 @@ async function ensureSessionsExist(date: Date) {
 
   for (const template of templatesSorted) {
     const tStart = parse(template.startTime);
-    const tEnd = parse(template.endTime);
+    let tEnd = parse(template.endTime);
 
-    // Validate within day hours
-    if (tStart < dayStart || tEnd > dayEnd || tStart >= tEnd) {
-      // Skip invalid template for this day
+    const isCrossMidnight = tEnd <= tStart; // e.g., 19:00 -> 02:00
+
+    // Validate session times against business hours
+    let isValid = false;
+    
+    if (!businessCrossesMidnight) {
+      // Normal business hours (e.g., 9:00 to 17:00)
+      if (!isCrossMidnight) {
+        // Normal session within same day
+        isValid = tStart >= dayStart && tEnd <= dayEnd;
+      } else {
+        // Cross-midnight session in normal business hours - not supported
+        isValid = false;
+      }
+    } else {
+      // Business hours cross midnight (e.g., 9:00 to 00:59 next day)
+      if (!isCrossMidnight) {
+        // Same-day session: valid if within start-to-midnight OR midnight-to-end
+        isValid = (tStart >= dayStart && tEnd <= 24*60) || (tStart >= 0 && tEnd <= dayEnd);
+      } else {
+        // Cross-midnight session: start should be after dayStart, end should be before dayEnd
+        isValid = tStart >= dayStart && tEnd <= dayEnd;
+        // Normalize end for overlap comparisons (add 24h)
+        tEnd = tEnd + 24 * 60;
+      }
+    }
+    
+    if (!isValid) {
       continue;
     }
-    // Respect lunch break if configured
-    if (hasLunch && lbStart !== null && lbEnd !== null && (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd))) {
-      continue;
+    
+    // Respect lunch break if configured (only for same-day sessions)
+    if (!isCrossMidnight && hasLunch && lbStart !== null && lbEnd !== null) {
+      if (Math.max(tStart, lbStart) < Math.min(tEnd, lbEnd)) {
+        continue;
+      }
     }
 
     // Check overlap with already created/updated sessions for the day
-    const overlaps = occupied.some((o) => Math.max(o.start, tStart) < Math.min(o.end, tEnd));
+    const overlaps = occupied.some((o) => {
+      const aStart = tStart;
+      const aEnd = tEnd;
+      const bStart = o.start;
+      const bEnd = o.end;
+      return Math.max(aStart, bStart) < Math.min(aEnd, bEnd);
+    });
     if (overlaps) {
       continue;
     }
@@ -165,8 +202,8 @@ const sessionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await withAuth(request);
-    if (auth instanceof NextResponse) return auth;
+    // Allow public access for fetching sessions (no auth required for GET)
+    // Only restrict POST/PUT/DELETE operations
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     const doctorId = searchParams.get("doctorId");
@@ -179,11 +216,17 @@ export async function GET(request: NextRequest) {
 
       // Auto-create sessions for the requested date if they don't exist
       await ensureSessionsExist(targetDate);
+
+      // Also ensure previous day's sessions exist to include cross-midnight sessions
+      const prevDate = new Date(targetDate);
+      prevDate.setDate(targetDate.getDate() - 1);
+      await ensureSessionsExist(prevDate);
     }
 
     // Note: doctorId filtering removed due to schema changes
 
-    const sessions = await prisma.appointmentSession.findMany({
+    // Fetch today's sessions
+    const sessionsToday = await prisma.appointmentSession.findMany({
       where: whereClause,
       include: {
         appointments: {
@@ -232,6 +275,79 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     });
+
+    let sessions = sessionsToday;
+
+    // If date provided, also include cross-midnight sessions that started the previous day
+    if (date) {
+      const targetDate = new Date(date);
+      const prevDate = new Date(targetDate);
+      prevDate.setDate(targetDate.getDate() - 1);
+
+      const prevDaySessions = await prisma.appointmentSession.findMany({
+        where: {
+          date: prevDate,
+        },
+        include: {
+          appointments: {
+            include: {
+              patient: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+              doctor: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              session: {
+                select: {
+                  id: true,
+                  name: true,
+                  shortCode: true,
+                  date: true,
+                  startTime: true,
+                  endTime: true,
+                },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          doctorAssignments: {
+            where: { isActive: true },
+            include: {
+              doctor: {
+                select: {
+                  id: true,
+                  name: true,
+                  department: true,
+                  specialization: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      });
+
+      // Filter prev day sessions that cross midnight (endTime <= startTime)
+      const crosses = prevDaySessions.filter((s) => {
+        const [sh, sm] = s.startTime.split(":").map((n) => parseInt(n, 10));
+        const [eh, em] = s.endTime.split(":").map((n) => parseInt(n, 10));
+        const start = sh * 60 + sm;
+        const end = eh * 60 + em;
+        return end <= start; // crosses midnight
+      });
+
+      // Merge: include previous day's cross-midnight sessions
+      sessions = [...crosses, ...sessionsToday];
+    }
 
     return NextResponse.json({
       success: true,

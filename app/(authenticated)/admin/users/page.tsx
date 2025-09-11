@@ -90,11 +90,7 @@ export default function UserManagement() {
   const [suspensionDate, setSuspensionDate] = useState<string>("");
 
   // Default departments and designations as fallback
-  const defaultDepartments = [
-    "Cardiology", "Emergency", "General Medicine", "Pediatrics", "Orthopedics", 
-    "Neurology", "Radiology", "Laboratory", "Administration", "Front Desk", 
-    "Billing", "Pharmacy", "Surgery", "ICU", "Dermatology", "Psychiatry"
-  ];
+  const defaultDepartments: string[] = [];
   
   const defaultDesignations = [
     "Cardiologist", "Emergency Medicine", "General Practitioner", "Pediatrician", 
@@ -109,25 +105,19 @@ export default function UserManagement() {
       .then(async (res) => {
         if (res.ok) {
           const data = await res.json();
-          setDepartments(
-            Array.isArray(data.departments) && data.departments.length > 0 
-              ? data.departments 
-              : defaultDepartments
-          );
+          setDepartments(Array.isArray(data.departments) ? data.departments : []);
           setDesignations(
             Array.isArray(data.designations) && data.designations.length > 0 
               ? data.designations 
               : defaultDesignations
           );
         } else {
-          // Fallback to defaults if API fails
-          setDepartments(defaultDepartments);
+          setDepartments([]);
           setDesignations(defaultDesignations);
         }
       })
       .catch(() => {
-        // Fallback to defaults if network fails
-        setDepartments(defaultDepartments);
+        setDepartments([]);
         setDesignations(defaultDesignations);
       });
   }, []);

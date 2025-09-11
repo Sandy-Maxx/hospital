@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Card,
@@ -49,6 +50,8 @@ interface HospitalSettings {
   name: string;
   tagline: string;
   logo?: string;
+  favicon?: string;
+  pwaIcon?: string;
   primaryColor: string;
   secondaryColor: string;
   phone: string;
@@ -88,26 +91,33 @@ const steps = [
   {
     id: 1,
     title: "Hospital Information",
-    description: "Basic hospital details and branding",
+    description: "Basic hospital details",
     icon: Building,
     color: "bg-blue-500",
   },
   {
     id: 2,
+    title: "Branding & Uploads",
+    description: "Logo, favicon, and PWA app icon",
+    icon: Upload,
+    color: "bg-indigo-500",
+  },
+  {
+    id: 3,
     title: "Business Hours",
     description: "Operating hours and weekly schedule",
     icon: Clock,
     color: "bg-green-500",
   },
   {
-    id: 3,
+    id: 4,
     title: "Session Templates",
     description: "Configure appointment session templates",
     icon: Users,
     color: "bg-purple-500",
   },
   {
-    id: 4,
+    id: 5,
     title: "Advanced Settings",
     description: "Appointment settings and social media",
     icon: Settings,
@@ -127,6 +137,7 @@ const weekDays = [
 
 export default function MultiStepSettings() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -282,6 +293,9 @@ export default function MultiStepSettings() {
 
       if (response.ok) {
         toast.success("Settings saved successfully!");
+        // Redirect back to settings hub
+        router.push("/admin/settings");
+        return;
       } else {
         const err = await response.json().catch(() => ({}));
         toast.error(err?.error || "Error saving settings");
@@ -451,6 +465,7 @@ export default function MultiStepSettings() {
         </div>
       </div>
 
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
@@ -573,6 +588,103 @@ export default function MultiStepSettings() {
 
   const renderStep2 = () => (
     <div className="space-y-6">
+      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Branding & Uploads</h3>
+        <p className="text-sm text-gray-600 mb-4">Upload logo (used across app), favicon (browser tab), and PWA app icon (installed app icon).</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Logo uploader */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Logo</Label>
+            <div className="mt-2 flex items-center gap-3">
+              {settings.logo ? (
+                <img src={settings.logo} alt="Logo" className="h-12 w-auto rounded border" />
+              ) : (
+                <div className="h-12 w-12 bg-gray-100 border rounded flex items-center justify-center text-xs text-gray-500">No logo</div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  fd.append("kind", "logo");
+                  const res = await fetch("/api/media-upload", { method: "POST", body: fd });
+                  const data = await res.json();
+                  if (data.success) {
+                    setSettings((prev) => ({ ...prev, logo: data.path }));
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Used across the app and on public pages.</p>
+          </div>
+
+          {/* Favicon uploader */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Favicon</Label>
+            <div className="mt-2 flex items-center gap-3">
+              {settings.favicon ? (
+                <img src={settings.favicon} alt="Favicon" className="h-8 w-8 rounded border" />
+              ) : (
+                <div className="h-8 w-8 bg-gray-100 border rounded flex items-center justify-center text-[10px] text-gray-500">No icon</div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  fd.append("kind", "favicon");
+                  const res = await fetch("/api/media-upload", { method: "POST", body: fd });
+                  const data = await res.json();
+                  if (data.success) {
+                    setSettings((prev) => ({ ...prev, favicon: data.path }));
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Shown in browser address bar.</p>
+          </div>
+
+          {/* PWA Icon uploader */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">PWA App Icon</Label>
+            <div className="mt-2 flex items-center gap-3">
+              {settings.pwaIcon ? (
+                <img src={settings.pwaIcon} alt="App Icon" className="h-12 w-12 rounded border" />
+              ) : (
+                <div className="h-12 w-12 bg-gray-100 border rounded flex items-center justify-center text-[10px] text-gray-500">No icon</div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  fd.append("kind", "pwaIcon");
+                  const res = await fetch("/api/media-upload", { method: "POST", body: fd });
+                  const data = await res.json();
+                  if (data.success) {
+                    setSettings((prev) => ({ ...prev, pwaIcon: data.path }));
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Used when the app is installed (PWA).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+const renderStep3 = () => (
+    <div className="space-y-6">
       <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           <Clock className="w-5 h-5 inline mr-2" />
@@ -652,7 +764,7 @@ export default function MultiStepSettings() {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg">
         <div className="flex items-center justify-between mb-4">
@@ -761,7 +873,7 @@ export default function MultiStepSettings() {
     </div>
   );
 
-  const renderStep4 = () => (
+  const renderStep5 = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -953,6 +1065,8 @@ export default function MultiStepSettings() {
         return renderStep3();
       case 4:
         return renderStep4();
+      case 5:
+        return renderStep5();
       default:
         return renderStep1();
     }
@@ -979,7 +1093,7 @@ export default function MultiStepSettings() {
             Hospital Settings Configuration
           </CardTitle>
           <CardDescription className="text-blue-100">
-            Configure your hospital's information, operating hours, and system settings
+            Configure your hospital's information, branding, operating hours, sessions, and system settings
           </CardDescription>
         </CardHeader>
         

@@ -125,7 +125,7 @@ export function HospitalDateInput({
           min={defaultMinDate}
           max={maxDate}
           disabled={disabled}
-          className={`${
+          className={`hospital-date-input ${
             !validationState.valid
               ? "border-red-300 focus:border-red-500 focus:ring-red-500"
               : "focus:border-blue-500 focus:ring-blue-500"
@@ -150,6 +150,16 @@ export function HospitalDateInput({
       <div className="mt-2 text-xs text-gray-500">
         📅 Only days when the hospital is open can be selected for appointments
       </div>
+      
+      {/* Custom CSS to disable closed days in calendar picker */}
+      <style jsx>{`
+        .hospital-date-input::-webkit-calendar-picker-indicator {
+          filter: opacity(0.6);
+        }
+        .hospital-date-input::-webkit-datetime-edit-fields-wrapper {
+          padding: 0;
+        }
+      `}</style>
     </div>
   );
 }

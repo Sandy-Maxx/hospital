@@ -99,6 +99,7 @@ model Appointment {
   bills         Bill[]
   consultation  Consultation?
   assignmentLogs AppointmentAssignmentLog[]
+  problemCategories AppointmentProblemCategory[]
 
   @@index([tokenNumber])
   @@index([patientId, dateTime])
@@ -423,6 +424,42 @@ model AppointmentAssignmentLog {
   @@index([changedBy])
   @@index([createdAt])
   @@map("appointment_assignment_logs")
+}
+
+model ProblemCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  // hex color for UI display
+  icon        String?  // icon name for UI display
+  isActive    Boolean  @default(true)
+  sortOrder   Int?     // for custom ordering in UI
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  appointments AppointmentProblemCategory[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([name, isActive])
+  @@map("problem_categories")
+}
+
+model AppointmentProblemCategory {
+  id                String @id @default(cuid())
+  appointmentId     String
+  problemCategoryId String
+  createdAt         DateTime @default(now())
+
+  // Relations
+  appointment     Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  problemCategory ProblemCategory @relation(fields: [problemCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, problemCategoryId])
+  @@index([appointmentId])
+  @@index([problemCategoryId])
+  @@map("appointment_problem_categories")
 }
 
 // Enums replaced with string fields with comments for valid values

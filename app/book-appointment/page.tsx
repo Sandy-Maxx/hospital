@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import HospitalDateInput from "@/components/ui/hospital-date-input";
+import ProblemCategoriesSelect from "@/components/ui/problem-categories-select";
+import { getProblemCategory } from "@/lib/problem-categories";
 import {
   Calendar,
   Clock,
@@ -24,6 +26,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import html2canvas from "html2canvas";
 
 interface Session {
   id: string;
@@ -64,6 +67,7 @@ function BookingPageInner() {
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(
     null,
   );
+  const confirmationRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     // Patient Information
@@ -76,10 +80,11 @@ function BookingPageInner() {
 
     // Appointment Details
     sessionId: "",
-    doctorId: "",
+    doctorId: "", // Auto-assigned, not selected by user
     type: "CONSULTATION",
     priority: "NORMAL",
     notes: "",
+    problemCategories: [] as string[], // Array of problem category IDs
   });
 
   // Load available sessions for selected date
@@ -89,7 +94,40 @@ function BookingPageInner() {
       const response = await fetch(`/api/sessions?date=${date}`);
       if (response.ok) {
         const data = await response.json();
-        setSessions(data.sessions || []);
+        let availableSessions = data.sessions || [];
+        
+        // Filter out sessions that have already passed if the selected date is today
+        const selectedDate = new Date(date);
+        const today = new Date();
+        const isToday = selectedDate.toDateString() === today.toDateString();
+        
+        // New rule:
+        // - If selected date is today: session is available when
+        //   a) capacity not exhausted, and
+        //   b) at least 10 minutes left until session end time
+        // - For future dates: keep sessions that have capacity
+        const hasCapacity = (s: Session) => (s.maxTokens - s.currentTokens) > 0;
+        const toMinutes = (hhmm: string) => {
+          const [h, m] = hhmm.split(":").map((n) => parseInt(n, 10));
+          return h * 60 + m;
+        };
+
+        if (isToday) {
+          const currentTime = today.getHours() * 60 + today.getMinutes();
+          availableSessions = availableSessions.filter((session: Session) => {
+            if (!hasCapacity(session)) return false;
+            const endMin = toMinutes(session.endTime);
+            const startMin = toMinutes(session.startTime);
+            // Handle cross-midnight: if end <= start, treat end as next-day end
+            const normalizedEnd = endMin <= startMin ? endMin + 24 * 60 : endMin;
+            const minutesLeft = normalizedEnd - currentTime;
+            return minutesLeft >= 10; // at least 10 minutes remaining
+          });
+        } else {
+          availableSessions = availableSessions.filter(hasCapacity);
+        }
+        
+        setSessions(availableSessions);
       } else {
         toast.error("Failed to load available sessions");
       }
@@ -100,17 +138,22 @@ function BookingPageInner() {
     }
   };
 
-  // Load available doctors
-  const loadDoctorsForSession = async (sessionId: string) => {
+  // Load available doctors for session and problem categories
+  const loadDoctorsForSession = async (sessionId: string, problemCategories: string[] = []) => {
     try {
-      const response = await fetch(`/api/doctors/available?sessionId=${encodeURIComponent(sessionId)}`);
+      const queryParams = new URLSearchParams({
+        sessionId: sessionId,
+        ...(problemCategories.length > 0 && { problemCategories: problemCategories.join(',') })
+      });
+      
+      const response = await fetch(`/api/doctors/available?${queryParams}`);
       if (response.ok) {
         const data = await response.json();
         setDoctors(data.doctors || []);
-        // Auto-select first available doctor for public booking (doctor selection disabled)
-        const first = (data.doctors || [])[0];
-        if (first) {
-          setFormData((prev) => ({ ...prev, doctorId: first.id }));
+        // Auto-assign best matching doctor based on specialization
+        const bestDoctor = (data.doctors || [])[0]; // API should return doctors sorted by best match
+        if (bestDoctor) {
+          setFormData((prev) => ({ ...prev, doctorId: bestDoctor.id }));
         } else {
           setFormData((prev) => ({ ...prev, doctorId: "" }));
         }
@@ -154,7 +197,7 @@ function BookingPageInner() {
     }
   }, [selectedDate, searchParams]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -172,7 +215,7 @@ function BookingPageInner() {
   };
 
   const validateStep2 = () => {
-    return formData.sessionId.trim() !== "" && formData.doctorId.trim() !== "";
+    return formData.sessionId.trim() !== "" && formData.problemCategories.length > 0;
   };
 
   const handleNext = () => {
@@ -242,6 +285,14 @@ function BookingPageInner() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            {(() => {
+              // Logo from settings if available
+              // We do a small fetch-once pattern by leveraging the already-loaded sessions (separate from SSR)
+              // For simplicity here, we reference the logo path from window._hospitalLogo if available in future.
+              return null;
+            })()}
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Book an Appointment
           </h1>
@@ -406,25 +457,25 @@ function BookingPageInner() {
                 id="date"
               />
 
-              {/* Doctor Selection */}
+              {/* Problem Categories Selection */}
               <div className="space-y-2">
-                <Label htmlFor="doctor">Select Doctor</Label>
-                <select
-                  id="doctor"
-                  value={formData.doctorId}
-                  onChange={(e) =>
-                    handleInputChange("doctorId", e.target.value)
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">Select a doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
-                    </option>
-                  ))}
-                </select>
+                <Label>Health Concerns *</Label>
+                <ProblemCategoriesSelect
+                  value={formData.problemCategories}
+                  onChange={(categories) => {
+                    handleInputChange("problemCategories", categories);
+                    // Reload doctors when categories change
+                    if (formData.sessionId) {
+                      loadDoctorsForSession(formData.sessionId, categories);
+                    }
+                  }}
+                  placeholder="Select your health concerns..."
+                  required={true}
+                  maxSelections={3}
+                />
+                <p className="text-xs text-gray-500">
+                  Select up to 3 categories that best describe your health concerns. This helps us assign the most suitable doctor.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -459,8 +510,8 @@ function BookingPageInner() {
                           onClick={() => {
                             if (availableSlots > 0) {
                               handleInputChange("sessionId", session.id);
-                              // Auto-load doctors for this session
-                              loadDoctorsForSession(session.id);
+                              // Auto-load doctors for this session with current problem categories
+                              loadDoctorsForSession(session.id, formData.problemCategories);
                             }
                           }}
                         >
@@ -533,17 +584,36 @@ function BookingPageInner() {
                 </div>
               </div>
 
-              {/* Assigned doctor (auto based on availability); selection disabled in public form */}
+              {/* Auto-assigned doctor display */}
               <div className="space-y-2">
                 <Label>Assigned Doctor</Label>
-                <div className="p-2 border rounded bg-gray-50 text-sm">
-                  {formData.doctorId
-                    ? (() => {
-                        const d = doctors.find((x) => x.id === formData.doctorId);
-                        return d ? `Dr. ${d.name}` : "Auto-assigned (pending)";
-                      })()
-                    : "No available doctor for this session"}
+                <div className="p-3 border rounded bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+                  {formData.doctorId ? (() => {
+                    const doctor = doctors.find((d) => d.id === formData.doctorId);
+                    return doctor ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="font-medium text-green-800">Dr. {doctor.name}</span>
+                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Best Match
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span className="text-blue-800">Assigning best doctor...</span>
+                      </div>
+                    );
+                  })() : (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span>Select session and health concerns to assign doctor</span>
+                    </div>
+                  )}
                 </div>
+                <p className="text-xs text-gray-500">
+                  Our system automatically assigns the most suitable doctor based on your health concerns and session availability.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -561,7 +631,10 @@ function BookingPageInner() {
                 <Button variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button onClick={handleNext} disabled={!formData.sessionId}>
+                <Button 
+                  onClick={handleNext} 
+                  disabled={!formData.sessionId || formData.problemCategories.length === 0}
+                >
                   Next
                 </Button>
               </div>
@@ -652,6 +725,20 @@ function BookingPageInner() {
                             <span className="font-medium">Priority:</span>{" "}
                             {formData.priority}
                           </p>
+                          <div>
+                            <span className="font-medium">Health Concerns:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {formData.problemCategories.map(categoryId => {
+                                const category = getProblemCategory(categoryId);
+                                return category ? (
+                                  <span key={categoryId} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                    <span>{category.icon}</span>
+                                    <span>{category.name}</span>
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
                           {formData.notes && (
                             <p>
                               <span className="font-medium">Notes:</span>{" "}
@@ -700,7 +787,7 @@ function BookingPageInner() {
 
         {/* Step 4: Confirmation */}
         {step === 4 && bookingResult && (
-          <Card>
+          <Card ref={confirmationRef}>
             <CardHeader className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
@@ -718,8 +805,35 @@ function BookingPageInner() {
                   Token: {bookingResult.tokenNumber}
                 </div>
                 <p className="text-gray-600">
-                  Please save this token number for your reference
+                  Save your token. You can download it, take a photo, or print it now.
                 </p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const node = confirmationRef.current;
+                        if (!node) return;
+                        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
+                        const dataUrl = canvas.toDataURL('image/png');
+                        const a = document.createElement('a');
+                        a.href = dataUrl;
+                        a.download = `token-${bookingResult.tokenNumber}.png`;
+                        a.click();
+                      } catch (e) {
+                        toast.error('Failed to download image');
+                      }
+                    }}
+                  >
+                    Download Token (PNG)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.print()}
+                  >
+                    Print
+                  </Button>
+                </div>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -764,10 +878,11 @@ function BookingPageInner() {
                 </ul>
               </div>
 
-              <div className="text-center">
+              <div className="text-center flex items-center justify-center gap-3">
                 <Button onClick={() => window.location.reload()}>
                   Book Another Appointment
                 </Button>
+                <Button variant="outline" onClick={() => (window.location.href = "/")}>Back to Landing Page</Button>
               </div>
             </CardContent>
           </Card>
