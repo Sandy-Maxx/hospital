@@ -612,4 +612,32 @@ describe('AppointmentBooking', () => {
 - **BottomSheet**: Mobile modal alternative
 - **FloatingActionButton**: Quick actions
 
+## Newly Added UI Components (UI Library)
+
+- components/ui/alert-dialog.tsx — Accessible alert dialog wrapper
+- components/ui/dialog.tsx — Modal dialog component
+- components/ui/icon-picker.tsx — Icon selection utility (used for categories/departments)
+- components/ui/problem-categories-select.tsx — Multi-select for problem categories
+- components/ui/switch.tsx — Accessible switch/toggle
+- components/ui/table.tsx — Table with sorting/pagination hooks
+
+## Admin Navigation Updates
+
+The Admin area now includes additional configuration sections:
+
+```typescript
+const navigationItems = {
+  ADMIN: [
+    { href: "/dashboard", label: "Dashboard", icon: "Home" },
+    { href: "/patients", label: "Patients", icon: "Users" },
+    { href: "/appointments", label: "Appointments", icon: "Calendar" },
+    { href: "/billing", label: "Billing", icon: "CreditCard" },
+    { href: "/admin/departments", label: "Departments", icon: "FolderTree" },
+    { href: "/admin/problem-categories", label: "Problem Categories", icon: "Tags" },
+    { href: "/admin/settings/configure", label: "Settings", icon: "Settings" },
+    { href: "/reports", label: "Reports", icon: "BarChart" },
+  ],
+};
+```
+
 This component architecture documentation provides a comprehensive guide for understanding, maintaining, and extending the frontend components of the Hospital Management System.

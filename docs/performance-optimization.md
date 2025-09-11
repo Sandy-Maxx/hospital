@@ -814,4 +814,11 @@ module.exports = {
 - [ ] Edge computing for global performance
 - [ ] Advanced PWA features
 
+## 2025 Optimizations Adopted
+
+- Added SSE-based queue stream; ensure event payloads are minimal and cache-friendly
+- Introduced lightweight /api/sessions/simple for public booking UI
+- Split printing components (TokenPrint, BillPrint) via dynamic import to reduce TTI
+- Indexed new relations (problem categories, assignments) in Prisma schema
+
 This performance optimization guide provides a comprehensive strategy for improving the Hospital Management System's speed, scalability, and user experience across all platforms and use cases.

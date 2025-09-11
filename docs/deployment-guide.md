@@ -847,4 +847,9 @@ export async function GET() {
 }
 ```
 
+## Static Asset & Uploads Notes (2025)
+
+- Public assets (logo, favicon, PWA icon) are stored under /uploads by default. Ensure Nginx serves this directory read-only and restricts executable types.
+- Consider moving uploads to object storage (S3 or equivalent) with signed URLs for enhanced security and scalability.
+
 This deployment guide provides comprehensive instructions for deploying the Hospital Management System to production environments with proper security, monitoring, and backup strategies.

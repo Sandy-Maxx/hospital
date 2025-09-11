@@ -576,4 +576,11 @@ describe("Security Tests", () => {
 - [ ] Regular security assessments scheduled
 - [ ] Compliance audits planned
 
+## New Areas to Review (2025)
+
+- Media Upload Security: Ensure file type whitelisting and size limits are enforced in /api/media-upload and /api/upload. Consider server-side virus scanning and image processing safety.
+- Profile Assets: Avatar and signature uploads under /api/profile/me require authentication and must not allow arbitrary file execution. Store outside of web root or enforce strict static serving rules.
+- Realtime Queue Stream: SSE at /api/queue/stream should enforce authentication and appropriate rate limiting to avoid abuse.
+- Public Endpoints: /api/doctors/public, /api/team/public, and /api/profile/public-card should not leak PII beyond intended fields.
+
 This security analysis provides a comprehensive roadmap for hardening the Hospital Management System against current and future threats while maintaining compliance with healthcare regulations.

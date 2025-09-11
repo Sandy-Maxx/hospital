@@ -284,4 +284,15 @@ Prescription → Billing Module → Item Selection → GST Calculation → Payme
 - Activity logging and audit trails
 - Password security requirements
 
+## Recent Additions (2025)
+
+- Departments Management (Admin): Create, update, order, and color-code departments
+- Problem Categories: Taxonomy for tagging appointments and analytics
+- Doctor Availability & Session Assignments: Schedule management and bulk assignment
+- Session Templates: Create daily sessions from configurable templates
+- Media Uploads: Logo, favicon, PWA icon; profile avatars and signatures
+- Public Doctor Directory & Profile Cards: Public endpoints for discovery
+- Realtime Queue Stream: SSE endpoint for live queue updates
+- Reporting & Analytics: Report links/downloads/notifications; analytics ingestion
+
 This overview provides the foundation for understanding the system architecture and serves as a reference for all development, debugging, and enhancement activities.

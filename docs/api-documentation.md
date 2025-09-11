@@ -221,6 +221,8 @@ Error responses:
 
 ### POST /api/appointments/book-public
 
+Note: Token format is derived from HospitalSettings.tokenPrefix and session short code configured in session templates (e.g., MED-M-001).
+
 **Purpose**: Public appointment booking
 **Access**: Public
 
@@ -646,5 +648,83 @@ Real-time features planned:
 - Notification system
 - Live chat support
 - System status monitoring
+
+## Additional and Updated APIs (Summary)
+
+The following endpoints are available in addition to the sections above. All endpoints follow the same authentication and response format described earlier.
+
+- Departments
+  - GET /api/departments — List departments
+  - POST /api/departments — Create department (ADMIN)
+  - GET /api/departments/[id] — Get department
+  - PUT /api/departments/[id] — Update department (ADMIN)
+  - DELETE /api/departments/[id] — Soft delete/disable (ADMIN)
+
+- Problem Categories
+  - GET /api/problem-categories — List categories
+  - POST /api/problem-categories — Create category (ADMIN)
+  - GET /api/problem-categories/[id] — Get category
+  - PUT /api/problem-categories/[id] — Update category (ADMIN)
+  - DELETE /api/problem-categories/[id] — Delete category (ADMIN)
+
+- Doctors
+  - GET /api/doctors/public — Public doctor directory
+  - GET /api/doctors/available — Availability by date/session
+  - GET /api/doctors/availability — Admin/doctor schedule management
+  - GET /api/doctors/routine — Routine/working hours overview
+
+- Sessions (Extended)
+  - POST /api/sessions/assign-doctors — Bulk assign doctors to sessions (ADMIN)
+  - POST /api/sessions/create-default — Create sessions from templates for date (ADMIN)
+  - GET /api/sessions/templates — List session templates from settings
+  - GET /api/sessions/simple — Lightweight session listing for public booking
+  - GET /api/sessions/[id] — Get session details
+
+- Settings
+  - GET /api/settings — Current system settings (ADMIN)
+  - PUT /api/settings — Update general settings (ADMIN)
+  - GET /api/settings/hospital — Detailed hospital branding/business settings (ADMIN)
+  - GET /api/settings/lookups — Lookups for forms (e.g., genders, payment methods)
+
+- Profile
+  - GET /api/profile/me — Current user profile
+  - GET /api/profile/stats — Personal dashboard metrics
+  - PUT /api/profile/availability — Update doctor availability
+  - POST /api/profile/me/avatar — Upload avatar
+  - POST /api/profile/me/signature — Upload signature
+  - GET /api/profile/public-card — Public profile card
+  - GET /api/profile/[id] — Public profile by ID
+
+- Uploads
+  - POST /api/media-upload — Upload media (admin UI)
+  - POST /api/upload — General upload endpoint for forms
+
+- Queue & Realtime
+  - GET /api/queue/stream — Server-Sent Events (SSE) stream for live queue updates
+
+- Analytics & Reports
+  - POST /api/analytics — Web vitals and custom metrics ingestion
+  - POST /api/reports/link — Generate shareable report link
+  - POST /api/reports/download — Generate/download report PDFs
+  - POST /api/reports/notify — Notify users with report link
+
+- Lab & Tests (if enabled)
+  - GET/POST /api/lab-tests — Manage master lab tests
+  - POST /api/lab/dispatch — Dispatch requests to lab
+  - GET /api/lab/jobs — Lab job tracking
+  - GET /api/lab/reports-state — Lab reports processing state
+
+- Marketing & Notifications
+  - GET/POST /api/marketing/campaigns — Campaign management
+  - GET/POST /api/notifications and /api/notifications/[id]
+
+- Users & Team
+  - GET/POST /api/users — User management (ADMIN)
+  - GET/PUT/DELETE /api/users/[id]
+  - GET /api/team/public — Public-facing team listing
+
+Notes
+- Token format is configurable: typically {tokenPrefix}-{sessionShortCode}-{###} (e.g., MED-M-001). Session short codes (e.g., M/E/L or S1/S2) come from settings.
+- All dates/times are ISO 8601 unless stated otherwise.
 
 This API documentation provides comprehensive information for integrating with and extending the Hospital Management System.

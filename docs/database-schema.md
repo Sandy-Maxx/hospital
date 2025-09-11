@@ -477,4 +477,22 @@ All models maintain referential integrity through Prisma foreign key constraints
 - API endpoint protection
 - Data validation at model level
 
+## Schema Updates & Configuration Notes
+
+- HospitalSettings additions
+  - vision: string — Organization vision statement
+  - mission: string — Organization mission statement
+  - lunchBreakStart/lunchBreakEnd: string — Business hours refinement
+  - socialFacebook/socialTwitter/socialInstagram/socialLinkedin: optional links
+
+- Token and Session formatting
+  - tokenPrefix (settings) and sessionShortCode (session) compose the tokenNumber:
+    Example: MED-M-001. Short codes are configurable (e.g., M/E/L or S1/S2/S3).
+
+- New relation models
+  - DoctorSessionAssignment: links doctors to AppointmentSession with isActive flag; enforces @@unique([doctorId, sessionId]) for one doctor per session assignment entry.
+
+- Problem Categories linkage
+  - AppointmentProblemCategory provides a many-to-many mapping between appointments and problem categories with uniqueness on (appointmentId, problemCategoryId).
+
 This schema documentation provides the foundation for understanding data relationships and implementing new features while maintaining data integrity.

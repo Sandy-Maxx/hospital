@@ -569,4 +569,14 @@ sequenceDiagram
 - **Voice Commands**: Hands-free operation
 - **Smart Suggestions**: AI-powered recommendations
 
+## 2025 Feature Additions
+
+- Departments: Master data with color, icon, sort order
+- Problem Categories: Tag appointments for reporting; managed via admin UI
+- Doctor Availability: UNAVAILABLE/LEAVE/HOLIDAY/CUSTOM with recurring options
+- Session Templates: Multiple templates (Morning/Evening/Late) generate daily sessions
+- Public Doctor Directory & Profile Cards
+- Realtime Queue: Live updates for queue status
+- Media Uploads: Hospital branding, avatars, signatures
+
 This feature specification provides a comprehensive overview of all implemented and planned features, serving as a reference for development, testing, and enhancement activities.
