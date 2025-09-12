@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
         status: { in: ["SCHEDULED", "ARRIVED", "WAITING", "IN_CONSULTATION"] },
       },
       orderBy: [{ tokenNumber: "asc" }],
-      select: { id: true, tokenNumber: true, atDoor: true },
     });
 
     const atDoorList = sameQueue.filter((a) => a.atDoor);
