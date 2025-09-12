@@ -6,8 +6,7 @@ generator client {
 }
 
 datasource db {
-  // In development you can use SQLite; in production (Vercel/Supabase) set provider/url via env
-  provider = env("PRISMA_DB_PROVIDER")
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

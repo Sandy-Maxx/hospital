@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env PRISMA_DB_PROVIDER=sqlite next dev",
+    "dev": "next dev",
     "build": "next build",
     "vercel-build": "prisma generate && next build",
     "postinstall": "prisma generate",
@@ -46,7 +46,6 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.9.0",
