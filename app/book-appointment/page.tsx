@@ -68,6 +68,7 @@ function BookingPageInner() {
     null,
   );
   const confirmationRef = useRef<HTMLDivElement>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [formData, setFormData] = useState({
     // Patient Information
@@ -228,15 +229,24 @@ function BookingPageInner() {
 
   const handleSubmit = async () => {
     if (!validateStep1() || !validateStep2()) return;
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions to proceed");
+      return;
+    }
 
     setLoading(true);
     try {
+      const bookingPayload = {
+        ...formData,
+        acceptedTerms: true,
+        consentVersion: "2025-09-12",
+      };
       const response = await fetch("/api/appointments/book-public", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(bookingPayload),
       });
 
       const data = await response.json();
@@ -298,6 +308,9 @@ function BookingPageInner() {
           </h1>
           <p className="text-gray-600">
             Schedule your visit with our healthcare professionals
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            By booking, you agree to our <a href="/terms" className="underline text-blue-600" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>.
           </p>
         </div>
 
@@ -773,13 +786,32 @@ function BookingPageInner() {
                 </div>
               </div>
 
-              <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  Back
-                </Button>
-                <Button onClick={handleSubmit} disabled={loading}>
-                  {loading ? "Booking..." : "Confirm Appointment"}
-                </Button>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2 p-3 border rounded bg-gray-50">
+                  <input
+                    id="acceptTerms"
+                    type="checkbox"
+                    className="mt-1"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  />
+                  <label htmlFor="acceptTerms" className="text-sm text-gray-700">
+                    I have read and accept the
+                    {" "}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                      Terms & Conditions
+                    </a>
+                    , including consent for processing of my personal and health data in accordance with applicable Indian laws.
+                  </label>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <Button variant="outline" onClick={() => setStep(2)}>
+                    Back
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={loading || !acceptedTerms}>
+                    {loading ? "Booking..." : "Confirm Appointment"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -807,6 +839,17 @@ function BookingPageInner() {
                 <p className="text-gray-600">
                   Save your token. You can download it, take a photo, or print it now.
                 </p>
+                <div className="mt-3 text-xs text-gray-600 max-w-2xl mx-auto text-left bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <p className="font-semibold text-yellow-800 mb-1">Disclaimer</p>
+                  <p>
+                    The token number is provided solely for queue management. It does not create a right to consultation,
+                    nor does it guarantee that a consultation will occur at a specific time. Actual consultation is subject to
+                    patient arrival and registration, clinical triage (including prioritisation of emergencies and critical cases),
+                    the attending doctor’s availability, and operational considerations of the hospital. The hospital reserves the
+                    right to re-sequence, delay, or cancel consultations when necessary in the interest of patient safety and
+                    clinical urgency.
+                  </p>
+                </div>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                   <Button
                     variant="outline"
