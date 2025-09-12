@@ -1,4 +1,3 @@
-# This middleware adds a minimal set of security headers in production.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
