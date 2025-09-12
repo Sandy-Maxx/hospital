@@ -193,10 +193,12 @@ export default function ProblemCategoriesSelect({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{category.icon}</span>
+                          <span className="text-lg" aria-hidden>{category.icon}</span>
                           <span className="font-medium text-gray-900">{category.name}</span>
                         </div>
-                        <p className="text-sm text-gray-600">{category.description}</p>
+                        {category.description && (
+                          <p className="text-sm text-gray-600">{category.description}</p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -833,10 +833,21 @@ function BookingPageInner() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">
+                {/* Branding header for token */}
+                <div className="flex items-center justify-center gap-3 mb-2 print:mb-1">
+                  <div className="w-10 h-10 rounded overflow-hidden border">
+                    {/* Optional logo from settings if globally available via settings loader in header step; fallback to initials */}
+                    {/* For simplicity here, show title only. You can enhance to fetch settings at confirmation render */}
+                  </div>
+                  <div className="text-left">
+                    <div className="text-base font-bold leading-tight">Appointment Token</div>
+                    <div className="text-xs text-gray-600 leading-tight">{typeof window !== 'undefined' ? window.location.host : 'Hospital'}</div>
+                  </div>
+                </div>
+                <div className="text-3xl font-extrabold text-blue-700 mb-2 print:mb-1">
                   Token: {bookingResult.tokenNumber}
                 </div>
-                <p className="text-gray-600">
+                <p className="text-gray-600 text-sm print:text-xs">
                   Save your token. You can download it, take a photo, or print it now.
                 </p>
                 <div className="mt-3 text-xs text-gray-600 max-w-2xl mx-auto text-left bg-yellow-50 border border-yellow-200 rounded p-3">
@@ -850,7 +861,7 @@ function BookingPageInner() {
                     clinical urgency.
                   </p>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 print:mt-2">
                   <Button
                     variant="outline"
                     onClick={async () => {
@@ -879,7 +890,7 @@ function BookingPageInner() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg print:p-3">
                 <h3 className="font-semibold text-gray-900 mb-3">
                   Appointment Details
                 </h3>
@@ -907,7 +918,7 @@ function BookingPageInner() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 p-4 rounded-lg print:p-3">
                 <h3 className="font-semibold text-blue-800 mb-2">
                   Next Steps:
                 </h3>
@@ -921,7 +932,7 @@ function BookingPageInner() {
                 </ul>
               </div>
 
-              <div className="text-center flex items-center justify-center gap-3">
+              <div className="text-center flex items-center justify-center gap-3 print:hidden">
                 <Button onClick={() => window.location.reload()}>
                   Book Another Appointment
                 </Button>
@@ -934,6 +945,19 @@ function BookingPageInner() {
     </div>
   );
 }
+
+/* Print optimization to fit in one page */
+/* eslint-disable @next/next/no-css-tags */
+<style jsx global>{`
+  @media print {
+    @page { margin: 12mm; }
+    html, body { height: auto !important; }
+    .print\:mb-1 { margin-bottom: 0.25rem !important; }
+    .print\:p-3 { padding: 0.75rem !important; }
+    .print\:text-xs { font-size: 0.75rem !important; }
+    .print\:mt-2 { margin-top: 0.5rem !important; }
+  }
+`}</style>
 
 export default function PublicBookAppointment() {
   return (

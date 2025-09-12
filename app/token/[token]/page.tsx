@@ -61,18 +61,6 @@ export default async function TokenInfoPage({ params }: { params: { token: strin
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Doctor</span>
-                <span className="font-semibold text-gray-900">
-                  {appointment.doctor?.name || "Not Assigned"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Department</span>
-                <span className="font-semibold text-gray-900">
-                  {appointment.doctor?.department || "General"}
-                </span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-gray-500">Session</span>
                 <span className="font-semibold text-gray-900">
                   {appointment.session?.name}

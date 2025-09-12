@@ -134,6 +134,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/terms" className="text-sm text-gray-600 hover:underline">Terms & Conditions</Link>
               <Button variant="outline" asChild>
                 <Link href="/auth/signin">Staff Login</Link>
               </Button>
