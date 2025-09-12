@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import HospitalDateInput from "@/components/ui/hospital-date-input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import TermsContent from "@/components/legal/terms-content";
 import ProblemCategoriesSelect from "@/components/ui/problem-categories-select";
 import { getProblemCategory } from "@/lib/problem-categories";
 import {
@@ -70,6 +72,7 @@ function BookingPageInner() {
   const confirmationRef = useRef<HTMLDivElement>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hospitalSettings, setHospitalSettings] = useState<any>(null);
+  const [showTerms, setShowTerms] = useState(false);
 
   const [formData, setFormData] = useState({
     // Patient Information
@@ -212,6 +215,11 @@ function BookingPageInner() {
         // ignore
       }
     })();
+    // Restore prior acceptance if set on /terms page
+    try {
+      const accepted = localStorage.getItem('termsAccepted');
+      if (accepted === 'true') setAcceptedTerms(true);
+    } catch {}
   }, []);
 
   const handleInputChange = (field: string, value: string | string[]) => {
@@ -788,10 +796,13 @@ function BookingPageInner() {
                   <label htmlFor="acceptTerms" className="text-sm text-gray-700">
                     I have read and accept the
                     {" "}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <button type="button" onClick={() => setShowTerms(true)} className="text-blue-600 underline">
                       Terms & Conditions
-                    </a>
-                    , including consent for processing of my personal and health data in accordance with applicable Indian laws.
+                    </button>
+                    {" "}
+                    (opens a summary). For full page, see {" "}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">/terms</a>.
+                    {" "}This includes consent for processing of my personal and health data in accordance with applicable Indian laws.
                   </label>
                 </div>
                 <div className="flex justify-between pt-1">
@@ -950,6 +961,42 @@ function BookingPageInner() {
             </CardContent>
           </Card>
         )}
+
+        {/* Terms Dialog */}
+        <Dialog open={showTerms} onOpenChange={setShowTerms}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Terms & Conditions</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
+              <TermsContent />
+            </div>
+            <DialogFooter>
+              <label className="flex items-center gap-2 mr-auto text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                />
+                <span>I accept these Terms & Conditions</span>
+              </label>
+              <Button
+                onClick={() => {
+                  if (acceptedTerms) {
+                    try { localStorage.setItem('termsAccepted', 'true'); } catch {}
+                    setShowTerms(false);
+                  }
+                }}
+                disabled={!acceptedTerms}
+              >
+                Accept & Close
+              </Button>
+              <Button variant="outline" onClick={() => setShowTerms(false)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

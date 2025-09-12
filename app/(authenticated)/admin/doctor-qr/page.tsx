@@ -30,7 +30,11 @@ export default function DoctorQrAdminPage() {
           fetch("/api/doctors"),
           fetch("/api/settings/hospital"),
         ]);
-        if (setRes.ok) setSettings(await setRes.json());
+        let settingsJson: any = null;
+        if (setRes.ok) {
+          settingsJson = await setRes.json();
+          setSettings(settingsJson);
+        }
         if (docRes.ok) {
           const data = await docRes.json();
           const list: Doctor[] = Array.isArray(data)
@@ -40,7 +44,7 @@ export default function DoctorQrAdminPage() {
           // Pre-generate QRs
           try {
             const QR = (await import("qrcode")).default;
-            const base = ((settings?.publicBaseUrl as string) || "").trim();
+            const base = ((settingsJson?.publicBaseUrl as string) || "").trim();
             const origin = typeof window !== "undefined" ? window.location.origin : "";
             const baseUrl = (base || origin).replace(/\/$/, "");
             const pairs = await Promise.all(
