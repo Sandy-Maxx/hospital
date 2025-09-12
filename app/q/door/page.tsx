@@ -5,7 +5,8 @@ import { useState } from "react";
 
 export default function DoorCheckInPage() {
   const search = useSearchParams();
-  const doctorId = search.get("doctor") || "";
+  // Support both ?doctor= and ?doctorId= for compatibility
+  const doctorId = search.get("doctor") || search.get("doctorId") || "";
   const [tokenNumber, setTokenNumber] = useState("");
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(
     null,

@@ -69,6 +69,7 @@ function BookingPageInner() {
   );
   const confirmationRef = useRef<HTMLDivElement>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [hospitalSettings, setHospitalSettings] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     // Patient Information
@@ -197,6 +198,21 @@ function BookingPageInner() {
       loadPatientData(patientId);
     }
   }, [selectedDate, searchParams]);
+
+  // Load hospital branding for token header
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings/hospital');
+        if (res.ok) {
+          const data = await res.json();
+          setHospitalSettings(data);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -809,13 +825,32 @@ function BookingPageInner() {
               <div className="text-center">
                 {/* Branding header for token */}
                 <div className="flex items-center justify-center gap-3 mb-2 print:mb-1">
-                  <div className="w-10 h-10 rounded overflow-hidden border">
-                    {/* Optional logo from settings if globally available via settings loader in header step; fallback to initials */}
-                    {/* For simplicity here, show title only. You can enhance to fetch settings at confirmation render */}
-                  </div>
+                  {hospitalSettings?.logo ? (
+                    <img
+                      src={hospitalSettings.logo}
+                      alt="Hospital Logo"
+                      className="w-10 h-10 object-contain rounded border"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded overflow-hidden border flex items-center justify-center bg-blue-50 text-blue-700 font-bold">
+                      {(hospitalSettings?.name || 'H').slice(0,1)}
+                    </div>
+                  )}
                   <div className="text-left">
-                    <div className="text-base font-bold leading-tight">Appointment Token</div>
-                    <div className="text-xs text-gray-600 leading-tight">{typeof window !== 'undefined' ? window.location.host : 'Hospital'}</div>
+                    <div className="text-base font-bold leading-tight">
+                      {hospitalSettings?.name || 'Hospital'}
+                    </div>
+                    {hospitalSettings?.tagline && (
+                      <div className="text-xs text-gray-600 leading-tight">{hospitalSettings.tagline}</div>
+                    )}
+                    {(hospitalSettings?.phone || hospitalSettings?.email || hospitalSettings?.address) && (
+                      <div className="text-[11px] text-gray-500 leading-tight">
+                        {hospitalSettings?.phone}
+                        {hospitalSettings?.phone && hospitalSettings?.email ? ' • ' : ''}
+                        {hospitalSettings?.email}
+                        {hospitalSettings?.address ? ` • ${hospitalSettings.address}` : ''}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-3xl font-extrabold text-blue-700 mb-2 print:mb-1">

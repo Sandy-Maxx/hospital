@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       orderBy: [{ tokenNumber: "asc" }],
     });
 
-    const atDoorList = sameQueue.filter((a) => a.atDoor);
-    const notDoorList = sameQueue.filter((a) => !a.atDoor);
+    const atDoorList = sameQueue.filter((a: any) => (a as any).atDoor);
+    const notDoorList = sameQueue.filter((a: any) => !(a as any).atDoor);
     const ordered = [...atDoorList, ...notDoorList];
     const position = Math.max(1, ordered.findIndex((a) => a.id === appointment.id) + 1);
 

@@ -26,6 +26,7 @@ import {
   Megaphone,
   FlaskConical,
   Tags,
+  QrCode,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ const menuItems = {
       href: "/admin/doctor-availability",
     },
     { icon: Settings, label: "Hospital Settings", href: "/admin/settings" },
+    { icon: QrCode, label: "Doctor QR", href: "/admin/doctor-qr" },
     { icon: UserPlus, label: "Patients", href: "/patients" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
