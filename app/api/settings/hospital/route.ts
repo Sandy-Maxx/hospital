@@ -117,6 +117,13 @@ function saveSettings(settings: any) {
 
 export async function GET() {
   try {
+    // In production, prefer DB settings if present, fallback to file
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const db = await prisma.hospitalSettings.findFirst({ orderBy: { updatedAt: 'desc' } });
+        if (db) return NextResponse.json({ ...defaultSettings, ...db });
+      } catch {}
+    }
     const settings = loadSettings();
     return NextResponse.json(settings);
   } catch (error) {

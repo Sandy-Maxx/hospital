@@ -103,10 +103,20 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get("user-agent") || "";
 
     // Check if public booking is enabled
-    const settings = await fetch(
-      `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/settings/hospital`,
-    );
-    const settingsData = await settings.json();
+    let settingsData: any = null;
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const db = await prisma.hospitalSettings.findFirst({ orderBy: { updatedAt: 'desc' } });
+        settingsData = db || {};
+      } catch {
+        settingsData = {};
+      }
+    } else {
+      const settings = await fetch(
+        `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/settings/hospital`,
+      );
+      settingsData = await settings.json();
+    }
 
     if (!settingsData.allowPublicBooking) {
       return NextResponse.json(

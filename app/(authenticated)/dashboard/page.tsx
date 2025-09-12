@@ -182,6 +182,48 @@ export default function Dashboard() {
     return <ReceptionistDashboard />;
   }
 
+  // Doctor-focused quick view: show today's sessions summary with entry points
+  if (session?.user?.role === "DOCTOR") {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Doctor Dashboard</h1>
+          <p className="text-gray-600">Today's sessions and queue</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Link href="/queue" className="block">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle>View Queue</CardTitle>
+                <CardDescription>All sessions for today</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">Go to live queue</div>
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/doctor" className="block">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle>Start Consultation</CardTitle>
+                <CardDescription>Open your consultation console</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">Prescriptions, notes and more</div>
+                  <Activity className="w-6 h-6 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">

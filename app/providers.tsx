@@ -8,7 +8,8 @@ import { apiClient } from "@/lib/api-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+    const isProd = process.env.NODE_ENV === "production";
+    if (isProd && "serviceWorker" in navigator) {
       // Register service worker for PWA/offline support (prod only)
       navigator.serviceWorker
         .register("/sw.js")
@@ -18,12 +19,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     // Initialize Web Vitals reporting in production only
-    if (process.env.NODE_ENV === "production") {
+    if (isProd) {
       import("@/lib/web-vitals-client").then((m) => m.initWebVitals());
     }
 
     // Attempt to register a Background Sync to flush pending actions (prod only)
-    if (process.env.NODE_ENV === "production" && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    if (isProd && 'serviceWorker' in navigator && 'SyncManager' in window) {
       try {
         navigator.serviceWorker.ready
           .then((reg: any) => reg.sync?.register?.('sync-pending-actions'))
@@ -32,7 +33,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     // Initialize push notifications (if public key is configured) - prod only
-    if (process.env.NODE_ENV === "production") {
+    if (isProd) {
       import("@/lib/notifications-client").then((m) => m.initPushNotifications());
     }
   }, []);

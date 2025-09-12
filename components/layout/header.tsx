@@ -84,8 +84,9 @@ export function Header({ title }: HeaderProps) {
   }, []);
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+    <>
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
         <div>
           {title && (
             <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
@@ -208,7 +209,15 @@ export function Header({ title }: HeaderProps) {
             )}
           </div>
         </div>
+        </div>
+      </header>
+      {/* Mobile bottom navigation */}
+      <div className="md:hidden">
+        {(() => {
+          const MobileNavigation = require("@/components/navigation/mobile-navigation").default;
+          return <MobileNavigation />;
+        })()}
       </div>
-    </header>
+    </>
   );
 }
