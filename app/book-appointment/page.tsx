@@ -601,31 +601,12 @@ function BookingPageInner() {
               <div className="space-y-2">
                 <Label>Assigned Doctor</Label>
                 <div className="p-3 border rounded bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
-                  {formData.doctorId ? (() => {
-                    const doctor = doctors.find((d) => d.id === formData.doctorId);
-                    return doctor ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="font-medium text-green-800">Dr. {doctor.name}</span>
-                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                          Best Match
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="text-blue-800">Assigning best doctor...</span>
-                      </div>
-                    );
-                  })() : (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span>Select session and health concerns to assign doctor</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-gray-700">
+                    Doctor will be assigned by our system based on your health concerns and session availability.
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Our system automatically assigns the most suitable doctor based on your health concerns and session availability.
+                  Final doctor assignment is handled internally and shown at the hospital on arrival.
                 </p>
               </div>
 
@@ -740,12 +721,12 @@ function BookingPageInner() {
                           </p>
                           <div>
                             <span className="font-medium">Health Concerns:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex flex-wrap gap-1 mt-1">
                               {formData.problemCategories.map(categoryId => {
                                 const category = getProblemCategory(categoryId);
                                 return category ? (
                                   <span key={categoryId} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                    <span>{category.icon}</span>
+                                    <span aria-hidden>{category.icon}</span>
                                     <span>{category.name}</span>
                                   </span>
                                 ) : null;

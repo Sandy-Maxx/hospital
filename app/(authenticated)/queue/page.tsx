@@ -33,6 +33,7 @@ interface QueueItem {
   time: string;
   status: string;
   tokenNumber?: string;
+  atDoor?: boolean;
   patient: {
     id: string;
     firstName: string;
@@ -440,9 +441,9 @@ export default function Queue() {
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center relative">
                           <span className="text-primary-600 font-medium">
-                            {appointment.tokenNumber || "#"}
+                            {item.tokenNumber || "#"}
                           </span>
-                          {appointment.atDoor && (
+                          {item.atDoor && (
                             <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-green-600 text-white text-[10px] px-1 animate-pulse" title="Patient at door">
                               AT
                             </span>
