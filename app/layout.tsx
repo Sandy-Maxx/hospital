@@ -27,16 +27,19 @@ export const metadata: Metadata = {
     shortcut: `/favicon.ico?v=${readIconVersion()}`,
     apple: "/icon.png",
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" }
-  ],
   applicationName: "HMS",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "HMS"
   }
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" }
+  ],
 };
 
 export default function RootLayout({

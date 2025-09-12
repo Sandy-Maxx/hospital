@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  // In development you can use SQLite; in production (Vercel/Supabase) set provider/url via env
+  provider = env("PRISMA_DB_PROVIDER")
+  url      = env("DATABASE_URL")
 }
 
 model User {
