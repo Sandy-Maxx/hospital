@@ -23,6 +23,12 @@ const bookingSchema = z.object({
   priority: z.enum(["LOW", "NORMAL", "HIGH", "EMERGENCY"]).default("NORMAL"),
   notes: z.string().optional(),
   problemCategories: z.array(z.string()).min(1, "At least one health concern must be selected"),
+
+  // Consent acceptance (must be true)
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the Terms & Conditions to continue" }),
+  }),
+  consentVersion: z.string().optional(),
 });
 
 // Load hospital settings
@@ -90,6 +96,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedData = bookingSchema.parse(body);
+
+    // Capture basic consent audit context
+    const forwardedFor = request.headers.get("x-forwarded-for") || "";
+    const ip = (forwardedFor.split(",")[0] || request.headers.get("x-real-ip") || "").trim();
+    const userAgent = request.headers.get("user-agent") || "";
 
     // Check if public booking is enabled
     const settings = await fetch(
@@ -257,6 +268,12 @@ export async function POST(request: NextRequest) {
         notes: finalNotes,
         tokenNumber: tokenNumber,
         status: "SCHEDULED",
+        // Consent audit
+        consentAccepted: true,
+        consentVersion: validatedData.consentVersion || "v1",
+        consentAt: new Date(),
+        consentIp: ip || null,
+        consentUserAgent: userAgent || null,
       },
       include: {
         patient: {

@@ -89,6 +89,14 @@ model Appointment {
   estimatedDuration Int?      @default(30) // in minutes
   actualStartTime   DateTime?
   actualEndTime     DateTime?
+  
+  // Consent/Audit
+  consentAccepted   Boolean   @default(false)
+  consentVersion    String?
+  consentAt         DateTime?
+  consentIp         String?
+  consentUserAgent  String?
+  
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
