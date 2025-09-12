@@ -600,14 +600,7 @@ function BookingPageInner() {
               {/* Auto-assigned doctor display */}
               <div className="space-y-2">
                 <Label>Assigned Doctor</Label>
-                <div className="p-3 border rounded bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
-                  <div className="flex items-center gap-2 text-gray-700">
-                    Doctor will be assigned by our system based on your health concerns and session availability.
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Final doctor assignment is handled internally and shown at the hospital on arrival.
-                </p>
+                {/* Doctor field removed from public view as requested */}
               </div>
 
               <div className="space-y-2">

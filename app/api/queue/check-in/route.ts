@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
 
     await prisma.appointment.update({
       where: { id: appointment.id },
-      data: { atDoor: true, atDoorAt: new Date() },
+      data: {
+        atDoor: { set: true },
+        atDoorAt: { set: new Date() },
+      } as any,
     });
 
     const sameQueue = await prisma.appointment.findMany({
