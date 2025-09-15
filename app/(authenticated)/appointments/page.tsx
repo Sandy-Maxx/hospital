@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import HospitalDateInput from "@/components/ui/hospital-date-input";
 import { Calendar, Clock, User, Phone, Plus } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -58,14 +58,20 @@ export default function Appointments() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [statusFilter, setStatusFilter] = useState("");
+  const [selectedDateTo, setSelectedDateTo] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        date: selectedDate,
-        ...(statusFilter && { status: statusFilter }),
+        dateFrom: selectedDate,
+        dateTo: selectedDateTo,
+        ...(statusFilter !== "all" && { status: statusFilter }),
+        ...(typeFilter !== "all" && { type: typeFilter }),
       });
 
       const data = await apiClient.getJSON<{ appointments: any[] }>(
@@ -82,7 +88,7 @@ export default function Appointments() {
 
   useEffect(() => {
     fetchAppointments();
-  }, [selectedDate, statusFilter]);
+  }, [selectedDate, selectedDateTo, statusFilter, typeFilter]);
 
   const updateAppointmentStatus = async (
     appointmentId: string,
@@ -207,32 +213,59 @@ export default function Appointments() {
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-4">
             <div className="w-48">
               <HospitalDateInput
                 value={selectedDate}
                 onChange={setSelectedDate}
-                label="Filter by Date"
+                label="From Date"
                 className="w-full"
                 variant="filter"
               />
             </div>
-            <div>
+            <div className="w-48">
+              <HospitalDateInput
+                value={selectedDateTo}
+                onChange={setSelectedDateTo}
+                label="To Date"
+                className="w-full"
+                variant="filter"
+              />
+            </div>
+            <div className="w-40">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
               </label>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-40"
-              >
-                <option value="">All Status</option>
-                <option value="SCHEDULED">Scheduled</option>
-                <option value="ARRIVED">Arrived</option>
-                <option value="WAITING">Waiting</option>
-                <option value="IN_CONSULTATION">In Consultation</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                  <SelectItem value="ARRIVED">Arrived</SelectItem>
+                  <SelectItem value="WAITING">Waiting</SelectItem>
+                  <SelectItem value="IN_CONSULTATION">In Consultation</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-40">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type
+              </label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="CONSULTATION">Consultation</SelectItem>
+                  <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                  <SelectItem value="EMERGENCY">Emergency</SelectItem>
+                  <SelectItem value="ROUTINE">Routine</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -242,7 +275,11 @@ export default function Appointments() {
       {/* Appointments List */}
       <Card>
         <CardHeader>
-          <CardTitle>Appointments for {formatDate(selectedDate)}</CardTitle>
+          <CardTitle>
+            Appointments {selectedDate === selectedDateTo ? 
+              `for ${formatDate(selectedDate)}` : 
+              `from ${formatDate(selectedDate)} to ${formatDate(selectedDateTo)}`}
+          </CardTitle>
           <CardDescription>
             {appointments.length} appointments found
           </CardDescription>

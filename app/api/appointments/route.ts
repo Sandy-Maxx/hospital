@@ -96,21 +96,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached);
     }
     const date = searchParams.get("date");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const doctorId = searchParams.get("doctorId");
     const patientId = searchParams.get("patientId");
     const status = searchParams.get("status");
+    const type = searchParams.get("type");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
     const where: any = {};
 
-    // Date filtering: supports either single-day (date) or range (from,to)
-    if (from && to) {
+    // Date filtering: supports either single-day (date) or range (from,to or dateFrom,dateTo)
+    if (dateFrom && dateTo) {
+      const startDate = new Date(dateFrom);
+      const endDate = new Date(dateTo);
+      endDate.setDate(endDate.getDate() + 1); // Include the end date
+      where.dateTime = {
+        gte: startDate,
+        lt: endDate,
+      };
+    } else if (from && to) {
       const startDate = new Date(from);
       const endDate = new Date(to);
+      endDate.setDate(endDate.getDate() + 1); // Include the end date
       where.dateTime = {
         gte: startDate,
         lt: endDate,
@@ -137,6 +149,13 @@ export async function GET(request: NextRequest) {
       const statusArray = status.split(",");
       where.status = {
         in: statusArray,
+      };
+    }
+
+    if (type) {
+      const typeArray = type.split(",");
+      where.type = {
+        in: typeArray,
       };
     }
 

@@ -29,6 +29,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dynamic from "next/dynamic";
 const BillForm = dynamic(() => import("@/components/billing/bill-form"), {
   ssr: false,
@@ -123,6 +124,7 @@ export default function Billing() {
   const [totalPages, setTotalPages] = useState(1);
   const [prescPage, setPrescPage] = useState(1);
   const [prescLimit, setPrescLimit] = useState(10);
+  const [updatingBills, setUpdatingBills] = useState<Set<string>>(new Set());
 
   const fetchBills = useCallback(async () => {
     try {
@@ -249,6 +251,18 @@ export default function Billing() {
   );
 
   const updateBillStatus = useCallback(async (bill: Bill, status: string) => {
+    // Add to updating set
+    setUpdatingBills(prev => new Set(prev).add(bill.id));
+    
+    // Store the original state for potential revert
+    const originalBills = bills;
+    
+    // Optimistically update the UI immediately
+    const updatedBills = bills.map(b => 
+      b.id === bill.id ? { ...b, paymentStatus: status } : b
+    );
+    setBills(updatedBills);
+    
     try {
       const payload: any = { paymentStatus: status };
       if (status === "PAID") {
@@ -261,13 +275,25 @@ export default function Billing() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) {
+        // Revert optimistic update if the API call fails
+        setBills(originalBills);
+        throw new Error("Failed to update status");
+      }
       toast.success("Payment status updated");
-      fetchBills();
     } catch (e: any) {
       toast.error(e?.message || "Failed to update status");
+      // Revert the optimistic update
+      setBills(originalBills);
+    } finally {
+      // Remove from updating set
+      setUpdatingBills(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bill.id);
+        return newSet;
+      });
     }
-  }, [fetchBills]);
+  }, [bills]);
 
   return (
     <div className="space-y-6">
@@ -682,17 +708,21 @@ export default function Billing() {
                           ).toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
-                          <select
+                          <Select
                             value={bill.paymentStatus}
-                            onChange={(e) => updateBillStatus(bill, e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
-                            title="Update payment status"
+                            onValueChange={(newStatus) => updateBillStatus(bill, newStatus)}
+                            disabled={updatingBills.has(bill.id)}
                           >
-                            <option value="PENDING">Pending</option>
-                            <option value="PARTIAL">Partial</option>
-                            <option value="PAID">Paid</option>
-                            <option value="REFUNDED">Refunded</option>
-                          </select>
+                            <SelectTrigger className={`w-24 h-8 text-xs bg-white border border-gray-300 ${updatingBills.has(bill.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <SelectValue placeholder={bill.paymentStatus} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                              <SelectItem value="PENDING">Pending</SelectItem>
+                              <SelectItem value="PARTIAL">Partial</SelectItem>
+                              <SelectItem value="PAID">Paid</SelectItem>
+                              <SelectItem value="REFUNDED">Refunded</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <span
                             className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
                             title="Payment method"

@@ -1,0 +1,58 @@
+{
+  "sunday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  },
+  "tuesday": {
+    "isWorking": true,
+    "sessions": [
+      "L",
+      "M",
+      "E"
+    ]
+  },
+  "monday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  },
+  "wednesday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  },
+  "thursday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  },
+  "friday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  },
+  "saturday": {
+    "isWorking": true,
+    "sessions": [
+      "M",
+      "E",
+      "L"
+    ]
+  }
+}

@@ -27,6 +27,7 @@ import {
   FlaskConical,
   Tags,
   QrCode,
+  Bed,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -51,6 +52,8 @@ const menuItems = {
     { icon: BarChart2, label: "Reports", href: "/reports" },
     { icon: Megaphone, label: "Marketing", href: "/marketing" },
     { icon: FlaskConical, label: "Path Lab", href: "/lab" },
+    { icon: Bed, label: "IPD Management", href: "/ipd" },
+    { icon: Shield, label: "Role Management", href: "/admin/roles" },
     { icon: Users, label: "My Profile", href: "/profile" },
   ],
   DOCTOR: [
@@ -65,6 +68,7 @@ const menuItems = {
     { icon: FileText, label: "Prescriptions", href: "/prescriptions" },
     { icon: ClipboardList, label: "Queue Management", href: "/queue" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: Bed, label: "IPD Management", href: "/ipd" },
     { icon: Users, label: "My Profile", href: "/profile" },
   ],
   RECEPTIONIST: [
@@ -130,6 +134,8 @@ export function Sidebar({ className }: SidebarProps) {
     "/doctor": "text-emerald-700",
     "/queue": "text-amber-700",
     "/prescriptions": "text-pink-600",
+    "/ipd": "text-blue-600",
+    "/admin/roles": "text-purple-600",
   };
 
   return (

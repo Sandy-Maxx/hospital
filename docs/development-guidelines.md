@@ -162,6 +162,81 @@ interface CreatePatientRequest {
 // DELETE /api/patients/[id] - Soft delete
 ```
 
+## Database Setup & Seeding
+
+### Quick Setup Commands
+
+#### Complete Setup (Recommended for New Development)
+```bash
+# Install dependencies (if not already done)
+npm install
+
+# Run comprehensive database setup with sample data
+npm run db:setup:force
+```
+
+#### Normal Setup (Without Database Reset)
+```bash
+# Setup database without resetting existing data
+npm run db:setup
+```
+
+#### Manual Step-by-Step Setup
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Push schema to database
+npx prisma db push
+
+# Seed with comprehensive data
+npm run db:seed:comprehensive
+```
+
+### Available Seeding Scripts
+
+- `npm run db:seed` - Basic seeding (users, patients, appointments)
+- `npm run db:seed:comprehensive` - Full seeding with all sample data
+- `npm run db:setup` - Complete setup without database reset
+- `npm run db:setup:force` - Complete setup with database reset
+
+### Sample Data Included
+
+#### Authentication Users
+- **Admin**: `admin@hospital.com` / `admin123`
+- **Doctors**: `doctor@hospital.com` / `doctor123`
+- **Receptionists**: `reception@hospital.com` / `reception123`
+
+#### Hospital Data
+- **Patients**: 15 sample patients with Indian names and realistic data
+- **Appointments**: 50+ appointments with various statuses and types
+- **Medicines**: 20+ Indian medicines (Dolo 650, Crocin, Combiflam, etc.)
+- **IPD Setup**: 6 wards with 60+ beds (General, Semi-Private, Private, ICU, Pediatric, Maternity)
+- **Permissions**: Complete permission system for all modules
+- **Problem Categories**: 25+ medical categories
+
+### Recent Bug Fixes
+
+#### IPD Page Issues Fixed
+- ✅ **Tab Clickability**: Fixed non-clickable tabs - tabs now properly switch between "Ward Management" and "Bed Type"
+- ✅ **Tab Styling**: Added proper cursor pointer styling for tab triggers
+
+#### Appointments Page Issues Fixed
+- ✅ **Date Range Picker**: Added support for "From Date" and "To Date" filtering (replaces single date)
+- ✅ **Type Filter**: Fixed broken appointment type filter (Consultation, Follow-up, Emergency, Routine)
+- ✅ **API Updates**: Updated API to handle `dateFrom`, `dateTo`, and `type` parameters
+- ✅ **UI Components**: Replaced legacy Select with proper Radix UI components
+
+### Database Schema Updates
+
+The database now includes comprehensive relationships:
+
+- **Users**: All roles (Admin, Doctors, Nurses, Receptionists) with proper permissions
+- **IPD System**: Complete ward and bed management with real-time status tracking
+- **Appointments**: Enhanced with date range filtering and type categorization
+- **Medical Records**: Prescriptions, bills, vitals, and consultation notes
+- **Role-Based Access**: Dynamic permission system with custom roles
+
 ## Code Organization Standards
 
 ### 1. File Structure

@@ -181,6 +181,7 @@ Error responses:
         "type": "CONSULTATION",
         "status": "SCHEDULED",
         "priority": "NORMAL",
+        "consultationId": "consultation_id_if_exists",
         "patient": {
           "firstName": "John",
           "lastName": "Doe",
@@ -338,7 +339,19 @@ Note: Token format is derived from HospitalSettings.tokenPrefix and session shor
 ```json
 {
   "patientId": "patient_id",
-  "consultationId": "consultation_id",
+  "appointmentId": "appointment_id",
+  "consultation": {
+    "soapNotes": {
+      "subjective": "Patient reports fever and headache for 2 days.",
+      "objective": "Temperature: 101.5°F, BP: 120/80 mmHg, Pulse: 85 bpm.",
+      "assessment": "Viral fever, likely influenza.",
+      "plan": "Prescribe Paracetamol, recommend rest and hydration."
+    },
+    "quickNotes": {
+      "symptoms": ["Fever", "Headache"],
+      "diagnoses": ["Viral Infection"]
+    }
+  },
   "medicines": [
     {
       "name": "Paracetamol",
@@ -347,15 +360,7 @@ Note: Token format is derived from HospitalSettings.tokenPrefix and session shor
       "duration": "5 days",
       "instructions": "After meals"
     }
-  ],
-  "symptoms": "Fever, headache",
-  "diagnosis": "Viral fever",
-  "notes": "Rest and hydration",
-  "vitals": {
-    "temperature": 101.5,
-    "bloodPressure": "120/80",
-    "pulse": 85
-  }
+  ]
 }
 ```
 

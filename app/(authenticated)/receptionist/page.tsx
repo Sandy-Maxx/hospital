@@ -309,7 +309,7 @@ export default function Receptionist() {
               <option value="">Select Doctor</option>
               {doctors.map((doctor) => (
                 <option key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.name}
+                  {doctor.name.startsWith('Dr.') ? doctor.name : `Dr. ${doctor.name}`}
                 </option>
               ))}
             </select>
@@ -665,7 +665,7 @@ export default function Receptionist() {
                                     {appointment.doctor && (
                                       <span className="flex items-center text-blue-600">
                                         <UserCheck className="w-4 h-4 mr-1" />
-                                        {appointment.doctor.name}
+                                        {appointment.doctor.name.startsWith('Dr.') ? appointment.doctor.name : `Dr. ${appointment.doctor.name}`}
                                       </span>
                                     )}
                                   </div>

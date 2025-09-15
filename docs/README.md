@@ -34,12 +34,12 @@ This documentation provides comprehensive information for contributors to unders
 
 ## System Status
 
-- Version: 1.0.0
+- Version: 1.0.1
 - Status: Active development
-- Last Updated: 2025-09-11
-- Technology Stack: Next.js 14, TypeScript, Prisma, SQLite, Tailwind CSS
+- Last Updated: 2025-09-15
+- Technology Stack: Next.js 14, TypeScript, Prisma, PostgreSQL/SQLite, Tailwind CSS
 - Authentication: NextAuth.js with JWT
-- Database: SQLite with Prisma ORM
+- Database: PostgreSQL (Production) / SQLite (Development) with Prisma ORM
 
 ## Key Features Implemented
 
@@ -56,6 +56,9 @@ This documentation provides comprehensive information for contributors to unders
 - ✅ Departments Management (admin)
 - ✅ Problem Categories Taxonomy with appointment tagging
 - ✅ Media Uploads (logo, favicon, PWA icon, avatars, signatures)
+- ✅ IPD (In-Patient Department) with Ward & Bed Management
+- ✅ Dynamic Role-Based Permission System
+- ✅ Comprehensive Database Seeding with Sample Data
 
 ## Critical Development Rules
 
@@ -66,3 +69,30 @@ This documentation provides comprehensive information for contributors to unders
 - ⚠️ USE existing API routes and component patterns
 
 For detailed development rules, see [`development-guidelines.md`](./development-guidelines.md).
+
+## Recent Updates
+
+- 🆕 **Comprehensive Billing System**: 
+  - GST-compliant billing with CGST/SGST calculations.
+  - Auto-populates bill items from prescriptions.
+  - Supports multiple item types (Consultation, Medicine, Lab Test, etc.).
+  - Manages discounts, payment methods, and payment statuses.
+
+- 🆕 **Enhanced Prescription Management**:
+  - Integration of SOAP (Subjective, Objective, Assessment, Plan) notes.
+  - Quick selection tools for common symptoms and diagnoses.
+  - Auto-selection of patients when starting a consultation from the appointment queue.
+
+- 🆕 **Advanced Appointment & Token System**:
+  - Public-facing page for booking appointments without authentication.
+  - Session-based scheduling with configurable tokens per session.
+  - Sequential token generation (e.g., T-001) with priority queuing.
+  - Professional token printing with QR codes for quick appointment details access.
+
+### Quick Setup
+```bash
+# Complete database setup with sample data
+npm run db:setup:force
+
+# Login with: admin@hospital.com / admin123
+```

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, List, Building2 } from "lucide-react";
+import { Settings, List, Building2, Bed } from "lucide-react";
 
 export default function SettingsHubPage() {
   return (
@@ -42,6 +42,15 @@ export default function SettingsHubPage() {
               <p className="text-sm text-gray-600 mb-4">Manage hospital departments used across the system.</p>
               <Link href="/admin/departments">
                 <Button className="">Open Departments</Button>
+              </Link>
+            </div>
+            <div className="p-5 border rounded-lg bg-white">
+              <div className="flex items-center gap-2 mb-2 text-lg font-semibold">
+                <Bed className="w-5 h-5" /> IPD Settings
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Configure ward types, bed types, capacities, and IPD management settings.</p>
+              <Link href="/admin/settings/ipd">
+                <Button className="">Open IPD Settings</Button>
               </Link>
             </div>
           </div>

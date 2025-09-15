@@ -7,7 +7,7 @@
 - **Frontend**: Next.js 14 with TypeScript, React 18
 - **Styling**: Tailwind CSS with custom design system
 - **Authentication**: NextAuth.js with JWT strategy
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL (Production) / SQLite (Development) with Prisma ORM
 - **State Management**: React hooks and context
 - **UI Components**: Custom components with Lucide React icons
 - **File Handling**: HTML2Canvas, jsPDF for printing
@@ -284,15 +284,23 @@ Prescription → Billing Module → Item Selection → GST Calculation → Payme
 - Activity logging and audit trails
 - Password security requirements
 
-## Recent Additions (2025)
+## Recent Feature Implementations
 
-- Departments Management (Admin): Create, update, order, and color-code departments
-- Problem Categories: Taxonomy for tagging appointments and analytics
-- Doctor Availability & Session Assignments: Schedule management and bulk assignment
-- Session Templates: Create daily sessions from configurable templates
-- Media Uploads: Logo, favicon, PWA icon; profile avatars and signatures
-- Public Doctor Directory & Profile Cards: Public endpoints for discovery
-- Realtime Queue Stream: SSE endpoint for live queue updates
-- Reporting & Analytics: Report links/downloads/notifications; analytics ingestion
+- **Comprehensive Billing System**:
+  - GST-compliant with automated CGST/SGST calculations.
+  - Seamlessly integrates with the prescription module to auto-populate bill items.
+  - Supports various item types, including consultations, medicines, lab tests, and procedures.
+  - Manages discounts, multiple payment methods, and tracks payment statuses (Pending, Paid, etc.).
+
+- **Advanced Appointment & Token System**:
+  - A public-facing page allows patients to book appointments without needing to log in.
+  - Scheduling is session-based, with a configurable number of tokens for each session.
+  - Tokens are generated sequentially (e.g., T-001) and queued based on priority.
+  - A professional token printing feature includes QR codes for quick access to appointment details.
+
+- **Enhanced Prescription Management**:
+  - Full integration of SOAP (Subjective, Objective, Assessment, Plan) notes for comprehensive clinical documentation.
+  - Quick selection tools for common symptoms and diagnoses to streamline the prescription process.
+  - The system automatically selects the patient on the prescription page when a doctor starts a consultation from the appointment queue.
 
 This overview provides the foundation for understanding the system architecture and serves as a reference for all development, debugging, and enhancement activities.

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+// Re-export enhanced auth functions for gradual migration
+export { withEnhancedAuth, hasPermission, usePermissions } from "./enhanced-auth";
+
+// Keep original withAuth function unchanged for backward compatibility
 export async function withAuth(
   request: NextRequest,
   requiredRoles?: string[],

@@ -13,8 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -53,6 +54,15 @@ export default function SignIn() {
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
             <Stethoscope className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex justify-start mb-4">
+            <Link 
+              href="/" 
+              className="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Home
+            </Link>
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Hospital Management System

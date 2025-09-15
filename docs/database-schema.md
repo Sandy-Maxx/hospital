@@ -16,7 +16,7 @@ model User {
   email          String    @unique
   name           String
   password       String    // bcrypt hashed
-  role           String    // ADMIN, DOCTOR, NURSE, RECEPTIONIST
+  role           String    // ADMIN, DOCTOR, RECEPTIONIST
   department     String?
   specialization String?
   isActive       Boolean   @default(true)
@@ -89,6 +89,7 @@ model Appointment {
   id                String    @id @default(cuid())
   patientId         String
   doctorId          String
+  consultationId    String?   @unique
   dateTime          DateTime
   type              String    @default("CONSULTATION")
   status            String    @default("SCHEDULED")
@@ -163,11 +164,10 @@ model Consultation {
   appointmentId  String    @unique
   patientId      String
   doctorId       String
-  chiefComplaint String?
-  history        String?
-  examination    String?
-  diagnosis      String?
-  treatment      String?
+  subjective     String?   // Patient complaints and symptoms
+  objective      String?   // Clinical findings and examination results
+  assessment     String?   // Diagnosis and clinical assessment
+  plan           String?   // Treatment plan and follow-up instructions
   notes          String?
   followUpDate   DateTime?
   createdAt      DateTime  @default(now())
@@ -189,15 +189,11 @@ model Consultation {
 ```prisma
 model Prescription {
   id             String   @id @default(cuid())
-  consultationId String?  @unique
+  consultationId String   @unique
   patientId      String
   doctorId       String
   medicines      String   // JSON array of medicine objects
   instructions   String?
-  symptoms       String?  // SOAP - Subjective
-  diagnosis      String?  // SOAP - Assessment
-  notes          String?  // SOAP - Plan
-  vitals         String?  // SOAP - Objective (JSON)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

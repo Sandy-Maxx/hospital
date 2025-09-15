@@ -37,6 +37,13 @@ model User {
   assignmentLogsFrom AppointmentAssignmentLog[] @relation("FromDoctor")
   assignmentLogsTo   AppointmentAssignmentLog[] @relation("ToDoctor")
   assignmentLogsBy   AppointmentAssignmentLog[] @relation("ChangedByUser")
+  
+  // IPD Relations
+  admissions         Admission[] @relation("AdmittedBy")
+  
+  // Dynamic Role Relations
+  customRoles        UserRole[] @relation("UserRoles")
+  assignedRoles      UserRole[] @relation("RoleAssignedBy")
 
   @@map("users")
 }
@@ -64,6 +71,7 @@ model Patient {
   bills           Bill[]
   vitals          Vital[]
   consultations   Consultation[]
+  admissions      Admission[]
 
   @@index([phone])
   @@index([firstName, lastName])
@@ -470,6 +478,198 @@ model AppointmentProblemCategory {
   @@map("appointment_problem_categories")
 }
 
+// IPD (In-Patient Department) Models for Bed Management
+model Ward {
+  id          String   @id @default(cuid())
+  name        String   @unique // "General Ward", "ICU", "Private Ward", "Semi-Private Ward"
+  description String?
+  floor       String?  // "Ground Floor", "First Floor", etc.
+  department  String?  // "Cardiology", "Pediatrics", "General Medicine"
+  capacity    Int      @default(10) // Total beds in this ward
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bedTypes BedType[]
+  beds     Bed[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([department])
+  @@map("wards")
+}
+
+model BedType {
+  id            String   @id @default(cuid())
+  wardId        String
+  name          String   // "General", "Semi-Private", "Private", "ICU", "Deluxe"
+  description   String?
+  dailyRate     Float?   // Daily charge for this bed type
+  amenities     String?  // JSON string of amenities
+  maxOccupancy  Int      @default(1) // Usually 1, but may be 2 for shared beds
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  ward Ward @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  beds Bed[]
+
+  @@unique([wardId, name])
+  @@index([wardId])
+  @@index([isActive])
+  @@index([name])
+  @@map("bed_types")
+}
+
+model Bed {
+  id          String   @id @default(cuid())
+  wardId      String
+  bedTypeId   String
+  bedNumber   String   // "B001", "ICU-01", "PVT-205", etc.
+  status      String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE, BLOCKED
+  notes       String?  // Maintenance notes, special instructions
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ward         Ward        @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  bedType      BedType     @relation(fields: [bedTypeId], references: [id])
+  admissions   Admission[]
+
+  @@unique([bedNumber]) // Bed numbers must be unique across hospital
+  @@unique([wardId, bedNumber]) // Also ensure uniqueness within ward
+  @@index([wardId])
+  @@index([bedTypeId])
+  @@index([status])
+  @@index([isActive])
+  @@index([wardId, status])
+  @@map("beds")
+}
+
+model Admission {
+  id              String    @id @default(cuid())
+  patientId       String
+  bedId           String
+  admittedBy      String    // Doctor ID who admitted
+  admissionDate   DateTime  @default(now())
+  dischargeDate   DateTime?
+  status          String    @default("ACTIVE") // ACTIVE, DISCHARGED, TRANSFERRED
+  admissionType   String    @default("EMERGENCY") // EMERGENCY, PLANNED, REFERRAL
+  
+  // Medical Details
+  diagnosis       String?
+  chiefComplaint  String?
+  admissionNotes  String?
+  dischargeNotes  String?
+  
+  // Administrative
+  estimatedStay   Int?      // Days
+  totalBillAmount Float?    // Total bill for this admission
+  insuranceInfo   String?   // JSON string with insurance details
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  patient       Patient @relation(fields: [patientId], references: [id])
+  bed           Bed     @relation(fields: [bedId], references: [id])
+  admittedByUser User   @relation("AdmittedBy", fields: [admittedBy], references: [id])
+
+  @@index([patientId])
+  @@index([bedId])
+  @@index([admittedBy])
+  @@index([status])
+  @@index([admissionDate])
+  @@index([dischargeDate])
+  @@index([patientId, status])
+  @@index([bedId, status])
+  @@map("admissions")
+}
+
+// Dynamic Role and Permission System
+model CustomRole {
+  id          String   @id @default(cuid())
+  name        String   @unique // "NURSE_SUPERVISOR", "LAB_TECHNICIAN", "BILLING_MANAGER"
+  displayName String   // "Nurse Supervisor", "Lab Technician", "Billing Manager"
+  description String?
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false) // System roles cannot be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([isSystem])
+  @@map("custom_roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // "patients.read", "appointments.create", "bills.delete"
+  displayName String   // "View Patients", "Create Appointments", "Delete Bills"
+  description String?
+  module      String   // "patients", "appointments", "bills", "settings", "ipd"
+  action      String   // "create", "read", "update", "delete", "manage"
+  resource    String?  // Specific resource if applicable
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  roles RolePermission[]
+
+  @@unique([module, action, resource])
+  @@index([module])
+  @@index([action])
+  @@index([isActive])
+  @@index([module, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  role       CustomRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  assignedBy String? // Admin who assigned this role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User       @relation("UserRoles", fields: [userId], references: [id], onDelete: Cascade)
+  role         CustomRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User?    @relation("RoleAssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([isActive])
+  @@map("user_roles")
+}
+
 // Enums replaced with string fields with comments for valid values
 // UserRole: ADMIN, DOCTOR, RECEPTIONIST
 // Gender: MALE, FEMALE, OTHER  
@@ -477,3 +677,6 @@ model AppointmentProblemCategory {
 // AppointmentStatus: SCHEDULED, ARRIVED, WAITING, IN_CONSULTATION, COMPLETED, CANCELLED, NO_SHOW
 // PaymentMethod: CASH, UPI, CARD, CHEQUE
 // PaymentStatus: PENDING, PAID, PARTIAL, REFUNDED
+// BedStatus: AVAILABLE, OCCUPIED, MAINTENANCE, BLOCKED
+// AdmissionStatus: ACTIVE, DISCHARGED, TRANSFERRED
+// AdmissionType: EMERGENCY, PLANNED, REFERRAL

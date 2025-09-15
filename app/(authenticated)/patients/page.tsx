@@ -158,8 +158,9 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Patients", href: "/patients" }]} />
+      
       <div className="flex justify-between items-center">
-        <Breadcrumb items={[{ label: "Patients", href: "/patients" }]} />
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Users className="w-8 h-8 mr-3 text-primary-600" />

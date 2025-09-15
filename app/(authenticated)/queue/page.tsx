@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SoapForm, { SoapNotes, Vitals } from "@/components/soap/soap-form";
 import BottomSheet from "@/components/ui/bottom-sheet";
 import {
@@ -272,8 +272,7 @@ export default function Queue() {
         <Select
           key="status"
           value={item.status}
-          onChange={(e) => {
-            const newStatus = e.target.value;
+          onValueChange={(newStatus) => {
             if (newStatus === "IN_CONSULTATION" && item.status === "WAITING") {
               startConsultation(item.id, item.patient.id);
             } else {
@@ -281,30 +280,40 @@ export default function Queue() {
             }
           }}
         >
-          <option value="SCHEDULED">Scheduled</option>
-          <option value="ARRIVED">Arrived</option>
-          <option value="WAITING">Waiting</option>
-          <option value="IN_CONSULTATION">In Consultation</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="NO_SHOW">No Show</option>
-        </Select>,
+          <SelectTrigger className="w-40 bg-white border border-gray-300">
+            <SelectValue placeholder={item.status.replace("_", " ")} />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+            <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+            <SelectItem value="ARRIVED">Arrived</SelectItem>
+            <SelectItem value="WAITING">Waiting</SelectItem>
+            <SelectItem value="IN_CONSULTATION">In Consultation</SelectItem>
+            <SelectItem value="COMPLETED">Completed</SelectItem>
+            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            <SelectItem value="NO_SHOW">No Show</SelectItem>
+          </SelectContent>
+        </Select>
       );
 
       // Doctor reassignment dropdown
       if (doctors.length > 0) {
         actions.push(
-          <Select
-            key="doctor"
-            value={item.doctor.id}
-            onChange={(e) => reassignDoctor(item.id, e.target.value)}
-          >
+        <Select
+          key="doctor"
+          value={item.doctor.id}
+          onValueChange={(newDoctorId) => reassignDoctor(item.id, newDoctorId)}
+        >
+          <SelectTrigger className="w-48 bg-white border border-gray-300">
+            <SelectValue placeholder={item.doctor.name.startsWith('Dr.') ? item.doctor.name : `Dr. ${item.doctor.name}`} />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
             {doctors.map((doctor) => (
-              <option key={doctor.id} value={doctor.id}>
-                Dr. {doctor.name}
-              </option>
+              <SelectItem key={doctor.id} value={doctor.id}>
+                {doctor.name.startsWith('Dr.') ? doctor.name : `Dr. ${doctor.name}`}
+              </SelectItem>
             ))}
-          </Select>,
+          </SelectContent>
+        </Select>
         );
       }
     }
@@ -460,7 +469,7 @@ export default function Queue() {
                             </span>
                             <span className="flex items-center">
                               <User className="w-4 h-4 mr-1" />
-                              {item.doctor.name}
+                              {item.doctor.name.startsWith('Dr.') ? item.doctor.name : `Dr. ${item.doctor.name}`}
                             </span>
                             <span className="flex items-center">
                               <Phone className="w-4 h-4 mr-1" />

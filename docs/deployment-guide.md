@@ -35,7 +35,25 @@ SENTRY_DSN="your-sentry-dsn"
 LOG_LEVEL="error"
 ```
 
-#### 2. Database Migration Strategy
+#### 2. Database Setup & Migration Strategy
+
+##### For Development/Demo Environment
+```bash
+# Complete setup with sample data
+npm run db:setup:force
+
+# This includes:
+# - Database schema migration
+# - Comprehensive sample data seeding
+# - Users: Admin, Doctors, Nurses, Receptionists
+# - Patients: 15+ sample patients
+# - Appointments: 50+ sample appointments
+# - IPD: 6 wards with 60+ beds
+# - Medicines: 20+ Indian medicines
+# - Permissions: Complete role-based access system
+```
+
+##### For Production Environment
 
 ```bash
 # Production database setup
@@ -48,8 +66,15 @@ npx prisma migrate deploy
 # 3. Generate Prisma client
 npx prisma generate
 
-# 4. Seed initial data
-npm run seed:production
+# 4. Seed initial data (choose one option)
+# Option A: Basic production seeding
+npm run db:seed
+
+# Option B: Comprehensive seeding with sample data (for demo/development)
+npm run db:seed:comprehensive
+
+# Option C: Use custom setup script
+npm run db:setup
 
 # 5. Create database backup schedule
 # Add to crontab:
