@@ -187,12 +187,6 @@ export default function IPDPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          {(session?.user as any)?.role === "ADMIN" && (
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Ward
-            </Button>
-          )}
         </div>
       </div>
 

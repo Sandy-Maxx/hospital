@@ -409,7 +409,7 @@ export default function RoleManagementPage() {
                         variant="outline" 
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteRole(role.id, role.displayName)}
-                        disabled={role.isSystem || (role.userCount && role.userCount > 0)}
+                        disabled={role.isSystem || Boolean(role.userCount && role.userCount > 0)}
                       >
                         <Trash2 className="h-3 w-3 mr-1" />
                         Delete

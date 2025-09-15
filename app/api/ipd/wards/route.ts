@@ -105,12 +105,14 @@ export async function GET(request: NextRequest) {
       availableBeds: acc.availableBeds + ward.statistics.availableBeds,
       maintenanceBeds: acc.maintenanceBeds + ward.statistics.maintenanceBeds,
       blockedBeds: acc.blockedBeds + ward.statistics.blockedBeds,
+      occupancyRate: 0 // Initialize occupancy rate
     }), {
       totalBeds: 0,
       occupiedBeds: 0,
       availableBeds: 0,
       maintenanceBeds: 0,
       blockedBeds: 0,
+      occupancyRate: 0
     });
 
     overallStats.occupancyRate = overallStats.totalBeds > 0 

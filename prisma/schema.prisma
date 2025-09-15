@@ -41,6 +41,11 @@ model User {
   // IPD Relations
   admissions         Admission[] @relation("AdmittedBy")
   
+  // IPD Relations
+  requestedAdmissions  AdmissionRequest[] @relation("RequestingDoctor")
+  processedRequests    AdmissionRequest[] @relation("ProcessedRequests")
+  billingTransactions  BillingTransaction[] @relation("ProcessedTransactions")
+  
   // Dynamic Role Relations
   customRoles        UserRole[] @relation("UserRoles")
   assignedRoles      UserRole[] @relation("RoleAssignedBy")
@@ -72,6 +77,8 @@ model Patient {
   vitals          Vital[]
   consultations   Consultation[]
   admissions      Admission[]
+  admissionRequests AdmissionRequest[]
+  billingTransactions BillingTransaction[]
 
   @@index([phone])
   @@index([firstName, lastName])
@@ -175,6 +182,7 @@ model Prescription {
   patient      Patient       @relation(fields: [patientId], references: [id])
   doctor       User          @relation(fields: [doctorId], references: [id])
   bills         Bill[]
+  admissionRequests AdmissionRequest[]
   
   @@index([createdAt])
   @@index([patientId])
@@ -244,6 +252,7 @@ model Bill {
   doctor          User         @relation("DoctorBills", fields: [doctorId], references: [id])
   createdByUser   User         @relation("CreatedBills", fields: [createdBy], references: [id])
   billItems       BillItem[]
+  billingTransactions BillingTransaction[]
   
   @@index([billNumber])
   @@index([patientId, createdAt])
@@ -577,6 +586,8 @@ model Admission {
   patient       Patient @relation(fields: [patientId], references: [id])
   bed           Bed     @relation(fields: [bedId], references: [id])
   admittedByUser User   @relation("AdmittedBy", fields: [admittedBy], references: [id])
+  admissionRequest AdmissionRequest?
+  billingTransactions BillingTransaction[]
 
   @@index([patientId])
   @@index([bedId])
@@ -587,6 +598,114 @@ model Admission {
   @@index([patientId, status])
   @@index([bedId, status])
   @@map("admissions")
+}
+
+// IPD Admission Request - Created when doctor requests IPD admission
+model AdmissionRequest {
+  id                 String    @id @default(cuid())
+  patientId          String
+  doctorId           String
+  prescriptionId     String?   // Link to prescription if created via prescription
+  
+  // Request Details
+  wardType           String?   // Preferred ward type
+  bedType            String?   // Preferred bed type  
+  urgency            String    @default("NORMAL") // EMERGENCY, HIGH, NORMAL, LOW
+  estimatedStay      Int?      // Days
+  diagnosis          String?
+  chiefComplaint     String?
+  notes              String?
+  
+  // Status Management
+  status             String    @default("PENDING") // PENDING, APPROVED, REJECTED, CONVERTED
+  requestedAt        DateTime  @default(now())
+  processedAt        DateTime?
+  processedBy        String?   // IPD staff who processed
+  rejectionReason    String?
+  
+  // Conversion to Admission
+  admissionId        String?   @unique // Once converted to admission
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  
+  // Relations
+  patient            Patient      @relation(fields: [patientId], references: [id])
+  doctor             User         @relation("RequestingDoctor", fields: [doctorId], references: [id])
+  prescription       Prescription? @relation(fields: [prescriptionId], references: [id])
+  processedByUser    User?        @relation("ProcessedRequests", fields: [processedBy], references: [id])
+  admission          Admission?   @relation(fields: [admissionId], references: [id])
+  
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([urgency, status])
+  @@index([status, requestedAt])
+  @@map("admission_requests")
+}
+
+// IPD Settings for advance deposit configuration
+model IPDSettings {
+  id                    String   @id @default(cuid())
+  
+  // Advance Deposit Configuration
+  defaultDepositAmount  Float?   // Fixed amount
+  defaultDepositPercent Float?   // Percentage of estimated bill
+  minimumDepositAmount  Float?   // Minimum required
+  
+  // Ward-specific deposit overrides (JSON)
+  wardDepositRules      String?  // {"ICU": {"amount": 50000}, "General": {"percent": 30}}
+  
+  // Billing Configuration  
+  autoGenerateBills     Boolean  @default(true)
+  dailyBillingTime      String?  @default("06:00") // When to generate daily bed charges
+  
+  // Discharge Configuration
+  requireDoctorDischarge Boolean  @default(true)
+  autoCalculateFinal    Boolean  @default(true)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("ipd_settings")
+}
+
+// Billing Transactions for tracking deposits and payments
+model BillingTransaction {
+  id              String   @id @default(cuid())
+  admissionId     String?
+  billId          String?
+  patientId       String
+  
+  // Transaction Details
+  type            String   // DEPOSIT, PAYMENT, REFUND, ADJUSTMENT
+  amount          Float
+  description     String?
+  reference       String?  // Receipt number, transaction ID
+  
+  // Payment Details
+  paymentMethod   String?  // CASH, CARD, UPI, BANK_TRANSFER
+  paymentStatus   String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
+  
+  // Metadata
+  processedBy     String
+  processedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  admission       Admission? @relation(fields: [admissionId], references: [id])
+  bill            Bill?      @relation(fields: [billId], references: [id])
+  patient         Patient    @relation(fields: [patientId], references: [id])
+  processedByUser User       @relation("ProcessedTransactions", fields: [processedBy], references: [id])
+  
+  @@index([admissionId])
+  @@index([billId])
+  @@index([patientId])
+  @@index([type])
+  @@index([processedAt])
+  @@index([paymentStatus])
+  @@map("billing_transactions")
 }
 
 // Dynamic Role and Permission System

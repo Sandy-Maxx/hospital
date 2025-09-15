@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import HospitalDateInput from "@/components/ui/hospital-date-input";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -196,18 +196,19 @@ export function BookAppointmentModal({
               <div>
                 <Label htmlFor="doctorId">Doctor *</Label>
                 <Select
-                  id="doctorId"
-                  name="doctorId"
                   value={formData.doctorId}
-                  onChange={handleChange}
-                  required
+                  onValueChange={(value) => setFormData({ ...formData, doctorId: value })}
                 >
-                  <option value="">Select a doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
-                    </option>
-                  ))}
+                  <SelectTrigger id="doctorId" className="w-full">
+                    <SelectValue placeholder="Select a doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        Dr. {doctor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -239,15 +240,18 @@ export function BookAppointmentModal({
               <div>
                 <Label htmlFor="type">Appointment Type</Label>
                 <Select
-                  id="type"
-                  name="type"
                   value={formData.type}
-                  onChange={handleChange}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
                 >
-                  <option value="CONSULTATION">Consultation</option>
-                  <option value="FOLLOW_UP">Follow-up</option>
-                  <option value="EMERGENCY">Emergency</option>
-                  <option value="WALK_IN">Walk-in</option>
+                  <SelectTrigger id="type" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CONSULTATION">Consultation</SelectItem>
+                    <SelectItem value="FOLLOW_UP">Follow-up</SelectItem>
+                    <SelectItem value="EMERGENCY">Emergency</SelectItem>
+                    <SelectItem value="WALK_IN">Walk-in</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
