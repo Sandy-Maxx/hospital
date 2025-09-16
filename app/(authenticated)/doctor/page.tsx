@@ -174,11 +174,6 @@ export default function DoctorDashboard() {
     appointmentId: string,
     patientId: string,
   ) => {
-
-    // Redirect to queue management page
-    router.push("/queue");
-    return;
-
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
@@ -186,19 +181,9 @@ export default function DoctorDashboard() {
         body: JSON.stringify({ status: "IN_CONSULTATION" }),
       });
 
-      // dev-only log: response status
-
       if (response.ok) {
-        // Refresh appointments to show updated status
-        fetchAppointments();
-
         toast.success("Starting consultation...");
-
-        // Immediate navigation without delay
         const url = `/prescriptions?patientId=${patientId}&appointmentId=${appointmentId}&consultation=true`;
-        // dev-only log: navigating to
-
-        // Force navigation using window.location for reliability
         window.location.href = url;
       } else {
         const errorData = await response.json();
@@ -455,7 +440,7 @@ export default function DoctorDashboard() {
                             ? "border-blue-500 bg-blue-50"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
-                        onClick={() => setSelectedPatient(appointment.patient)}
+                        onClick={() => startConsultation(appointment.id, appointment.patient.id)}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -515,95 +500,18 @@ export default function DoctorDashboard() {
               </CardContent>
             </Card>
 
-            {/* Consultation Form */}
+            {/* Consultation Form Placeholder: Redirects doctor to full detailed form */}
             <Card>
               <CardHeader>
                 <CardTitle>Patient Consultation</CardTitle>
                 <CardDescription>
-                  {selectedPatient
-                    ? `Consulting: ${selectedPatient.firstName} ${selectedPatient.lastName}`
-                    : "Select a patient to start consultation"}
+                  Select a patient from the queue to open the full consultation form
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {selectedPatient ? (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="symptoms">Symptoms</Label>
-                      <textarea
-                        id="symptoms"
-                        className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-                        rows={3}
-                        value={symptoms}
-                        onChange={(e) => setSymptoms(e.target.value)}
-                        placeholder="Describe patient symptoms..."
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="diagnosis">Diagnosis</Label>
-                      <textarea
-                        id="diagnosis"
-                        className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-                        rows={3}
-                        value={diagnosis}
-                        onChange={(e) => setDiagnosis(e.target.value)}
-                        placeholder="Enter diagnosis..."
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="notes">Additional Notes</Label>
-                      <textarea
-                        id="notes"
-                        className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-                        rows={2}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Any additional notes..."
-                      />
-                    </div>
-
-                    {/* Medical Timeline */}
-                    <div className="mt-6">
-                      <MedicalTimeline
-                        patientId={selectedPatient.id}
-                        onEventUpdate={() => {
-                          // Refresh data when timeline updates
-                          fetchAppointments();
-                          fetchConsultations();
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={() => {
-                          const appointment = appointments.find(
-                            (apt) => apt.patient.id === selectedPatient.id,
-                          );
-                          if (appointment) {
-                            completeConsultation(appointment.id);
-                          }
-                        }}
-                        className="flex-1"
-                      >
-                        Complete Consultation
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setSelectedPatient(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <User className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Select a patient from the queue to start consultation</p>
-                  </div>
-                )}
+                <div className="text-sm text-gray-600">
+                  When you select a patient in the queue, you will be redirected to the detailed prescription/consultation page. After completing a prescription, you will be redirected back to the queue.
+                </div>
               </CardContent>
             </Card>
           </div>

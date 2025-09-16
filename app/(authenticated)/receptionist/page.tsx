@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Calendar,
   Clock,
@@ -124,6 +125,7 @@ export default function Receptionist() {
   );
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [printingToken, setPrintingToken] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<Set<string>>(new Set());
 
   const fetchSessions = async () => {
     try {
@@ -183,6 +185,12 @@ export default function Receptionist() {
     appointmentId: string,
     newStatus: string,
   ) => {
+    // Optimistic UI
+    setUpdating(prev => new Set(prev).add(appointmentId));
+    setSessions(prev => prev.map(session => ({
+      ...session,
+      appointments: session.appointments.map(a => (a.id === appointmentId ? ({ ...a, status: newStatus } as any) : a))
+    })));
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
@@ -193,17 +201,32 @@ export default function Receptionist() {
       });
 
       if (response.ok) {
-        toast.success("Status updated successfully");
+        toast.success("Status updated");
         fetchSessions();
       } else {
         toast.error("Failed to update status");
       }
     } catch (error) {
       toast.error("Something went wrong");
+    } finally {
+      setUpdating(prev => { const s = new Set(prev); s.delete(appointmentId); return s; });
     }
   };
 
   const assignDoctor = async (appointmentId: string, doctorId: string) => {
+    // Optimistic UI
+    setUpdating(prev => new Set(prev).add(appointmentId));
+    const doc = doctors.find(d => d.id === doctorId);
+    if (doc) {
+      setSessions(prev => prev.map(session => ({
+        ...session,
+        appointments: session.appointments.map(a => {
+          if (a.id !== appointmentId) return a;
+          const dept = (doc as any)?.department ?? (a as any)?.doctor?.department ?? "";
+          return { ...a, doctor: { id: doctorId, name: doc.name, department: dept } } as any;
+        })
+      })));
+    }
     try {
       const response = await fetch(
         `/api/appointments/${appointmentId}/assign-doctor`,
@@ -215,7 +238,7 @@ export default function Receptionist() {
       );
 
       if (response.ok) {
-        toast.success("Doctor assigned successfully");
+        toast.success("Doctor assigned");
         fetchSessions();
         setEditingAppointment(null);
         setSelectedDoctorId("");
@@ -225,6 +248,8 @@ export default function Receptionist() {
       }
     } catch (error) {
       toast.error("Something went wrong");
+    } finally {
+      setUpdating(prev => { const s = new Set(prev); s.delete(appointmentId); return s; });
     }
   };
 
@@ -301,22 +326,26 @@ export default function Receptionist() {
       if (editingAppointment === appointment.id) {
         actions.push(
           <div key="doctor-select" className="flex items-center space-x-2">
-            <select
+            <Select
               value={selectedDoctorId}
-              onChange={(e) => setSelectedDoctorId(e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded text-sm"
+              onValueChange={(val) => setSelectedDoctorId(val)}
+              disabled={updating.has(appointment.id)}
             >
-              <option value="">Select Doctor</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  {doctor.name.startsWith('Dr.') ? doctor.name : `Dr. ${doctor.name}`}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={`w-56 ${updating.has(appointment.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <SelectValue placeholder="Select Doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((doctor) => (
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    {doctor.name.startsWith('Dr.') ? doctor.name : `Dr. ${doctor.name}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               size="sm"
               variant="default"
-              disabled={!selectedDoctorId}
+              disabled={!selectedDoctorId || updating.has(appointment.id)}
               onClick={() => assignDoctor(appointment.id, selectedDoctorId)}
             >
               Assign
@@ -351,14 +380,15 @@ export default function Receptionist() {
       }
 
       actions.push(
-        <Button
-          key="cancel"
-          size="sm"
-          variant="destructive"
-          onClick={() => updateAppointmentStatus(appointment.id, "CANCELLED")}
-        >
-          Cancel
-        </Button>,
+          <Button
+            key="cancel"
+            size="sm"
+            variant="destructive"
+            disabled={updating.has(appointment.id)}
+            onClick={() => updateAppointmentStatus(appointment.id, "CANCELLED")}
+          >
+            Cancel
+          </Button>,
       );
     }
 

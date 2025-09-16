@@ -123,7 +123,11 @@ export default function ProblemCategoriesSelect({
                     color: category!.color || '#1e40af'
                   }}
                 >
-                  {category!.icon && <span>{category!.icon}</span>}
+                  {category!.icon && (
+                    <span role="img" aria-hidden="true" style={{fontFamily: 'emoji'}}>
+                      {category!.icon}
+                    </span>
+                  )}
                   <span>{category!.name}</span>
                   <button
                     type="button"
@@ -193,7 +197,11 @@ export default function ProblemCategoriesSelect({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg" aria-hidden>{category.icon}</span>
+                          {category.icon && (
+                            <span className="text-lg" role="img" aria-hidden="true" style={{fontFamily: 'emoji'}}>
+                              {category.icon}
+                            </span>
+                          )}
                           <span className="font-medium text-gray-900">{category.name}</span>
                         </div>
                         {category.description && (

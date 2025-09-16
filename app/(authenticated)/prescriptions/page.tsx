@@ -114,15 +114,16 @@ export default function PrescriptionsPage() {
   }, []);
 
   useEffect(() => {
-    // Check if coming from consultation
+    // Check if coming from consultation or SOAP entry
     const patientId = searchParams.get("patientId");
     const appointmentIdParam = searchParams.get("appointmentId");
     const consultation = searchParams.get("consultation");
+    const soap = searchParams.get("soap");
 
-    console.log("URL Params:", { patientId, appointmentIdParam, consultation });
+    console.log("URL Params:", { patientId, appointmentIdParam, consultation, soap });
     console.log("Current URL:", window.location.href);
 
-    if (patientId && consultation === "true") {
+    if (patientId && (consultation === "true" || soap === "true")) {
       console.log("Setting consultation mode");
       setConsultationMode(true);
       setAppointmentId(appointmentIdParam);
@@ -210,10 +211,11 @@ export default function PrescriptionsPage() {
   useEffect(() => {
     const patientId = searchParams.get("patientId");
     const consultation = searchParams.get("consultation");
+    const soap = searchParams.get("soap");
 
     if (
       patientId &&
-      consultation === "true" &&
+      (consultation === "true" || soap === "true") &&
       patients.length > 0 &&
       !selectedPatient
     ) {
@@ -343,6 +345,8 @@ export default function PrescriptionsPage() {
   };
 
   const handlePrescriptionSuccess = () => {
+    const shouldReturnToQueue = consultationMode && appointmentId;
+
     setShowNewPrescription(false);
     setSelectedPatient(null);
     setConsultationMode(false);
@@ -369,6 +373,12 @@ export default function PrescriptionsPage() {
     setSoapEditedBy([]);
     fetchPrescriptions();
     toast.success("Prescription saved successfully");
+
+    if (shouldReturnToQueue) {
+      // Redirect back to queue after consultation completion
+      router.replace("/queue");
+      return;
+    }
 
     // Clear URL params
     router.replace("/prescriptions");

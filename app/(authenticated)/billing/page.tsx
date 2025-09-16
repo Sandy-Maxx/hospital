@@ -717,10 +717,10 @@ export default function Billing() {
                               <SelectValue placeholder={bill.paymentStatus} />
                             </SelectTrigger>
                             <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                              <SelectItem value="PENDING">Pending</SelectItem>
-                              <SelectItem value="PARTIAL">Partial</SelectItem>
-                              <SelectItem value="PAID">Paid</SelectItem>
-                              <SelectItem value="REFUNDED">Refunded</SelectItem>
+                              <SelectItem value="PENDING" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Pending</SelectItem>
+                              <SelectItem value="PARTIAL" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Partial</SelectItem>
+                              <SelectItem value="PAID" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Paid</SelectItem>
+                              <SelectItem value="REFUNDED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Refunded</SelectItem>
                             </SelectContent>
                           </Select>
                           <span

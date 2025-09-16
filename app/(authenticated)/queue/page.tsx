@@ -12,8 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import SoapForm, { SoapNotes, Vitals } from "@/components/soap/soap-form";
-import BottomSheet from "@/components/ui/bottom-sheet";
 import {
   Clock,
   User,
@@ -68,56 +66,41 @@ export default function Queue() {
   const { data: session } = useSession();
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [soapOpen, setSoapOpen] = useState<{ [id: string]: boolean }>({});
-  const [selectedSoapId, setSelectedSoapId] = useState<string | null>(null);
-  const [soapNotes, setSoapNotes] = useState<{
-    [id: string]: {
-      subjective: string;
-      objective: string;
-      assessment: string;
-      plan: string;
-    };
-  }>({});
-  const [vitals, setVitals] = useState<{
-    [id: string]: {
-      temperature?: string;
-      bloodPressure?: string;
-      pulse?: string;
-      respiratoryRate?: string;
-      oxygenSaturation?: string;
-    };
-  }>({});
+  const [updating, setUpdating] = useState<Set<string>>(new Set());
 
-  const fetchQueue = async () => {
+  const fetchQueue = async (suppressLoading: boolean = false) => {
     try {
-      setLoading(true);
+      if (!suppressLoading && isInitialLoad) setLoading(true);
       const today = new Date().toISOString().split("T")[0];
       const url = `/api/appointments?date=${today}&status=SCHEDULED,ARRIVED,WAITING,IN_CONSULTATION`;
       const data = await apiClient.getJSON<{ appointments: any[] }>(
         url,
         { cacheKey: `queue:${today}`, ttl: 30_000 }
       );
+      // Simple replacement - optimistic updates are only overridden on explicit error, not on refresh
       setQueueItems(data.appointments || []);
     } catch (error) {
       toast.error("Failed to fetch queue");
     } finally {
       setLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
   useEffect(() => {
-    fetchQueue();
+    fetchQueue(true);
     if (session?.user?.role && session.user.role !== "NURSE") {
       fetchDoctors();
     }
-    // Refresh queue more frequently (every 10s)
-    const interval = setInterval(fetchQueue, 10000);
+    // Reduce periodic refresh to minimize blinking; rely on SSE for instant updates
+    const interval = setInterval(() => fetchQueue(true), 60000);
 
     // Refresh when tab becomes visible
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchQueue();
+        fetchQueue(true);
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
@@ -131,7 +114,7 @@ export default function Queue() {
           try {
             const msg = JSON.parse(e.data);
             if (msg?.event === "queue-update") {
-              fetchQueue();
+              fetchQueue(true);
             }
           } catch {}
         };
@@ -158,6 +141,18 @@ export default function Queue() {
   };
 
   const updateStatus = async (appointmentId: string, newStatus: string) => {
+    // Add to updating set
+    setUpdating(prev => new Set(prev).add(appointmentId));
+    
+    // Store the original state for potential revert
+    const originalItems = queueItems;
+    
+    // Optimistically update the UI immediately
+    const updatedItems = queueItems.map(i => 
+      i.id === appointmentId ? { ...i, status: newStatus } : i
+    );
+    setQueueItems(updatedItems);
+    
     try {
       const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
@@ -166,15 +161,40 @@ export default function Queue() {
       if (res.queued) {
         toast.success("Status change queued (offline)");
       } else {
-        toast.success("Status updated successfully");
+        toast.success("Status updated");
       }
-      fetchQueue();
+      // Commented out refresh to avoid overriding optimistic update
+      // setTimeout(() => fetchQueue(true), 1500);
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to update status");
+      // Revert the optimistic update on error
+      setQueueItems(originalItems);
+    } finally {
+      // Remove from updating set
+      setUpdating(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(appointmentId);
+        return newSet;
+      });
     }
   };
 
   const reassignDoctor = async (appointmentId: string, newDoctorId: string) => {
+    // Add to updating set
+    setUpdating(prev => new Set(prev).add(appointmentId));
+    
+    // Store the original state for potential revert
+    const originalItems = queueItems;
+    
+    // Optimistically update the UI immediately
+    const doc = doctors.find((d) => d.id === newDoctorId);
+    if (doc) {
+      const updatedItems = queueItems.map(i => 
+        i.id === appointmentId ? { ...i, doctor: { id: newDoctorId, name: doc.name } } : i
+      );
+      setQueueItems(updatedItems);
+    }
+    
     try {
       const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
@@ -183,41 +203,25 @@ export default function Queue() {
       if (res.queued) {
         toast.success("Doctor reassignment queued (offline)");
       } else {
-        toast.success("Doctor reassigned successfully");
+        toast.success("Doctor reassigned");
       }
-      fetchQueue();
+      // Commented out refresh to avoid overriding optimistic update
+      // setTimeout(() => fetchQueue(true), 1500);
     } catch (error) {
       console.error("Error reassigning doctor:", error);
-      toast.error("Something went wrong");
+      toast.error("Failed to reassign doctor");
+      // Revert the optimistic update on error
+      setQueueItems(originalItems);
+    } finally {
+      // Remove from updating set
+      setUpdating(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(appointmentId);
+        return newSet;
+      });
     }
   };
 
-  const saveSoap = async (appointmentId: string) => {
-    try {
-      const notes = soapNotes[appointmentId] || {
-        subjective: "",
-        objective: "",
-        assessment: "",
-        plan: "",
-      };
-      const vit = vitals[appointmentId] || {};
-      const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}/soap`, {
-        method: "PATCH",
-        body: {
-          soapNotes: notes,
-          quickNotes: { vitalSigns: vit },
-        },
-      });
-      if (res.queued) {
-        toast.success("SOAP update queued (offline)");
-      } else {
-        toast.success("SOAP saved for this appointment");
-        setSoapOpen((prev) => ({ ...prev, [appointmentId]: false }));
-      }
-    } catch (e) {
-      toast.error("Something went wrong");
-    }
-  };
 
   const startConsultation = async (
     appointmentId: string,
@@ -272,25 +276,18 @@ export default function Queue() {
         <Select
           key="status"
           value={item.status}
-          onValueChange={(newStatus) => {
-            if (newStatus === "IN_CONSULTATION" && item.status === "WAITING") {
-              startConsultation(item.id, item.patient.id);
-            } else {
-              updateStatus(item.id, newStatus);
-            }
-          }}
+          onValueChange={(newStatus) => updateStatus(item.id, newStatus)}
         >
-          <SelectTrigger className="w-40 bg-white border border-gray-300">
+          <SelectTrigger className={`w-40 bg-white border border-gray-300 ${updating.has(item.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <SelectValue placeholder={item.status.replace("_", " ")} />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-            <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-            <SelectItem value="ARRIVED">Arrived</SelectItem>
-            <SelectItem value="WAITING">Waiting</SelectItem>
-            <SelectItem value="IN_CONSULTATION">In Consultation</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-            <SelectItem value="NO_SHOW">No Show</SelectItem>
+            <SelectItem value="SCHEDULED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Scheduled</SelectItem>
+            <SelectItem value="ARRIVED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Arrived</SelectItem>
+            <SelectItem value="WAITING" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Waiting</SelectItem>
+            <SelectItem value="COMPLETED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Completed</SelectItem>
+            <SelectItem value="CANCELLED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Cancelled</SelectItem>
+            <SelectItem value="NO_SHOW" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">No Show</SelectItem>
           </SelectContent>
         </Select>
       );
@@ -303,12 +300,12 @@ export default function Queue() {
           value={item.doctor.id}
           onValueChange={(newDoctorId) => reassignDoctor(item.id, newDoctorId)}
         >
-          <SelectTrigger className="w-48 bg-white border border-gray-300">
+          <SelectTrigger className={`w-48 bg-white border border-gray-300 ${updating.has(item.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <SelectValue placeholder={item.doctor.name.startsWith('Dr.') ? item.doctor.name : `Dr. ${item.doctor.name}`} />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
             {doctors.map((doctor) => (
-              <SelectItem key={doctor.id} value={doctor.id}>
+              <SelectItem key={doctor.id} value={doctor.id} className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">
                 {doctor.name.startsWith('Dr.') ? doctor.name : `Dr. ${doctor.name}`}
               </SelectItem>
             ))}
@@ -493,18 +490,9 @@ export default function Queue() {
                               key={`soap-${item.id}`}
                               size="sm"
                               onClick={() => {
-                                setSelectedSoapId(item.id);
-                                setSoapOpen((prev) => ({ ...prev, [item.id]: true }));
-                                // initialize default state if not present
-                                setSoapNotes((prev) => ({
-                                  ...prev,
-                                  [item.id]: prev[item.id] || {
-                                    subjective: "",
-                                    objective: "",
-                                    assessment: "",
-                                    plan: "",
-                                  },
-                                }));
+                                // Navigate to prescription page for SOAP entry
+                                const url = `/prescriptions?patientId=${item.patient.id}&appointmentId=${item.id}&soap=true`;
+                                window.location.href = url;
                               }}
                             >
                               SOAP
@@ -520,48 +508,6 @@ export default function Queue() {
           )}
         </CardContent>
       </Card>
-      {/* Mobile SOAP Bottom Sheet */}
-      <BottomSheet
-        isOpen={!!(selectedSoapId && soapOpen[selectedSoapId])}
-        onClose={() => {
-          if (selectedSoapId) {
-            setSoapOpen((prev) => ({ ...prev, [selectedSoapId]: false }));
-          }
-          setSelectedSoapId(null);
-        }}
-        title="SOAP Notes"
-      >
-        {selectedSoapId && (
-          <div className="space-y-4">
-            <SoapForm
-              soap={soapNotes[selectedSoapId] || { subjective: "", objective: "", assessment: "", plan: "" }}
-              vitals={vitals[selectedSoapId] || {}}
-              onChangeSoap={(next) => setSoapNotes((prev) => ({ ...prev, [selectedSoapId]: next }))}
-              onChangeVitals={(next) => setVitals((prev) => ({ ...prev, [selectedSoapId]: next }))}
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (selectedSoapId) {
-                    setSoapOpen((prev) => ({ ...prev, [selectedSoapId]: false }));
-                  }
-                  setSelectedSoapId(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (selectedSoapId) saveSoap(selectedSoapId);
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        )}
-      </BottomSheet>
     </div>
   );
 }
