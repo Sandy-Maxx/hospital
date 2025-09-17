@@ -79,8 +79,25 @@ export default function Queue() {
         url,
         { cacheKey: `queue:${today}`, ttl: 30_000 }
       );
-      // Simple replacement - optimistic updates are only overridden on explicit error, not on refresh
-      setQueueItems(data.appointments || []);
+      // Only update if no items are currently being updated to prevent overriding optimistic updates
+      if (updating.size === 0) {
+        setQueueItems(data.appointments || []);
+      } else {
+        // Merge new data with currently updating items to preserve optimistic updates
+        setQueueItems(prevItems => {
+          const newItems = data.appointments || [];
+          return prevItems.map(prevItem => {
+            if (updating.has(prevItem.id)) {
+              // Keep the optimistically updated item
+              return prevItem;
+            } else {
+              // Use new data from server
+              const serverItem = newItems.find(item => item.id === prevItem.id);
+              return serverItem || prevItem;
+            }
+          });
+        });
+      }
     } catch (error) {
       toast.error("Failed to fetch queue");
     } finally {
@@ -141,17 +158,23 @@ export default function Queue() {
   };
 
   const updateStatus = async (appointmentId: string, newStatus: string) => {
+    // Prevent multiple simultaneous updates for the same item
+    if (updating.has(appointmentId)) {
+      return;
+    }
+    
     // Add to updating set
     setUpdating(prev => new Set(prev).add(appointmentId));
     
     // Store the original state for potential revert
-    const originalItems = queueItems;
+    const originalItems = [...queueItems];
     
     // Optimistically update the UI immediately
-    const updatedItems = queueItems.map(i => 
-      i.id === appointmentId ? { ...i, status: newStatus } : i
+    setQueueItems(prevItems => 
+      prevItems.map(i => 
+        i.id === appointmentId ? { ...i, status: newStatus } : i
+      )
     );
-    setQueueItems(updatedItems);
     
     try {
       const res = await apiClient.requestJSON(`/api/appointments/${appointmentId}`, {
@@ -163,36 +186,42 @@ export default function Queue() {
       } else {
         toast.success("Status updated");
       }
-      // Commented out refresh to avoid overriding optimistic update
-      // setTimeout(() => fetchQueue(true), 1500);
     } catch (error) {
       toast.error("Failed to update status");
       // Revert the optimistic update on error
       setQueueItems(originalItems);
     } finally {
-      // Remove from updating set
-      setUpdating(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(appointmentId);
-        return newSet;
-      });
+      // Remove from updating set after a small delay to prevent rapid successive calls
+      setTimeout(() => {
+        setUpdating(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(appointmentId);
+          return newSet;
+        });
+      }, 300);
     }
   };
 
   const reassignDoctor = async (appointmentId: string, newDoctorId: string) => {
+    // Prevent multiple simultaneous updates for the same item
+    if (updating.has(appointmentId)) {
+      return;
+    }
+    
     // Add to updating set
     setUpdating(prev => new Set(prev).add(appointmentId));
     
     // Store the original state for potential revert
-    const originalItems = queueItems;
+    const originalItems = [...queueItems];
     
     // Optimistically update the UI immediately
     const doc = doctors.find((d) => d.id === newDoctorId);
     if (doc) {
-      const updatedItems = queueItems.map(i => 
-        i.id === appointmentId ? { ...i, doctor: { id: newDoctorId, name: doc.name } } : i
+      setQueueItems(prevItems =>
+        prevItems.map(i => 
+          i.id === appointmentId ? { ...i, doctor: { id: newDoctorId, name: doc.name } } : i
+        )
       );
-      setQueueItems(updatedItems);
     }
     
     try {
@@ -205,20 +234,20 @@ export default function Queue() {
       } else {
         toast.success("Doctor reassigned");
       }
-      // Commented out refresh to avoid overriding optimistic update
-      // setTimeout(() => fetchQueue(true), 1500);
     } catch (error) {
       console.error("Error reassigning doctor:", error);
       toast.error("Failed to reassign doctor");
       // Revert the optimistic update on error
       setQueueItems(originalItems);
     } finally {
-      // Remove from updating set
-      setUpdating(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(appointmentId);
-        return newSet;
-      });
+      // Remove from updating set after a small delay to prevent rapid successive calls
+      setTimeout(() => {
+        setUpdating(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(appointmentId);
+          return newSet;
+        });
+      }, 300);
     }
   };
 
@@ -274,12 +303,13 @@ export default function Queue() {
       // Status dropdown for flexible status management
       actions.push(
         <Select
-          key="status"
+          key={`status-${item.id}`}
           value={item.status}
           onValueChange={(newStatus) => updateStatus(item.id, newStatus)}
+          disabled={updating.has(item.id)}
         >
           <SelectTrigger className={`w-40 bg-white border border-gray-300 ${updating.has(item.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <SelectValue placeholder={item.status.replace("_", " ")} />
+            <SelectValue placeholder="Select Status">{item.status.replace("_", " ")}</SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
             <SelectItem value="SCHEDULED" className="text-gray-900 bg-white hover:bg-gray-100 focus:bg-gray-100">Scheduled</SelectItem>
@@ -296,12 +326,13 @@ export default function Queue() {
       if (doctors.length > 0) {
         actions.push(
         <Select
-          key="doctor"
+          key={`doctor-${item.id}`}
           value={item.doctor.id}
           onValueChange={(newDoctorId) => reassignDoctor(item.id, newDoctorId)}
+          disabled={updating.has(item.id)}
         >
           <SelectTrigger className={`w-48 bg-white border border-gray-300 ${updating.has(item.id) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <SelectValue placeholder={item.doctor.name.startsWith('Dr.') ? item.doctor.name : `Dr. ${item.doctor.name}`} />
+            <SelectValue placeholder="Select Doctor">{item.doctor.name.startsWith('Dr.') ? item.doctor.name : `Dr. ${item.doctor.name}`}</SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
             {doctors.map((doctor) => (
