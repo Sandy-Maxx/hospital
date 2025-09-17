@@ -12,20 +12,16 @@ export async function GET(request: NextRequest) {
     const doctorId = searchParams.get("doctorId");
     const patientId = searchParams.get("patientId");
 
-    // Since we don't have AdmissionRequest table yet, let's simulate with prescription data
-    // that has IPD admission notes for now
     const where: any = {};
-    
     if (doctorId) where.doctorId = doctorId;
     if (patientId) where.patientId = patientId;
 
-    // For now, we'll look for prescriptions with IPD-related notes
-    // This is a temporary implementation until we add the proper schema
+    // Look for prescriptions with IPD-related notes
     const prescriptions = await prisma.prescription.findMany({
       where: {
         ...where,
         notes: {
-          contains: "IPD" // Temporary filter for IPD-related prescriptions
+          contains: "IPD ADMISSION REQUEST:" // identify structured entries
         }
       },
       include: {
@@ -50,30 +46,71 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: "desc"
       },
-      take: 50
+      take: 200
     });
 
-    // Transform to look like admission requests
-    const admissionRequests = prescriptions.map(prescription => ({
-      id: prescription.id,
-      patientId: prescription.patientId,
-      doctorId: prescription.doctorId,
-      prescriptionId: prescription.id,
-      wardType: null, // Will be extracted from notes in production
-      bedType: null,
-      urgency: "NORMAL",
-      estimatedStay: null,
-      diagnosis: prescription.diagnosis || "",
-      chiefComplaint: prescription.symptoms || "",
-      notes: prescription.notes || "",
-      status: "PENDING", // Default for now
-      requestedAt: prescription.createdAt,
-      processedAt: null,
-      processedBy: null,
-      patient: prescription.patient,
-      doctor: prescription.doctor,
-      createdAt: prescription.createdAt
-    }));
+    // Parse latest admission request state from notes
+    function parseAdmissionFromNotes(notes: string | null) {
+      if (!notes) return null;
+      const lines = notes.split(/\n+/);
+      const requests: any[] = [];
+      const updates: any[] = [];
+      for (const line of lines) {
+        const reqIdx = line.indexOf("IPD ADMISSION REQUEST:");
+        if (reqIdx >= 0) {
+          const jsonStr = line.slice(reqIdx + "IPD ADMISSION REQUEST:".length).trim();
+          try { requests.push(JSON.parse(jsonStr)); } catch {}
+          continue;
+        }
+        const updIdx = line.indexOf("IPD ADMISSION UPDATE:");
+        if (updIdx >= 0) {
+          const jsonStr = line.slice(updIdx + "IPD ADMISSION UPDATE:".length).trim();
+          try { updates.push(JSON.parse(jsonStr)); } catch {}
+          continue;
+        }
+      }
+      if (requests.length === 0) return null;
+      // Take the last request as the current request, then apply updates on top
+      const base = { ...requests[requests.length - 1] };
+      // Apply latest update if matches the same requestedAt
+      let lastStatus = base.status || "PENDING";
+      let processedAt = null;
+      let processedBy = null;
+      for (const u of updates) {
+        if (!u) continue;
+        if (u.status) lastStatus = u.status;
+        if (u.processedAt) processedAt = u.processedAt;
+        if (u.processedBy) processedBy = u.processedBy;
+      }
+      return { ...base, status: lastStatus, processedAt, processedBy };
+    }
+
+    const all = prescriptions.map(p => {
+      const parsed = parseAdmissionFromNotes(p.notes || "");
+      if (!parsed) return null;
+      return {
+        id: p.id,
+        patientId: p.patientId,
+        doctorId: p.doctorId,
+        prescriptionId: p.id,
+        wardType: parsed.wardType ?? null,
+        bedType: parsed.bedType ?? null,
+        urgency: parsed.urgency ?? "NORMAL",
+        estimatedStay: parsed.estimatedStay ?? null,
+        diagnosis: p.diagnosis || "",
+        chiefComplaint: p.symptoms || "",
+        notes: p.notes || "",
+        status: parsed.status || "PENDING",
+        requestedAt: parsed.requestedAt ? new Date(parsed.requestedAt) : p.createdAt,
+        processedAt: parsed.processedAt ? new Date(parsed.processedAt) : null,
+        processedBy: parsed.processedBy || null,
+        patient: p.patient,
+        doctor: p.doctor,
+        createdAt: p.createdAt
+      };
+    }).filter(Boolean) as any[];
+
+    const admissionRequests = status ? all.filter(r => r.status === status) : all;
 
     return NextResponse.json({
       admissionRequests,
@@ -172,5 +209,40 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create admission request" },
       { status: 500 }
     );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const authResult = await withAuth(request, ["ADMIN", "NURSE", "RECEPTIONIST"]);
+  if (authResult instanceof NextResponse) return authResult;
+
+  try {
+    const { prescriptionId, status } = await request.json();
+    if (!prescriptionId || !status) {
+      return NextResponse.json({ error: "prescriptionId and status are required" }, { status: 400 });
+    }
+    if (!["APPROVED", "REJECTED", "CONVERTED", "AWAITING_DEPOSIT", "DEPOSIT_PAID"].includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    // Append an update line into notes so GET can compute latest status
+    const existing = await prisma.prescription.findUnique({ where: { id: prescriptionId }, select: { notes: true } });
+    const updateEntry = {
+      status,
+      processedAt: new Date().toISOString(),
+      processedBy: { id: authResult.session.user.id, name: authResult.session.user.name, role: authResult.session.user.role }
+    };
+
+    await prisma.prescription.update({
+      where: { id: prescriptionId },
+      data: {
+        notes: `${existing?.notes || ""}\nIPD ADMISSION UPDATE: ${JSON.stringify(updateEntry)}`
+      }
+    });
+
+    return NextResponse.json({ message: "Admission request updated" });
+  } catch (e) {
+    console.error("Error updating admission request:", e);
+    return NextResponse.json({ error: "Failed to update admission request" }, { status: 500 });
   }
 }

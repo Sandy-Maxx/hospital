@@ -1,17 +1,19 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   Bed, Users, Activity, AlertCircle, CheckCircle,
   Settings, Plus, Search, RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface BedType {
   id: string;
@@ -68,6 +70,192 @@ interface BedInfo {
     };
   } | null;
   isOccupied: boolean;
+}
+
+function AdmissionRequestsPanel() {
+  const [alloc, setAlloc] = useState<{ open: boolean; req: any | null; wardId: string; bedId: string }>({ open: false, req: null, wardId: '', bedId: '' });
+  const [wardsList, setWardsList] = useState<any[]>([]);
+  const [bedsList, setBedsList] = useState<any[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [filter, setFilter] = useState<string>("PENDING");
+
+  const loadMeta = useCallback(async () => {
+    try {
+      const [wRes, bRes] = await Promise.all([
+        fetch('/api/ipd/wards'),
+        fetch('/api/ipd/beds?status=AVAILABLE'),
+      ]);
+      const w = await wRes.json().catch(()=>({ wards: [] }));
+      const b = await bRes.json().catch(()=>({ beds: [] }));
+      if (wRes.ok) setWardsList(w.wards || []);
+      if (bRes.ok) setBedsList(b.beds || []);
+    } catch {}
+  }, []);
+
+  const fetchRequests = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/ipd/admission-requests?status=${encodeURIComponent(filter)}`);
+      const data = await res.json();
+      if (res.ok) setRequests(data.admissionRequests || []);
+    } catch (e) {
+      console.error('Failed to fetch admission requests', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  // Load metadata once on mount
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
+
+  // Fetch requests when filter changes
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Status</span>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="APPROVED">Approved</SelectItem>
+              <SelectItem value="AWAITING_DEPOSIT">Awaiting Deposit</SelectItem>
+              <SelectItem value="DEPOSIT_PAID">Deposit Paid</SelectItem>
+              <SelectItem value="CONVERTED">Converted</SelectItem>
+              <SelectItem value="REJECTED">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchRequests}><RefreshCw className="h-4 w-4 mr-2"/>Refresh</Button>
+      </div>
+
+      {loading ? (
+        <div className="py-8 text-center text-gray-500">Loading...</div>
+      ) : requests.length === 0 ? (
+        <div className="py-8 text-center text-gray-500">No requests</div>
+      ) : (
+        <div className="space-y-2">
+          {requests.map((r) => (
+            <Card key={r.id}>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900">{r.patient.firstName} {r.patient.lastName} <span className="text-xs text-gray-500">({r.patient.phone})</span></div>
+                  <div className="text-xs text-gray-600">Requested: {new Date(r.requestedAt).toLocaleString()} • Doctor: Dr. {r.doctor.name}</div>
+                  <div className="text-xs text-gray-600">Ward: {r.wardType || '-'} • Bed: {r.bedType || '-'} • Urgency: {r.urgency}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {r.status === 'PENDING' && (
+                    <>
+                      <Button size="sm" onClick={async () => {
+                        try {
+                          const res = await fetch('/api/ipd/admission-requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: r.prescriptionId, status: 'AWAITING_DEPOSIT' }) });
+                          if (res.ok) { 
+                            toast.success('Admission request approved');
+                            fetchRequests(); 
+                          } else {
+                            toast.error('Failed to approve request');
+                          }
+                        } catch {
+                          toast.error('Failed to approve request');
+                        }
+                      }}>Approve</Button>
+                      <Button size="sm" variant="destructive" onClick={async () => {
+                        try {
+                          const res = await fetch('/api/ipd/admission-requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: r.prescriptionId, status: 'REJECTED' }) });
+                          if (res.ok) {
+                            toast.success('Admission request rejected');
+                            fetchRequests();
+                          } else {
+                            toast.error('Failed to reject request');
+                          }
+                        } catch {
+                          toast.error('Failed to reject request');
+                        }
+                      }}>Reject</Button>
+                    </>
+                  )}
+                  {r.status === 'AWAITING_DEPOSIT' && (
+                    <Badge>Awaiting Deposit</Badge>
+                  )}
+                  {r.status === 'DEPOSIT_PAID' && (
+                    <>
+                      <Badge variant="secondary">Deposit Paid</Badge>
+                      <Button size="sm" onClick={() => setAlloc({ open: true, req: r, wardId: '', bedId: '' })}>Allocate Bed</Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      {/* Allocate Bed Dialog */}
+      <Dialog open={alloc.open} onOpenChange={(o) => setAlloc(prev => ({ ...prev, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Allocate Bed</DialogTitle>
+            <DialogDescription>Select ward and available bed for this admission</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <span className="block text-sm text-gray-700 mb-1">Ward</span>
+              <Select value={alloc.wardId} onValueChange={(v) => setAlloc(prev => ({ ...prev, wardId: v }))}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select ward"/></SelectTrigger>
+                <SelectContent>
+                  {wardsList.map((w: any) => (
+                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <span className="block text-sm text-gray-700 mb-1">Bed</span>
+              <Select value={alloc.bedId} onValueChange={(v) => setAlloc(prev => ({ ...prev, bedId: v }))}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select available bed"/></SelectTrigger>
+                <SelectContent>
+                  {bedsList.filter((b:any) => !alloc.wardId || b.ward.id === alloc.wardId).map((b: any) => (
+                    <SelectItem key={b.id} value={b.id}>{b.ward.name} - {b.bedNumber} ({b.bedType.name})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlloc(prev => ({ ...prev, open: false }))}>Cancel</Button>
+            <Button onClick={async () => {
+              if (!alloc.req || !alloc.bedId) { 
+                toast.error('Please select a ward and bed'); 
+                return; 
+              }
+              try {
+                // 1) Mark bed occupied
+                const bedRes = await fetch('/api/ipd/beds', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bedId: alloc.bedId, status: 'OCCUPIED' }) });
+                if (!bedRes.ok) { throw new Error('Failed to update bed'); }
+                // 2) Mark admission request converted
+                const reqRes = await fetch('/api/ipd/admission-requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: alloc.req.prescriptionId, status: 'CONVERTED' }) });
+                if (!reqRes.ok) { throw new Error('Failed to update admission request'); }
+                toast.success('Bed allocated successfully');
+                setAlloc(prev => ({ ...prev, open: false }));
+                fetchRequests();
+              } catch (e: any) {
+                toast.error(e?.message || 'Failed to allocate bed');
+              }
+            }}>Allocate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 export default function IPDPage() {
@@ -254,9 +442,10 @@ export default function IPDPage() {
       </div>
 
       <Tabs defaultValue="wards" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="wards" className="cursor-pointer">Ward Management</TabsTrigger>
           <TabsTrigger value="beds" className="cursor-pointer">Bed Type</TabsTrigger>
+          <TabsTrigger value="requests" className="cursor-pointer">Admission Requests</TabsTrigger>
         </TabsList>
 
         <TabsContent value="wards" className="space-y-4">
@@ -397,6 +586,11 @@ export default function IPDPage() {
               <p className="text-gray-600">No beds found matching your criteria</p>
             </div>
           )}
+        </TabsContent>
+
+        {/* Admission Requests Tab */}
+        <TabsContent value="requests" className="space-y-4">
+          <AdmissionRequestsPanel />
         </TabsContent>
       </Tabs>
     </div>

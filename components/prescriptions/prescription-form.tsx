@@ -12,8 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Plus, Trash2, Search, Pill } from "lucide-react";
+import { Plus, Trash2, Search, Pill, BedDouble, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select as RadixSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Medicine {
   id: string;
@@ -211,6 +213,36 @@ export default function PrescriptionForm({
   const [activeTab, setActiveTab] = useState<
     "medicines" | "labs" | "therapies"
   >("medicines");
+
+  // IPD Admission dialog state
+  const [ipdOpen, setIpdOpen] = useState(false);
+  const [ipdForm, setIpdForm] = useState({
+    admit: false,
+    wardType: "",
+    bedType: "",
+    urgency: "NORMAL",
+    estimatedStay: "",
+    notes: "",
+  });
+  // IPD selections from live data
+  const [wards, setWards] = useState<any[]>([]);
+  const [selectedWardId, setSelectedWardId] = useState("");
+  const [selectedBedTypeId, setSelectedBedTypeId] = useState("");
+
+  useEffect(() => {
+    const loadWards = async () => {
+      try {
+        const res = await fetch('/api/ipd/wards');
+        if (res.ok) {
+          const data = await res.json();
+          setWards(Array.isArray(data.wards) ? data.wards : []);
+        }
+      } catch {}
+    };
+    if (ipdOpen) {
+      loadWards();
+    }
+  }, [ipdOpen]);
 
   // Prefill when editing
   useEffect(() => {
@@ -530,9 +562,18 @@ export default function PrescriptionForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <Pill className="h-5 w-5 mr-2" />
-          Prescription
+        <CardTitle className="flex items-center justify-between">
+          <span className="inline-flex items-center">
+            <Pill className="h-5 w-5 mr-2" />
+            Prescription
+          </span>
+          {/* Doctor-only: IPD Admission Request */}
+          {selectedPatient && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setIpdOpen(true)} title="Request IPD bed">
+              <BedDouble className="h-4 w-4 mr-2" />
+              Admit to IPD
+            </Button>
+          )}
         </CardTitle>
         <CardDescription>
           {selectedPatient
@@ -574,6 +615,123 @@ export default function PrescriptionForm({
             Therapies ({therapies.length})
           </button>
         </div>
+
+        {/* IPD Admission Dialog */}
+        <Dialog open={ipdOpen} onOpenChange={setIpdOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center"><BedDouble className="h-5 w-5 mr-2" /> IPD Admission Request</DialogTitle>
+              <DialogDescription>
+                Select ward/bed and provide details. This creates a Pending admission request visible to IPD desk and Billing.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Urgency</Label>
+                <RadixSelect value={ipdForm.urgency} onValueChange={(v) => setIpdForm({ ...ipdForm, urgency: v })}>
+                  <SelectTrigger className="w-full bg-white border border-gray-300"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                    <SelectItem value="NORMAL" className="text-gray-900 bg-white hover:bg-gray-100">Normal</SelectItem>
+                    <SelectItem value="HIGH" className="text-gray-900 bg-white hover:bg-gray-100">High</SelectItem>
+                    <SelectItem value="EMERGENCY" className="text-gray-900 bg-white hover:bg-gray-100">Emergency</SelectItem>
+                  </SelectContent>
+                </RadixSelect>
+              </div>
+              <div>
+                <Label>Ward</Label>
+                <RadixSelect
+                  value={selectedWardId}
+                  onValueChange={(wardId) => {
+                    setSelectedWardId(wardId);
+                    const ward = wards.find((w: any) => w.id === wardId);
+                    setIpdForm({ ...ipdForm, wardType: ward?.name || "" });
+                    // reset bed type when ward changes
+                    setSelectedBedTypeId("");
+                    setIpdForm((p) => ({ ...p, bedType: "" }));
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-white border border-gray-300">
+                    <SelectValue placeholder="Select ward" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                    {wards.map((w: any) => (
+                      <SelectItem key={w.id} value={w.id} className="text-gray-900 bg-white hover:bg-gray-100">
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </RadixSelect>
+              </div>
+              <div>
+                <Label>Bed Type</Label>
+                <RadixSelect
+                  value={selectedBedTypeId}
+                  onValueChange={(bedTypeId) => {
+                    setSelectedBedTypeId(bedTypeId);
+                    const ward = wards.find((w: any) => w.id === selectedWardId);
+                    const bt = ward?.bedTypes?.find((b: any) => b.id === bedTypeId);
+                    setIpdForm({ ...ipdForm, bedType: bt?.name || "" });
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-white border border-gray-300">
+                    <SelectValue placeholder={selectedWardId ? "Select bed type" : "Select ward first"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                    {(wards.find((w: any) => w.id === selectedWardId)?.bedTypes || []).map((b: any) => (
+                      <SelectItem key={b.id} value={b.id} className="text-gray-900 bg-white hover:bg-gray-100">
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </RadixSelect>
+              </div>
+              <div>
+                <Label>Estimated Stay</Label>
+                <Input placeholder="e.g., 3 days" value={ipdForm.estimatedStay} onChange={(e) => setIpdForm({ ...ipdForm, estimatedStay: e.target.value })} />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Input placeholder="Additional instructions or context" value={ipdForm.notes} onChange={(e) => setIpdForm({ ...ipdForm, notes: e.target.value })} />
+              </div>
+              <div className="flex items-start gap-2 text-xs bg-blue-50 border border-blue-200 rounded p-2">
+                <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5" />
+                <span>After submitting, IPD desk will approve and Billing will collect advance deposit as per IPD settings.</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIpdOpen(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!selectedPatient?.id) { toast.error("Patient not selected"); return; }
+                try {
+                  const res = await fetch('/api/ipd/admission-requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      patientId: selectedPatient.id,
+                      prescriptionId: existing?.id,
+                      wardType: ipdForm.wardType || null,
+                      bedType: ipdForm.bedType || null,
+                      urgency: ipdForm.urgency,
+                      estimatedStay: ipdForm.estimatedStay || null,
+                      diagnosis: consultationData?.soapNotes?.assessment || existing?.diagnosis || '',
+                      chiefComplaint: consultationData?.soapNotes?.subjective || existing?.symptoms || '',
+                      notes: ipdForm.notes || ''
+                    })
+                  });
+                  if (res.ok) {
+                    toast.success('IPD admission request created');
+                    setIpdOpen(false);
+                  } else {
+                    const err = await res.json();
+                    toast.error(err.error || 'Failed to create request');
+                  }
+                } catch (e) {
+                  toast.error('Failed to create request');
+                }
+              }}>Create Request</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Medicines Tab */}
         {activeTab === "medicines" && (
