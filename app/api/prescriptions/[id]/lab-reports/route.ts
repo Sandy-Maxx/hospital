@@ -58,6 +58,36 @@ export async function POST(
   );
   const target = path.join(dir, safeName);
   saveDataUrl(target, dataUrl);
+  // If this prescription is linked to an active IPD admission, post a CHARGE to the ledger for LAB report
+  try {
+    // find a paid bill for this prescription to get patient and doctor info
+    const { prisma } = await import("@/lib/prisma");
+    const bills = await prisma.bill.findMany({ where: { prescriptionId: params.id } });
+    // Find an active admission for the bill's patient
+    if (bills.length) {
+      const patientId = bills[0].patientId;
+      const adm = await prisma.admission.findFirst({ where: { patientId, status: 'ACTIVE' } });
+      if (adm) {
+        await prisma.billingTransaction.create({
+          data: {
+            admissionId: adm.id,
+            billId: null,
+            patientId: patientId,
+            type: 'CHARGE',
+            amount: 0, // zero by default; pricing can be set elsewhere
+            description: `LAB: ${testName || safeName}`,
+            reference: `LAB_REPORT:${safeName}`,
+            paymentMethod: null,
+            paymentStatus: 'COMPLETED',
+            processedBy: (session.user as any).id || 'SYSTEM',
+            processedAt: new Date(),
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to post lab ledger CHARGE:', e);
+  }
   return NextResponse.json({
     success: true,
     url: `/uploads/reports/${params.id}/${safeName}`,

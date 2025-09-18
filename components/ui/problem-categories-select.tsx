@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, X, AlertCircle } from 'lucide-react';
+import { ChevronDown, X, AlertCircle, Stethoscope, HeartPulse, Activity, Syringe, Pill as PillIcon, Brain, Baby, Bone, Droplets, ActivitySquare, Thermometer } from 'lucide-react';
 
 interface ProblemCategory {
   id: string;
@@ -101,6 +101,26 @@ export default function ProblemCategoriesSelect({
   };
 
 
+  const renderIcon = (name?: string) => {
+    const n = (name || '').toLowerCase();
+    switch (n) {
+      case 'stethoscope': return <Stethoscope className="w-4 h-4"/>;
+      case 'heart': return <HeartPulse className="w-4 h-4"/>;
+      case 'activity': return <Activity className="w-4 h-4"/>;
+      case 'syringe': return <Syringe className="w-4 h-4"/>;
+      case 'pill': return <PillIcon className="w-4 h-4"/>;
+      case 'bandage': return <ActivitySquare className="w-4 h-4"/>;
+      case 'lungs': return <ActivitySquare className="w-4 h-4"/>;
+      case 'brain': return <Brain className="w-4 h-4"/>;
+      case 'baby': return <Baby className="w-4 h-4"/>;
+      case 'bone': return <Bone className="w-4 h-4"/>;
+      case 'blood': return <Droplets className="w-4 h-4"/>;
+      case 'vitals': return <Thermometer className="w-4 h-4"/>;
+      default:
+        return <ActivitySquare className="w-4 h-4"/>;
+    }
+  };
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <div
@@ -123,11 +143,6 @@ export default function ProblemCategoriesSelect({
                     color: category!.color || '#1e40af'
                   }}
                 >
-                  {category!.icon && (
-                    <span role="img" aria-hidden="true" style={{fontFamily: 'emoji'}}>
-                      {category!.icon}
-                    </span>
-                  )}
                   <span>{category!.name}</span>
                   <button
                     type="button"
@@ -197,11 +212,11 @@ export default function ProblemCategoriesSelect({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {category.icon && (
-                            <span className="text-lg" role="img" aria-hidden="true" style={{fontFamily: 'emoji'}}>
-                              {category.icon}
+                          {category.icon ? (
+                            <span className="text-lg" aria-hidden="true">
+                              {renderIcon(category.icon)}
                             </span>
-                          )}
+                          ) : null}
                           <span className="font-medium text-gray-900">{category.name}</span>
                         </div>
                         {category.description && (

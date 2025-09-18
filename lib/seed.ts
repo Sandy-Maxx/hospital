@@ -81,11 +81,41 @@ async function main() {
     },
   ];
 
-  for (const medicine of medicines) {
-    await prisma.medicine.upsert({
-      where: { name: medicine.name },
+  for (const m of medicines) {
+    // First ensure category exists
+    const category = await prisma.medicineCategory.upsert({
+      where: { name: m.category },
       update: {},
-      create: medicine,
+      create: { name: m.category, description: null, gstRate: 5.0 },
+    });
+
+    // Ensure GST slab exists
+    const gstSlab = await prisma.gstSlab.upsert({
+      where: { name: "5% GST" },
+      update: {},
+      create: { name: "5% GST", rate: 5.0, description: "Default slab" },
+    });
+
+    // Create medicine with proper foreign key references
+    await prisma.medicine.upsert({
+      where: { name: m.name },
+      update: {},
+      create: {
+        name: m.name,
+        genericName: m.genericName,
+        brand: m.name,
+        manufacturer: "Generic Manufacturer",
+        categoryId: category.id,
+        gstSlabId: gstSlab.id,
+        dosageForm: m.dosageForm,
+        strength: m.strength,
+        unitType: "Unit",
+        mrp: 100,
+        purchasePrice: 80,
+        marginPercentage: 20,
+        prescriptionRequired: true,
+        isActive: true,
+      },
     });
   }
 
@@ -230,7 +260,41 @@ async function main() {
     { name: "Betadine Gargle", genericName: "Povidone Iodine", category: "Antiseptic", dosageForm: "Solution", strength: "2%" },
   ];
   for (const med of indianMeds) {
-    await prisma.medicine.upsert({ where: { name: med.name }, update: {}, create: med });
+    // First ensure category exists
+    const category = await prisma.medicineCategory.upsert({
+      where: { name: med.category },
+      update: {},
+      create: { name: med.category, description: null, gstRate: 5.0 },
+    });
+
+    // Ensure GST slab exists
+    const gstSlab = await prisma.gstSlab.upsert({
+      where: { name: "5% GST" },
+      update: {},
+      create: { name: "5% GST", rate: 5.0, description: "Default slab" },
+    });
+
+    // Create medicine with proper foreign key references
+    await prisma.medicine.upsert({
+      where: { name: med.name },
+      update: {},
+      create: {
+        name: med.name,
+        genericName: med.genericName,
+        brand: med.name,
+        manufacturer: "Generic Manufacturer",
+        categoryId: category.id,
+        gstSlabId: gstSlab.id,
+        dosageForm: med.dosageForm,
+        strength: med.strength,
+        unitType: "Unit",
+        mrp: 100,
+        purchasePrice: 80,
+        marginPercentage: 20,
+        prescriptionRequired: true,
+        isActive: true,
+      }
+    });
   }
 
   const indianPatients = [

@@ -28,6 +28,7 @@ import {
   Tags,
   QrCode,
   Bed,
+  Scan,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -48,11 +49,14 @@ const menuItems = {
     { icon: QrCode, label: "Doctor QR", href: "/admin/doctor-qr" },
     { icon: UserPlus, label: "Patients", href: "/patients" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: Pill, label: "Pharmacy", href: "/admin/pharmacy" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: BarChart2, label: "Reports", href: "/reports" },
     { icon: Megaphone, label: "Marketing", href: "/marketing" },
     { icon: FlaskConical, label: "Path Lab", href: "/lab" },
     { icon: Bed, label: "IPD Management", href: "/ipd" },
+    { icon: Scan, label: "Imaging", href: "/imaging" },
+    { icon: ClipboardList, label: "OT / Procedures", href: "/ot" },
     { icon: Shield, label: "Role Management", href: "/admin/roles" },
     { icon: Users, label: "My Profile", href: "/profile" },
   ],
@@ -126,6 +130,7 @@ export function Sidebar({ className }: SidebarProps) {
     "/admin/settings": "text-gray-700",
     "/patients": "text-emerald-600",
     "/appointments": "text-cyan-600",
+    "/admin/pharmacy": "text-green-600",
     "/billing": "text-rose-600",
     "/reports": "text-violet-600",
     "/marketing": "text-fuchsia-600",

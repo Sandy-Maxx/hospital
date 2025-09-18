@@ -250,11 +250,41 @@ async function seedMedicines() {
     { name: "D Cold Total", genericName: "Paracetamol + Phenylephrine + Cetirizine + Caffeine", category: "Cold & Flu", dosageForm: "Tablet", strength: "325mg/5mg/5mg/30mg", manufacturer: "Paras" }
   ];
   
-  for (const medicine of medicines) {
-    await prisma.medicine.upsert({
-      where: { name: medicine.name },
+  for (const m of medicines) {
+    // First ensure category exists
+    const category = await prisma.medicineCategory.upsert({
+      where: { name: m.category },
       update: {},
-      create: medicine
+      create: { name: m.category, description: null, gstRate: 5.0 },
+    });
+
+    // Ensure GST slab exists
+    const gstSlab = await prisma.gstSlab.upsert({
+      where: { name: "5% GST" },
+      update: {},
+      create: { name: "5% GST", rate: 5.0, description: "Default slab" },
+    });
+
+    // Create medicine with proper foreign key references
+    await prisma.medicine.upsert({
+      where: { name: m.name },
+      update: {},
+      create: {
+        name: m.name,
+        genericName: m.genericName,
+        brand: m.name,
+        manufacturer: m.manufacturer,
+        categoryId: category.id,
+        gstSlabId: gstSlab.id,
+        dosageForm: m.dosageForm,
+        strength: m.strength,
+        unitType: "Unit",
+        mrp: 100,
+        purchasePrice: 80,
+        marginPercentage: 20,
+        prescriptionRequired: true,
+        isActive: true,
+      }
     });
   }
   

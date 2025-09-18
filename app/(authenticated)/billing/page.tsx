@@ -51,6 +51,7 @@ const LabReportsUpload = dynamic(
   () => import("@/components/prescriptions/lab-reports-upload"),
   { ssr: false },
 );
+const LedgerDialog = dynamic(() => import("@/components/ipd/ledger-dialog"), { ssr: false });
 import toast from "react-hot-toast";
 import { formatBillNumber, formatPrescriptionNumber } from "@/lib/identifiers";
 import Breadcrumb from "@/components/navigation/breadcrumb";
@@ -350,7 +351,7 @@ function BillsSection(props: {
                           if (res.ok) { setDispatchMap((m: any) => ({ ...m, [presId]: true })); toast.success('Tests sent to Lab'); fetchBills(); } else { toast.error('Failed to send tests'); }
                         } catch { toast.error('Unable to process tests'); }
                       }} disabled={!bill.prescription || !!(bill.prescription && dispatchMap[bill.prescription.id])} title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : 'Send Tests to Lab'}><FlaskConical className="w-4 h-4" /></button>
-                      <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => { const presId = bill.prescription?.id; if (!presId) { toast.error('No linked prescription'); return; } setPrintPrescription({ id: presId, open: true }); }} title="View / Print Prescription" disabled={!bill.prescription?.id}><Download className="w-4 h-4" /></button>
+                      <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => { const presId = bill.prescription?.id; if (!presId) { toast.error('No linked prescription'); return; } /* moved to section-level modal */ }} title="View / Print Prescription" disabled={!bill.prescription?.id}><Download className="w-4 h-4" /></button>
                       <button className="p-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50" onClick={async () => { const ok = typeof window !== 'undefined' ? window.confirm('Delete this bill? This cannot be undone.') : true; if (!ok) return; try { const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'DELETE' }); if (res.ok) { toast.success('Bill deleted'); fetchBills(); } else { toast.error('Failed to delete bill'); } } catch { toast.error('Failed to delete bill'); } }} title="Delete Bill"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ) : (
@@ -393,8 +394,11 @@ function IPDSection(props: {
   activeAdmissions: any[];
   onFinalize: (adm: any, days: number, amount: number) => void;
   onDischarge: (adm: any) => void;
+  onAddCharge: (adm: any) => void;
+  onViewLedger: (adm: any) => void;
+  runningMap?: Record<string, { days: number; rate: number; bedCharges: number; advancePaid: number; totalPaid: number; netDue: number }>;
 }) {
-  const { loading, ipdRequests, onCollectAdvance, activeAdmissions, onFinalize, onDischarge } = props;
+  const { loading, ipdRequests, onCollectAdvance, activeAdmissions, onFinalize, onDischarge, onAddCharge, onViewLedger, runningMap = {} } = props;
   const msPerDay = 24 * 60 * 60 * 1000;
   return (
     <div className="space-y-6">
@@ -444,11 +448,11 @@ function IPDSection(props: {
               {activeAdmissions.map((adm) => {
                 const since = new Date(adm.admissionDate);
                 const now = new Date();
-                const days = Math.max(1, Math.ceil((now.getTime() - since.getTime()) / msPerDay));
-                const rate = Number(adm.bed?.bedType?.dailyRate || 0);
-                const bedCharges = rate * days;
-                const advancePaid = 0; // placeholder
-                const netDue = Math.max(0, bedCharges - advancePaid);
+                const days = runningMap[adm.id]?.days ?? Math.max(1, Math.ceil((now.getTime() - since.getTime()) / msPerDay));
+                const rate = runningMap[adm.id]?.rate ?? Number(adm.bed?.bedType?.dailyRate || 0);
+                const bedCharges = runningMap[adm.id]?.bedCharges ?? rate * days;
+                const advancePaid = runningMap[adm.id]?.advancePaid ?? 0;
+                const netDue = runningMap[adm.id]?.netDue ?? Math.max(0, bedCharges - advancePaid);
                 return (
                   <div key={adm.id} className="p-3 border rounded flex items-center justify-between">
                     <div>
@@ -460,7 +464,10 @@ function IPDSection(props: {
                       <div className="text-sm">Bed Charges: ₹{bedCharges.toLocaleString()}</div>
                       <div className="font-semibold">Net Due: ₹{netDue.toLocaleString()}</div>
                       <div className="mt-2 flex gap-2 justify-end">
-                        <Button size="sm" variant="outline" onClick={() => onFinalize(adm, days, bedCharges)}>Finalize & Generate Final Bill</Button>
+                        <Button size="sm" onClick={() => onAddCharge(adm)}>Add Charge</Button>
+<Button size="sm" variant="outline" onClick={async () => { try { const res = await fetch('/api/ipd/ledger/bed-charge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admissionId: adm.id }) }); if (res.ok) { toast.success("Posted today's bed charge"); } else { toast.error('Failed to post bed charge'); } } catch { toast.error('Failed to post bed charge'); } }}>Post Today&apos;s Bed Charge</Button>
+<Button size="sm" variant="outline" onClick={() => onViewLedger(adm)}>View Ledger</Button>
+                        <Button size="sm" variant="outline" onClick={async () => { try { const res = await fetch('/api/ipd/finalize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admissionId: adm.id }) }); if (res.ok) { toast.success('Final bill created'); } else { toast.error('Failed to finalize'); } } catch { toast.error('Failed to finalize'); } }}>Finalize & Generate Final Bill</Button>
                         <Button size="sm" variant="destructive" onClick={() => onDischarge(adm)}>Mark Discharged</Button>
                       </div>
                     </div>
@@ -552,6 +559,10 @@ export default function Billing() {
   // Running accounts (ACTIVE admissions)
   const [activeAdmissions, setActiveAdmissions] = useState<any[]>([]);
   const [finalizeDialog, setFinalizeDialog] = useState<{ open: boolean; adm: any | null; days: number; amount: number }>({ open: false, adm: null, days: 0, amount: 0 });
+  // Add charge dialog for active admissions
+  const [addChargeDialog, setAddChargeDialog] = useState<{ open: boolean; adm: any | null; itemType: 'MEDICINE'|'PROCEDURE'|'OTHER'; itemName: string; quantity: number; unitPrice: number; gstRate: number }>({ open: false, adm: null, itemType: 'OTHER', itemName: '', quantity: 1, unitPrice: 0, gstRate: 0 });
+  const [runningMap, setRunningMap] = useState<Record<string, { days: number; rate: number; bedCharges: number; advancePaid: number; totalPaid: number; netDue: number }>>({});
+  const [ledger, setLedger] = useState<{ open: boolean; admissionId: string | null }>({ open: false, admissionId: null });
 
   const fetchBills = useCallback(async () => {
     try {
@@ -662,7 +673,38 @@ export default function Billing() {
           }
           if (admRes.ok) {
             const data = await admRes.json();
-            setActiveAdmissions(data.admissions || []);
+            const adms = data.admissions || [];
+            setActiveAdmissions(adms);
+            // Compute running totals per admission
+            const map: Record<string, any> = {};
+            await Promise.all(adms.map(async (adm: any) => {
+              const since = new Date(adm.admissionDate || adm.createdAt);
+              const now = new Date();
+              const days = Math.max(1, Math.ceil((now.getTime() - since.getTime()) / (24*60*60*1000)));
+              const rate = Number(adm.bed?.bedType?.dailyRate || 0);
+              const bedCharges = days * rate;
+              let advancePaid = 0;
+              let totalPaid = 0;
+              try {
+                const billsRes = await fetch(`/api/bills?patientId=${adm.patient.id}`);
+                if (billsRes.ok) {
+                  const b = await billsRes.json();
+                  const bills = b.bills || [];
+                  bills.forEach((bill: any) => {
+                    const created = new Date(bill.createdAt);
+                    if (created >= since) {
+                      const paid = bill.paymentStatus === 'PAID' ? (bill.finalAmount ?? bill.totalAmount ?? 0) : 0;
+                      totalPaid += paid;
+                      const isDeposit = (bill.billItems || []).some((it: any) => String(it.itemName || '').toLowerCase().includes('deposit')) || String(bill.notes||'').toLowerCase().includes('deposit');
+                      if (isDeposit) advancePaid += paid;
+                    }
+                  });
+                }
+              } catch {}
+              const netDue = Math.max(0, bedCharges - advancePaid);
+              map[adm.id] = { days, rate, bedCharges, advancePaid, totalPaid, netDue };
+            }));
+            setRunningMap(map);
           }
         } catch {}
         finally { setLoading(false); }
@@ -682,6 +724,23 @@ export default function Billing() {
   // Initial prefetch counts
   useEffect(() => {
     fetchBillsCount();
+    // Prefetch IPD counts so tab badges are accurate without clicking
+    (async () => {
+      try {
+        const [reqRes, admRes] = await Promise.all([
+          fetch('/api/ipd/admission-requests?status=AWAITING_DEPOSIT'),
+          fetch('/api/ipd/admissions?status=ACTIVE'),
+        ]);
+        if (reqRes.ok) {
+          const d = await reqRes.json();
+          setIpdRequests(d.admissionRequests || []);
+        }
+        if (admRes.ok) {
+          const d = await admRes.json();
+          setActiveAdmissions(d.admissions || []);
+        }
+      } catch {}
+    })();
   }, []);
 
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.totalAmount, 0);
@@ -930,6 +989,9 @@ export default function Billing() {
               } else { toast.error('Failed to discharge'); }
             } catch {}
           }}
+          onAddCharge={(adm: any) => setAddChargeDialog({ open: true, adm, itemType: 'OTHER', itemName: '', quantity: 1, unitPrice: 0, gstRate: 0 })}
+          onViewLedger={(adm: any) => setLedger({ open: true, admissionId: adm.id })}
+          runningMap={runningMap}
         />
       )}
 
@@ -1079,6 +1141,64 @@ export default function Billing() {
           labTests={labUpload.tests}
         />
       )}
+      {/* Ledger Dialog */}
+      <LedgerDialog
+        open={ledger.open}
+        admissionId={ledger.admissionId}
+        onClose={() => setLedger({ open: false, admissionId: null })}
+      />
+
+      {/* Add Charge Dialog */}
+      <Dialog open={addChargeDialog.open} onOpenChange={(o) => setAddChargeDialog(prev => ({ ...prev, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Charge / Service / Medicine</DialogTitle>
+            <DialogDescription>Add to running account for active admission</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Type</label>
+              <select className="w-full p-2 border border-gray-300 rounded-md bg-white" value={addChargeDialog.itemType} onChange={(e) => setAddChargeDialog(prev => ({ ...prev, itemType: e.target.value as any }))}>
+                <option value="MEDICINE">Medicine</option>
+                <option value="PROCEDURE">Service / Procedure</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Name</label>
+              <Input value={addChargeDialog.itemName} onChange={(e) => setAddChargeDialog(prev => ({ ...prev, itemName: e.target.value }))} placeholder="e.g., Injection, Dressing, Paracetamol 500mg" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Quantity</label>
+              <Input type="number" min={1} value={addChargeDialog.quantity} onChange={(e) => setAddChargeDialog(prev => ({ ...prev, quantity: parseInt(e.target.value || '1') }))} />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Unit Price (₹)</label>
+              <Input type="number" min={0} value={addChargeDialog.unitPrice} onChange={(e) => setAddChargeDialog(prev => ({ ...prev, unitPrice: parseFloat(e.target.value || '0') }))} />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">GST (%)</label>
+              <Input type="number" min={0} max={28} value={addChargeDialog.gstRate} onChange={(e) => setAddChargeDialog(prev => ({ ...prev, gstRate: parseFloat(e.target.value || '0') }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddChargeDialog(prev => ({ ...prev, open: false }))}>Cancel</Button>
+            <Button onClick={async () => {
+              const adm = addChargeDialog.adm; if (!adm) return;
+              const patientId = adm.patientId || adm.patient?.id;
+              const doctorId = adm.admittedByUser?.id || 'UNKNOWN';
+              const item = { itemType: addChargeDialog.itemType, itemName: addChargeDialog.itemName, quantity: addChargeDialog.quantity, unitPrice: addChargeDialog.unitPrice, gstRate: addChargeDialog.gstRate };
+              if (!item.itemName || item.unitPrice <= 0 || item.quantity <= 0) { toast.error('Enter valid item details'); return; }
+              try {
+                const res = await fetch('/api/ipd/ledger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admissionId: adm.id, patientId, type: 'CHARGE', amount: addChargeDialog.unitPrice * addChargeDialog.quantity, description: `${addChargeDialog.itemType}: ${addChargeDialog.itemName} x ${addChargeDialog.quantity}`, reference: `UI:${addChargeDialog.itemType}` }) });
+                if (res.ok) { toast.success('Charge added to ledger'); setAddChargeDialog(prev => ({ ...prev, open: false })); setActiveTab('ipd'); }
+                else { const err = await res.json().catch(()=>({})); toast.error(err.error || 'Failed to add charge'); }
+              } catch { toast.error('Failed to add charge'); }
+            }}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Bill Modal */}
       <EditBillForm
         isOpen={showEditModal}

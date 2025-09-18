@@ -91,13 +91,53 @@ export async function PATCH(request: NextRequest) {
   const { id, sampleTaken, resultUploaded, sampleType, notes } = body;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   const states = loadStates();
+  const prev = states[id] || {};
   states[id] = {
-    ...(states[id] || {}),
+    ...prev,
     ...(sampleTaken !== undefined ? { sampleTaken } : {}),
     ...(resultUploaded !== undefined ? { resultUploaded } : {}),
     ...(sampleType !== undefined ? { sampleType } : {}),
     ...(notes !== undefined ? { notes } : {}),
   };
   saveStates(states);
+
+  // When results are uploaded for a test linked to a prescription that has an ACTIVE admission,
+  // record a LAB CHARGE in the IPD ledger (id format: `${prescriptionId}::${test}`)
+  try {
+    if (resultUploaded && !prev.resultUploaded) {
+      const [prescriptionId, testKey] = String(id).split("::");
+      const testName = (testKey || '').replace(/_/g, ' ');
+      const { prisma } = await import("@/lib/prisma");
+      const relatedBills = await prisma.bill.findMany({ where: { prescriptionId } });
+      if (relatedBills.length) {
+        const patientId = relatedBills[0].patientId;
+        const adm = await prisma.admission.findFirst({ where: { patientId, status: 'ACTIVE' } });
+        if (adm) {
+          const ref = `LAB_RESULT:${id}`;
+          const existing = await prisma.billingTransaction.findFirst({ where: { admissionId: adm.id, reference: ref } });
+          if (!existing) {
+            await prisma.billingTransaction.create({
+              data: {
+                admissionId: adm.id,
+                billId: null,
+                patientId,
+                type: 'CHARGE',
+                amount: 0,
+                description: `LAB result: ${testName}`,
+                reference: ref,
+                paymentMethod: null,
+                paymentStatus: 'COMPLETED',
+                processedBy: (session.user as any).id || 'SYSTEM',
+                processedAt: new Date(),
+              },
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to post lab ledger CHARGE on result upload:', e);
+  }
+
   return NextResponse.json({ success: true });
 }

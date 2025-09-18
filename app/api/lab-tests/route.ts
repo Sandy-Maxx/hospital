@@ -11,23 +11,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get all unique lab tests from medicine table and return comprehensive list
-    const customTests = await prisma.medicine.findMany({
-      where: {
-        category: "LAB_TEST",
-        isActive: true,
-      },
-      select: {
-        name: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
+    // Collect lab tests used historically from prescriptions JSON
+    const recentPrescriptions = await prisma.prescription.findMany({
+      select: { medicines: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
     });
-
-    const customTestNames = customTests.map(
-      (test: { name: string }) => test.name,
-    );
+    const customSet = new Set<string>();
+    for (const p of recentPrescriptions) {
+      try {
+        const obj = p.medicines ? JSON.parse(p.medicines as any) : {};
+        const tests = Array.isArray(obj?.labTests) ? obj.labTests : [];
+        for (const t of tests) {
+          const n = typeof t === 'string' ? t : (t?.name || '');
+          if (n) customSet.add(n);
+        }
+      } catch {}
+    }
+    const customTestNames = Array.from(customSet);
 
     // Comprehensive lab tests list
     const standardTests = [
@@ -163,52 +164,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const body = await request.json();
     const { testName } = body;
-
     if (!testName) {
-      return NextResponse.json(
-        { error: "Test name is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Test name is required" }, { status: 400 });
     }
-
-    // Check if test already exists
-    const existingTest = await prisma.medicine.findFirst({
-      where: {
-        name: testName,
-        category: "LAB_TEST",
-      },
-    });
-
-    if (existingTest) {
-      return NextResponse.json(
-        { message: "Test already exists" },
-        { status: 200 },
-      );
-    }
-
-    // Add new custom test
-    const newTest = await prisma.medicine.create({
-      data: {
-        name: testName,
-        category: "LAB_TEST",
-        dosageForm: "Test",
-        isActive: true,
-      },
-    });
-
-    return NextResponse.json({ test: newTest }, { status: 201 });
+    // We do not persist lab tests in a dedicated table. Custom tests become available
+    // once they are used in a prescription. Return success so the UI can proceed.
+    return NextResponse.json({ message: "Accepted", test: { name: testName } }, { status: 201 });
   } catch (error) {
     console.error("Error creating lab test:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

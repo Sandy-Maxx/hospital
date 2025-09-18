@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, Settings, FileText, Activity, UserPlus } from "lucide-react";
+import { Users, Settings, FileText, Activity, UserPlus, Pill } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -91,6 +91,13 @@ export default function AdminDashboard() {
       icon: UserPlus,
       href: "/patients",
       color: "bg-orange-500 hover:bg-orange-600",
+    },
+    {
+      title: "Pharmacy Management",
+      description: "Manage medicine database, inventory, and GST",
+      icon: Pill,
+      href: "/admin/pharmacy",
+      color: "bg-green-500 hover:bg-green-600",
     },
   ];
 

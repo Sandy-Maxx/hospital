@@ -187,10 +187,21 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const data: any = {};
 
+    // Fetch existing to enable safe merges
+    const existingPresc = await prisma.prescription.findUnique({ where: { id }, select: { notes: true, medicines: true } });
+
     if (typeof body.symptoms === "string") data.symptoms = body.symptoms;
     if (typeof body.diagnosis === "string") data.diagnosis = body.diagnosis;
-    if (typeof body.notes === "string") data.notes = body.notes;
     if (body.vitals) data.vitals = JSON.stringify(body.vitals);
+
+    // Merge notes while preserving IPD admission lines
+    if (typeof body.notes === "string") {
+      const currentNotes = existingPresc?.notes || "";
+      const lines = currentNotes.split(/\n+/).filter(Boolean);
+      const ipdLines = lines.filter(l => l.startsWith("IPD ADMISSION REQUEST:") || l.startsWith("IPD ADMISSION UPDATE:"));
+      const baseNote = body.notes.trim();
+      data.notes = [baseNote, ...ipdLines].filter(Boolean).join("\n");
+    }
 
     if (
       body.medicines ||

@@ -8,6 +8,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Use direct connection (bypass PgBouncer) for migrations to avoid prepared statement issues
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
@@ -339,24 +341,130 @@ model HospitalSettings {
   @@map("hospital_settings")
 }
 
-model Medicine {
+// Pharmacy Module Models
+model GstSlab {
+  id          String   @id @default(cuid())
+  name        String   @unique // "0% GST", "5% GST", "12% GST", "18% GST", "28% GST"
+  rate        Float    // 0.0, 5.0, 12.0, 18.0, 28.0
+  description String?  // "Essential medicines", "Luxury items", etc.
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  medicines Medicine[]
+
+  @@index([rate])
+  @@index([isActive])
+  @@map("gst_slabs")
+}
+
+model MedicineCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  gstRate     Float    @default(5.0) // Default GST rate for this category
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  medicines Medicine[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("medicine_categories")
+}
+
+model Supplier {
   id           String   @id @default(cuid())
   name         String   @unique
-  genericName  String?
-  category     String?
-  dosageForm   String? // tablet, syrup, injection, etc.
-  strength     String?
-  manufacturer String?
+  contactPerson String?
+  phone        String?
+  email        String?
+  address      String?
+  gstNumber    String?
+  creditTerms  Int?     @default(30) // days
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Relations
+  stocks MedicineStock[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("suppliers")
+}
+
+model Medicine {
+  id                   String   @id @default(cuid())
+  name                 String   @unique
+  genericName          String
+  brand                String
+  manufacturer         String
+  categoryId           String
+  gstSlabId            String
+  dosageForm           String   // Tablet, Capsule, Syrup, Injection, etc.
+  strength             String   // 500mg, 10ml, etc.
+  unitType             String   // Strip of 10, Bottle 100ml, etc.
+  mrp                  Float    // Maximum Retail Price
+  purchasePrice        Float    // Cost price
+  marginPercentage     Float    // Calculated margin %
+  prescriptionRequired Boolean  @default(true)
+  isActive             Boolean  @default(true)
+  description          String?
+  sideEffects          String?
+  contraindications    String?
+  dosageInstructions   String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  category MedicineCategory @relation(fields: [categoryId], references: [id])
+  gstSlab  GstSlab          @relation(fields: [gstSlabId], references: [id])
+  stocks   MedicineStock[]
+
   @@index([name])
   @@index([genericName])
-  @@index([category])
+  @@index([brand])
+  @@index([categoryId])
+  @@index([manufacturer])
   @@index([isActive])
+  @@index([prescriptionRequired])
   @@index([name, isActive])
   @@map("medicines")
+}
+
+model MedicineStock {
+  id                 String    @id @default(cuid())
+  medicineId         String
+  supplierId         String
+  batchNumber        String
+  expiryDate         DateTime
+  quantity           Int       // Total quantity purchased
+  availableQuantity  Int       // Current available quantity
+  purchasePrice      Float     // Price at which purchased
+  mrp               Float     // MRP for this batch
+  manufacturingDate  DateTime?
+  location           String?   // Storage location
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  medicine Medicine @relation(fields: [medicineId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([medicineId])
+  @@index([supplierId])
+  @@index([batchNumber])
+  @@index([expiryDate])
+  @@index([availableQuantity])
+  @@index([isActive])
+  @@index([medicineId, isActive])
+  @@index([expiryDate, isActive])
+  @@map("medicine_stock")
 }
 
 model Vital {

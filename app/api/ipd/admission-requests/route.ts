@@ -49,44 +49,40 @@ export async function GET(request: NextRequest) {
       take: 200
     });
 
-    // Parse latest admission request state from notes
-    function parseAdmissionFromNotes(notes: string | null) {
-      if (!notes) return null;
-      const lines = notes.split(/\n+/);
-      const requests: any[] = [];
-      const updates: any[] = [];
-      for (const line of lines) {
-        const reqIdx = line.indexOf("IPD ADMISSION REQUEST:");
-        if (reqIdx >= 0) {
-          const jsonStr = line.slice(reqIdx + "IPD ADMISSION REQUEST:".length).trim();
-          try { requests.push(JSON.parse(jsonStr)); } catch {}
-          continue;
-        }
-        const updIdx = line.indexOf("IPD ADMISSION UPDATE:");
-        if (updIdx >= 0) {
-          const jsonStr = line.slice(updIdx + "IPD ADMISSION UPDATE:".length).trim();
-          try { updates.push(JSON.parse(jsonStr)); } catch {}
-          continue;
-        }
-      }
-      if (requests.length === 0) return null;
-      // Take the last request as the current request, then apply updates on top
-      const base = { ...requests[requests.length - 1] };
-      // Apply latest update if matches the same requestedAt
-      let lastStatus = base.status || "PENDING";
-      let processedAt = null;
-      let processedBy = null;
-      for (const u of updates) {
-        if (!u) continue;
-        if (u.status) lastStatus = u.status;
-        if (u.processedAt) processedAt = u.processedAt;
-        if (u.processedBy) processedBy = u.processedBy;
-      }
-      return { ...base, status: lastStatus, processedAt, processedBy };
-    }
-
+    // Helper moved outside of block scope for ES5 target compatibility
     const all = prescriptions.map(p => {
-      const parsed = parseAdmissionFromNotes(p.notes || "");
+      const parsed = (function parseAdmissionFromNotes(notes: string | null) {
+        if (!notes) return null;
+        const lines = notes.split(/\n+/);
+        const requests: any[] = [];
+        const updates: any[] = [];
+        for (const line of lines) {
+          const reqIdx = line.indexOf("IPD ADMISSION REQUEST:");
+          if (reqIdx >= 0) {
+            const jsonStr = line.slice(reqIdx + "IPD ADMISSION REQUEST:".length).trim();
+            try { requests.push(JSON.parse(jsonStr)); } catch {}
+            continue;
+          }
+          const updIdx = line.indexOf("IPD ADMISSION UPDATE:");
+          if (updIdx >= 0) {
+            const jsonStr = line.slice(updIdx + "IPD ADMISSION UPDATE:".length).trim();
+            try { updates.push(JSON.parse(jsonStr)); } catch {}
+            continue;
+          }
+        }
+        if (requests.length === 0) return null;
+        const base = { ...requests[requests.length - 1] };
+        let lastStatus = base.status || "PENDING";
+        let processedAt = null as any;
+        let processedBy = null as any;
+        for (const u of updates) {
+          if (!u) continue;
+          if (u.status) lastStatus = u.status;
+          if (u.processedAt) processedAt = u.processedAt;
+          if (u.processedBy) processedBy = u.processedBy;
+        }
+        return { ...base, status: lastStatus, processedAt, processedBy };
+      })(p.notes || "");
       if (!parsed) return null;
       return {
         id: p.id,

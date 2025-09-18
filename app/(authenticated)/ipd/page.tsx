@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
+import LedgerDialog from "@/components/ipd/ledger-dialog";
 
 interface BedType {
   id: string;
@@ -210,8 +211,8 @@ function AdmissionRequestsPanel() {
             <div>
               <span className="block text-sm text-gray-700 mb-1">Ward</span>
               <Select value={alloc.wardId} onValueChange={(v) => setAlloc(prev => ({ ...prev, wardId: v }))}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select ward"/></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="w-full bg-white border border-gray-200"><SelectValue placeholder="Select ward"/></SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                   {wardsList.map((w: any) => (
                     <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                   ))}
@@ -221,8 +222,8 @@ function AdmissionRequestsPanel() {
             <div>
               <span className="block text-sm text-gray-700 mb-1">Bed</span>
               <Select value={alloc.bedId} onValueChange={(v) => setAlloc(prev => ({ ...prev, bedId: v }))}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select available bed"/></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="w-full bg-white border border-gray-200"><SelectValue placeholder="Select available bed"/></SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                   {bedsList.filter((b:any) => !alloc.wardId || b.ward.id === alloc.wardId).map((b: any) => (
                     <SelectItem key={b.id} value={b.id}>{b.ward.name} - {b.bedNumber} ({b.bedType.name})</SelectItem>
                   ))}
@@ -238,13 +239,24 @@ function AdmissionRequestsPanel() {
                 return; 
               }
               try {
-                // 1) Mark bed occupied
-                const bedRes = await fetch('/api/ipd/beds', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bedId: alloc.bedId, status: 'OCCUPIED' }) });
-                if (!bedRes.ok) { throw new Error('Failed to update bed'); }
+                // 1) Create admission (also sets bed to OCCUPIED in API)
+                const admRes = await fetch('/api/ipd/admissions', { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ 
+                    patientId: alloc.req.patientId, 
+                    bedId: alloc.bedId, 
+                    doctorId: alloc.req.doctorId,
+                    diagnosis: alloc.req.diagnosis,
+                    chiefComplaint: alloc.req.chiefComplaint,
+                    estimatedStay: alloc.req.estimatedStay
+                  }) 
+                });
+                if (!admRes.ok) { throw new Error('Failed to create admission'); }
                 // 2) Mark admission request converted
                 const reqRes = await fetch('/api/ipd/admission-requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: alloc.req.prescriptionId, status: 'CONVERTED' }) });
                 if (!reqRes.ok) { throw new Error('Failed to update admission request'); }
-                toast.success('Bed allocated successfully');
+                toast.success('Bed allocated and admission created');
                 setAlloc(prev => ({ ...prev, open: false }));
                 fetchRequests();
               } catch (e: any) {
@@ -271,6 +283,10 @@ export default function IPDPage() {
     occupancyRate: 0
   });
   const [loading, setLoading] = useState(true);
+  const [bedDialog, setBedDialog] = useState<{ open: boolean; bed: BedInfo | null }>({ open: false, bed: null });
+  const [admissionStats, setAdmissionStats] = useState<{ admissionDate: string; days: number; bedCharges: number; deposits: number; totalPaid: number; otherCharges: number } | null>(null);
+  const [addCharge, setAddCharge] = useState<{ open: boolean; itemType: 'MEDICINE' | 'PROCEDURE' | 'OTHER'; itemName: string; quantity: number; unitPrice: number; gstRate: number }>({ open: false, itemType: 'OTHER', itemName: '', quantity: 1, unitPrice: 0, gstRate: 0 });
+  const [ledgerDialog, setLedgerDialog] = useState<{ open: boolean; admissionId: string | null; loading: boolean; transactions: any[]; summary: any }>({ open: false, admissionId: null, loading: false, transactions: [], summary: null });
   const [selectedWard, setSelectedWard] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -305,6 +321,46 @@ export default function IPDPage() {
     fetchIPDData();
   }, []);
 
+  // When bed dialog opens, compute running stats
+  const recalcAdmissionStats = async () => {
+    const bed = bedDialog.bed;
+    if (!bed || !bed.currentAdmission) { setAdmissionStats(null); return; }
+    try {
+      const admRes = await fetch(`/api/ipd/admissions?id=${bed.currentAdmission.id}`);
+      if (!admRes.ok) { setAdmissionStats(null); return; }
+      const admData = await admRes.json();
+      const adm = admData.admission;
+      const admissionDate = adm?.admissionDate || adm?.createdAt || new Date().toISOString();
+      const since = new Date(admissionDate);
+      const now = new Date();
+      const days = Math.max(1, Math.ceil((now.getTime() - since.getTime()) / (24*60*60*1000)));
+      const rate = Number(bed.bedType.dailyRate || 0);
+      const bedCharges = rate * days;
+      const billsRes = await fetch(`/api/bills?patientId=${bed.currentAdmission.patient.id}`);
+      let deposits = 0;
+      let totalPaid = 0;
+      let otherCharges = 0;
+      if (billsRes.ok) {
+        const billsData = await billsRes.json();
+        const bills = billsData.bills || [];
+        bills.forEach((b: any) => {
+          const created = new Date(b.createdAt);
+          if (created >= since) {
+            const lineTotal = (b.finalAmount ?? b.totalAmount ?? 0);
+            otherCharges += lineTotal;
+            const paid = b.paymentStatus === 'PAID' ? lineTotal : 0;
+            totalPaid += paid;
+            const isDeposit = (b.billItems || []).some((it: any) => String(it.itemName || '').toLowerCase().includes('deposit')) || String(b.notes||'').toLowerCase().includes('deposit');
+            if (isDeposit) deposits += paid;
+          }
+        });
+      }
+      setAdmissionStats({ admissionDate: since.toISOString(), days, bedCharges, deposits, totalPaid, otherCharges });
+    } catch { setAdmissionStats(null); }
+  };
+
+  useEffect(() => { recalcAdmissionStats(); }, [bedDialog.open]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "AVAILABLE":
@@ -332,6 +388,19 @@ export default function IPDPage() {
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Bed className="h-4 w-4" />;
+    }
+  };
+
+  const toggleMaintenance = async (next: 'MAINTENANCE' | 'AVAILABLE') => {
+    if (!bedDialog.bed) return;
+    try {
+      const res = await fetch('/api/ipd/beds', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bedId: bedDialog.bed.id, status: next }) });
+      if (!res.ok) { toast.error('Failed to update bed'); return; }
+      toast.success(next === 'MAINTENANCE' ? 'Bed put into maintenance' : 'Bed marked available');
+      await fetchIPDData();
+      setBedDialog(prev => ({ ...prev, open: true, bed: beds.find(b => b.id === bedDialog.bed!.id) || prev.bed }));
+    } catch {
+      toast.error('Failed to update bed');
     }
   };
 
@@ -442,6 +511,134 @@ export default function IPDPage() {
       </div>
 
       <Tabs defaultValue="wards" className="w-full">
+        {/* Bed Details Dialog */}
+        <Dialog open={bedDialog.open} onOpenChange={(o) => setBedDialog(prev => ({ ...prev, open: o }))}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Bed Details - {bedDialog.bed?.bedNumber}</DialogTitle>
+              <DialogDescription>Ward: {bedDialog.bed?.ward.name} • Type: {bedDialog.bed?.bedType.name}</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="text-sm text-gray-600">Status</div>
+                <Badge className={getStatusColor(bedDialog.bed?.status || 'AVAILABLE')}>
+                  {getStatusIcon(bedDialog.bed?.status || 'AVAILABLE')}
+                  <span className="ml-1">{bedDialog.bed?.status}</span>
+                </Badge>
+                <div className="text-sm text-gray-600">Rate</div>
+                <div className="font-semibold">₹{bedDialog.bed?.bedType.dailyRate}/day</div>
+                {bedDialog.bed?.notes && (
+                  <div className="bg-yellow-50 p-2 rounded border border-yellow-200 text-xs text-yellow-800">
+                    {bedDialog.bed?.notes}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                {bedDialog.bed?.currentAdmission ? (
+                  <div className="space-y-1">
+                    <div className="font-semibold">Current Patient</div>
+                    <div className="text-sm">{bedDialog.bed.currentAdmission.patient.firstName} {bedDialog.bed.currentAdmission.patient.lastName} ({bedDialog.bed.currentAdmission.patient.phone})</div>
+                    <div className="text-xs text-gray-600">Admitted by: {bedDialog.bed.currentAdmission.admittedByUser.name}</div>
+                    {admissionStats && (
+                      <div className="mt-2 space-y-1 text-sm">
+                        <div>Admitted: {new Date(admissionStats.admissionDate).toLocaleString()}</div>
+                        <div>Days: {admissionStats.days}</div>
+                        <div>Bed Charges: ₹{admissionStats.bedCharges.toLocaleString()}</div>
+                        <div>Deposits Paid: ₹{admissionStats.deposits.toLocaleString()}</div>
+                        <div>Total Paid: ₹{admissionStats.totalPaid.toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No active admission</div>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {bedDialog.bed?.status !== 'OCCUPIED' && (
+                  <>
+                    {bedDialog.bed?.status !== 'MAINTENANCE' ? (
+                      <Button variant="outline" onClick={() => toggleMaintenance('MAINTENANCE')}>Put into Maintenance</Button>
+                    ) : (
+                      <Button variant="outline" onClick={() => toggleMaintenance('AVAILABLE')}>Mark Available</Button>
+                    )}
+                  </>
+                )}
+                {bedDialog.bed?.currentAdmission && (
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => setAddCharge({ open: true, itemType: 'OTHER', itemName: '', quantity: 1, unitPrice: 0, gstRate: 0 })}>Add Charge / Service / Medicine</Button>
+                    <Button variant="outline" onClick={async () => { try { const res = await fetch('/api/ipd/ledger/bed-charge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admissionId: bedDialog.bed?.currentAdmission?.id }) }); if (res.ok) { toast.success('Posted today\'s bed charge'); await recalcAdmissionStats(); } else { toast.error('Failed to post bed charge'); } } catch { toast.error('Failed to post bed charge'); } }}>Post Today&apos;s Bed Charge</Button>
+                    <Button variant="outline" onClick={async () => { try { const id = bedDialog.bed?.currentAdmission?.id; if (!id) return; setLedgerDialog(prev => ({ ...prev, open: true, admissionId: id, loading: true })); const r = await fetch(`/api/ipd/ledger?admissionId=${id}`); if (r.ok) { const d = await r.json(); setLedgerDialog(prev => ({ ...prev, loading: false, transactions: d.transactions || [], summary: d.summary || {} })); } else { setLedgerDialog(prev => ({ ...prev, loading: false })); toast.error('Failed to load ledger'); } } catch { setLedgerDialog(prev => ({ ...prev, loading: false })); toast.error('Failed to load ledger'); } }}>View Ledger</Button>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setBedDialog(prev => ({ ...prev, open: false }))}>Close</Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ledger Dialog */}
+        {/* Replaced inline dialog with reusable component */}
+        <LedgerDialog
+          open={ledgerDialog.open}
+          admissionId={ledgerDialog.admissionId}
+          onClose={() => setLedgerDialog(prev => ({ ...prev, open: false }))}
+          onChanged={async () => { await recalcAdmissionStats(); }}
+        />
+
+        {/* Add Charge Dialog */}
+        <Dialog open={addCharge.open} onOpenChange={(o) => setAddCharge(prev => ({ ...prev, open: o }))}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Charge / Service / Medicine</DialogTitle>
+              <DialogDescription>Add bill line item for this active admission</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <span className="block text-sm text-gray-700 mb-1">Type</span>
+                <select className="w-full p-2 border border-gray-300 rounded-md bg-white" value={addCharge.itemType} onChange={(e) => setAddCharge(prev => ({ ...prev, itemType: e.target.value as any }))}>
+                  <option value="MEDICINE">Medicine</option>
+                  <option value="PROCEDURE">Service / Procedure</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700 mb-1">Name</span>
+                <Input value={addCharge.itemName} onChange={(e) => setAddCharge(prev => ({ ...prev, itemName: e.target.value }))} placeholder="e.g., Injection, Dressing, Paracetamol 500mg" />
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700 mb-1">Quantity</span>
+                <Input type="number" min={1} value={addCharge.quantity} onChange={(e) => setAddCharge(prev => ({ ...prev, quantity: parseInt(e.target.value || '1') }))} />
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700 mb-1">Unit Price (₹)</span>
+                <Input type="number" min={0} value={addCharge.unitPrice} onChange={(e) => setAddCharge(prev => ({ ...prev, unitPrice: parseFloat(e.target.value || '0') }))} />
+              </div>
+              <div>
+                <span className="block text-sm text-gray-700 mb-1">GST (%)</span>
+                <Input type="number" min={0} max={28} value={addCharge.gstRate} onChange={(e) => setAddCharge(prev => ({ ...prev, gstRate: parseFloat(e.target.value || '0') }))} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddCharge(prev => ({ ...prev, open: false }))}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!bedDialog.bed?.currentAdmission) return;
+                const patientId = bedDialog.bed.currentAdmission.patient.id;
+                const doctorId = bedDialog.bed.currentAdmission.admittedByUser.id || 'UNKNOWN';
+                const item = { itemType: addCharge.itemType, itemName: addCharge.itemName, quantity: addCharge.quantity, unitPrice: addCharge.unitPrice, gstRate: addCharge.gstRate };
+                if (!item.itemName || item.unitPrice <= 0 || item.quantity <= 0) { toast.error('Enter valid item details'); return; }
+                try {
+                  const res = await fetch('/api/ipd/ledger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admissionId: bedDialog.bed.currentAdmission.id, patientId, type: 'CHARGE', amount: addCharge.unitPrice * addCharge.quantity, description: `${addCharge.itemType}: ${addCharge.itemName} x ${addCharge.quantity}`, reference: `UI:${addCharge.itemType}` }) });
+                  if (res.ok) { toast.success('Charge added to ledger'); setAddCharge(prev => ({ ...prev, open: false })); await recalcAdmissionStats(); }
+                  else { const err = await res.json().catch(()=>({})); toast.error(err.error || 'Failed to add charge'); }
+                } catch { toast.error('Failed to add charge'); }
+              }}>Add</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="wards" className="cursor-pointer">Ward Management</TabsTrigger>
           <TabsTrigger value="beds" className="cursor-pointer">Bed Type</TabsTrigger>
@@ -511,10 +708,10 @@ export default function IPDPage() {
             </div>
             
             <Select value={selectedWard} onValueChange={setSelectedWard}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 bg-white border border-gray-200">
                 <SelectValue placeholder="Filter by ward" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                 <SelectItem value="all">All Wards</SelectItem>
                 {wards.filter(ward => ward.id && ward.id.trim() !== "").map((ward) => (
                   <SelectItem key={ward.id} value={ward.id}>
@@ -525,10 +722,10 @@ export default function IPDPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 bg-white border border-gray-200">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="AVAILABLE">Available</SelectItem>
                 <SelectItem value="OCCUPIED">Occupied</SelectItem>
@@ -541,7 +738,7 @@ export default function IPDPage() {
           {/* Beds Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredBeds.map((bed) => (
-              <Card key={bed.id} className="hover:shadow-md transition-shadow">
+              <Card key={bed.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setBedDialog({ open: true, bed })}>
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
