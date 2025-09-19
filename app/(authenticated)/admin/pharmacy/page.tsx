@@ -107,6 +107,11 @@ export default function PharmacyAdminPage() {
     hasNext: false,
     hasPrev: false
   });
+  // Stock filters
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "expiring" | "expired">("all");
+  const [medicineFilter, setMedicineFilter] = useState<string>("");
+  const [supplierFilter, setSupplierFilter] = useState<string>("");
+  const [suppliers, setSuppliers] = useState<Array<{id: string; name: string}>>([]);
   
   // Medicine CRUD state
   const [showMedicineDialog, setShowMedicineDialog] = useState(false);
@@ -242,7 +247,16 @@ export default function PharmacyAdminPage() {
   const fetchStocks = async (page = stockPagination.page) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/pharmacy/stock?search=${encodeURIComponent(search)}&page=${page}&limit=${stockPagination.limit}`);
+      const statusParams = stockFilter === 'low' 
+        ? '&lowStock=true' 
+        : stockFilter === 'expiring' 
+        ? '&nearExpiry=true' 
+        : stockFilter === 'expired' 
+        ? '&expired=true' 
+        : '';
+      const medicineParam = medicineFilter ? `&medicineId=${medicineFilter}` : '';
+      const supplierParam = supplierFilter ? `&supplierId=${supplierFilter}` : '';
+      const res = await fetch(`/api/pharmacy/stock?search=${encodeURIComponent(search)}&page=${page}&limit=${stockPagination.limit}${statusParams}${medicineParam}${supplierParam}`);
       if (res.ok) {
         const data = await res.json();
         setStocks(data.stocks);
@@ -375,9 +389,10 @@ export default function PharmacyAdminPage() {
   // Fetch categories and GST slabs for forms
   const fetchFormData = async () => {
     try {
-      const [categoriesRes, gstRes] = await Promise.all([
+      const [categoriesRes, gstRes, suppliersRes] = await Promise.all([
         fetch('/api/pharmacy/categories'),
-        fetch('/api/pharmacy/gst-slabs')
+        fetch('/api/pharmacy/gst-slabs'),
+        fetch('/api/pharmacy/suppliers')
       ]);
       
       if (categoriesRes.ok) {
@@ -388,6 +403,11 @@ export default function PharmacyAdminPage() {
       if (gstRes.ok) {
         const gstData = await gstRes.json();
         setGstSlabs(gstData.slabs || []);
+      }
+      
+      if (suppliersRes.ok) {
+        const suppliersData = await suppliersRes.json();
+        setSuppliers(suppliersData.suppliers || []);
       }
     } catch (error) {
       console.error('Error fetching form data:', error);
@@ -642,7 +662,7 @@ export default function PharmacyAdminPage() {
   };
 
   useEffect(() => {
-    if (session?.user) {
+      if (session?.user) {
       fetchDashboardStats();
       fetchFormData();
       if (activeTab === "medicines") {
@@ -652,14 +672,12 @@ export default function PharmacyAdminPage() {
         }
         fetchMedicines(1);
       } else if (activeTab === "stock") {
-        // Reset to first page when search changes  
-        if (search !== "") {
-          setStockPagination(prev => ({ ...prev, page: 1 }));
-        }
+        // Reset to first page when search or filter changes  
+        setStockPagination(prev => ({ ...prev, page: 1 }));
         fetchStocks(1);
       }
     }
-  }, [session, activeTab, search]);
+  }, [session, activeTab, search, stockFilter, medicineFilter, supplierFilter]);
 
   const getStockStatusColor = (status: string) => {
     switch (status) {
@@ -1120,18 +1138,55 @@ export default function PharmacyAdminPage() {
 
         {/* Stock Tab */}
         <TabsContent value="stock" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search stock..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 w-64"
-                />
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input
+                    placeholder="Search stock..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 w-64"
+                  />
+                </div>
               </div>
-              <Select defaultValue="all">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Stock
+              </Button>
+            </div>
+            
+            <div className="flex items-center space-x-2 flex-wrap">
+              <Select value={medicineFilter} onValueChange={setMedicineFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by medicine" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Medicines</SelectItem>
+                  {medicines.slice(0, 50).map((medicine) => (
+                    <SelectItem key={medicine.id} value={medicine.id}>
+                      {medicine.brand} ({medicine.genericName})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Suppliers</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as typeof stockFilter)}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -1142,11 +1197,22 @@ export default function PharmacyAdminPage() {
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {(medicineFilter || supplierFilter || stockFilter !== 'all') && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setMedicineFilter('');
+                    setSupplierFilter('');
+                    setStockFilter('all');
+                  }}
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Stock
-            </Button>
           </div>
 
           <Card>

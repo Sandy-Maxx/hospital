@@ -119,7 +119,7 @@ export default function SignIn() {
                 try {
                   const result = await signIn("credentials", {
                     email: "admin@hospital.com",
-                    password: "admin123",
+                    password: "Admin123!",
                     redirect: false,
                   });
                   if (result?.error) {

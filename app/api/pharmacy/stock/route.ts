@@ -63,9 +63,19 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Use a raw query approach to ensure we only get stocks with valid medicine references
+    // by joining with the medicines table
     const [stocks, totalCount] = await Promise.all([
       prisma.medicineStock.findMany({
-        where,
+        where: {
+          ...where,
+          medicine: {
+            isActive: true, // Only get stocks for active medicines
+          },
+          supplier: {
+            isActive: true, // Only get stocks for active suppliers
+          },
+        },
         select: {
           id: true,
           medicineId: true,
@@ -104,10 +114,20 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: [
           { expiryDate: "asc" },
-          { medicine: { brand: "asc" } },
+          { createdAt: "desc" },
         ],
       }),
-      prisma.medicineStock.count({ where }),
+      prisma.medicineStock.count({ 
+        where: {
+          ...where,
+          medicine: {
+            isActive: true,
+          },
+          supplier: {
+            isActive: true,
+          },
+        },
+      }),
     ]);
 
     // Add stock status for each item

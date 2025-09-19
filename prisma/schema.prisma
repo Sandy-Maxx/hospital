@@ -897,6 +897,126 @@ model UserRole {
   @@map("user_roles")
 }
 
+// OT (Operation Theatre) Services Configuration
+model OTService {
+  id          String   @id @default(cuid())
+  name        String   @unique // "General Surgery", "Orthopedic Surgery", "Cardiac Surgery"
+  description String?
+  basePrice   Float    // Base price for the service
+  duration    Int?     @default(60) // Duration in minutes
+  category    String?  // "MAJOR", "MINOR", "EMERGENCY", "DAY_CARE"
+  department  String?  // "Surgery", "Orthopedics", "Cardiology"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  procedures  OTProcedure[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([category])
+  @@index([department])
+  @@map("ot_services")
+}
+
+model OTProcedure {
+  id          String   @id @default(cuid())
+  serviceId   String
+  name        String   // "Appendectomy", "Knee Replacement", "Bypass Surgery"
+  code        String?  // Procedure code for billing
+  description String?
+  price       Float    // Price for this specific procedure
+  duration    Int?     @default(60) // Duration in minutes
+  complexity  String?  @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  anesthesia  String?  // "LOCAL", "GENERAL", "SPINAL", "EPIDURAL"
+  // Default billing breakdown for this procedure (JSON)
+  // {
+  //   "surgeonFee": number,
+  //   "assistantFee": number,
+  //   "anesthesiaFee": number,
+  //   "otRoomRatePerHour": number,
+  //   "defaultOtRoomHours": number,
+  //   "emergencySurcharge": number,
+  //   "nightSurcharge": number,
+  //   "weekendSurcharge": number
+  // }
+  billingDefaults Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  service     OTService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, name])
+  @@index([serviceId])
+  @@index([isActive])
+  @@index([complexity])
+  @@index([code])
+  @@map("ot_procedures")
+}
+
+// Imaging Services Configuration
+model ImagingService {
+  id          String   @id @default(cuid())
+  name        String   @unique // "X-Ray", "CT Scan", "MRI", "Ultrasound"
+  description String?
+  basePrice   Float    // Base price for the service
+  duration    Int?     @default(30) // Duration in minutes
+  category    String?  // "ROUTINE", "CONTRAST", "EMERGENCY", "SPECIALIZED"
+  modality    String   // "X-RAY", "CT", "MRI", "ULTRASOUND", "MAMMOGRAPHY", "NUCLEAR"
+  bodyPart    String?  // "CHEST", "ABDOMEN", "HEAD", "SPINE", "EXTREMITIES", "PELVIS"
+  contrast    Boolean  @default(false) // Whether contrast is required
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  procedures  ImagingProcedure[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([category])
+  @@index([modality])
+  @@index([bodyPart])
+  @@map("imaging_services")
+}
+
+model ImagingProcedure {
+  id              String   @id @default(cuid())
+  serviceId       String
+  name            String   // "Chest X-Ray PA View", "Brain MRI with Contrast"
+  code            String?  // CPT or local procedure code
+  description     String?
+  price           Float    // Price for this specific procedure
+  duration        Int?     @default(30) // Duration in minutes
+  preparation     String?  // "Fasting required", "Remove metal objects"
+  contrastAgent   String?  // "Iodine", "Gadolinium", "Barium"
+  // Default billing breakdown for this imaging procedure (JSON)
+  // {
+  //   "radiologistFee": number,
+  //   "contrastSurcharge": number,
+  //   "portableSurcharge": number,
+  //   "urgentSurcharge": number,
+  //   "filmCdCharge": number,
+  //   "defaultContrastUsed": boolean
+  // }
+  billingDefaults Json?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  service         ImagingService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, name])
+  @@index([serviceId])
+  @@index([isActive])
+  @@index([code])
+  @@map("imaging_procedures")
+}
+
 // Enums replaced with string fields with comments for valid values
 // UserRole: ADMIN, DOCTOR, RECEPTIONIST
 // Gender: MALE, FEMALE, OTHER  

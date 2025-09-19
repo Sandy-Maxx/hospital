@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, List, Building2, Bed } from "lucide-react";
+import { Settings, List, Building2, Bed, Activity } from "lucide-react";
 
 export default function SettingsHubPage() {
   return (
@@ -16,7 +16,7 @@ export default function SettingsHubPage() {
           <CardDescription>Select a configuration area to open.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="p-5 border rounded-lg bg-white">
               <div className="flex items-center gap-2 mb-2 text-lg font-semibold">
                 <Building2 className="w-5 h-5" /> Hospital Settings
@@ -24,6 +24,15 @@ export default function SettingsHubPage() {
               <p className="text-sm text-gray-600 mb-4">Configure hospital information, branding, business hours, sessions, and advanced options.</p>
               <Link href="/admin/settings/configure">
                 <Button className="">Open Settings</Button>
+              </Link>
+            </div>
+            <div className="p-5 border rounded-lg bg-white">
+              <div className="flex items-center gap-2 mb-2 text-lg font-semibold">
+                <Activity className="w-5 h-5" /> OT & Imaging Services
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Configure surgical and imaging services with procedures and pricing for billing.</p>
+              <Link href="/admin/settings/services">
+                <Button className="">Manage Services</Button>
               </Link>
             </div>
             <div className="p-5 border rounded-lg bg-white">

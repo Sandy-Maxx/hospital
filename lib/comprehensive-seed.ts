@@ -16,34 +16,38 @@ export async function comprehensiveSeed() {
     // 2. Users and Staff
     await seedUsers();
     
-    // 3. Medicines
+    // 3. OT & Imaging configuration (services and procedures)
+    await seedOTServicesAndProcedures();
+    await seedImagingServicesAndProcedures();
+    
+    // 4. Medicines
     await seedMedicines();
     
-    // 4. Patients
+    // 5. Patients
     const patients = await seedPatients();
     
-    // 5. Appointment Sessions
+    // 6. Appointment Sessions
     await seedAppointmentSessions();
     
-    // 6. Appointments with varied data
+    // 7. Appointments with varied data
     await seedAppointments(patients);
     
-    // 7. Consultation fees for all doctors
+    // 8. Consultation fees for all doctors
     await seedConsultationFees();
     
-    // 8. Sample prescriptions
+    // 9. Sample prescriptions
     await seedPrescriptions(patients);
     
-    // 9. Sample bills
+    // 10. Sample bills
     await seedBills(patients);
     
-    // 10. Doctor availability
+    // 11. Doctor availability
     await seedDoctorAvailability();
     
-    // 11. Sample admissions (IPD)
+    // 12. Sample admissions (IPD)
     await seedSampleAdmissions(patients);
     
-    // 12. Sample vitals
+    // 13. Sample vitals
     await seedVitals(patients);
 
     console.log("✅ Comprehensive seeding completed successfully!");
@@ -503,9 +507,12 @@ async function seedBills(patients: any[]) {
     const sgst = totalAmount * 0.09;
     const finalAmount = totalAmount + cgst + sgst;
     
-    await prisma.bill.create({
-      data: {
-        billNumber: `MED-B-${String(i + 1).padStart(4, '0')}`,
+    const billNumber = `MED-B-${String(i + 1).padStart(4, '0')}`;
+    await prisma.bill.upsert({
+      where: { billNumber },
+      update: {},
+      create: {
+        billNumber,
         patientId: patient.id,
         doctorId: doctor.id,
         consultationFee,
@@ -615,6 +622,208 @@ async function seedVitals(patients: any[]) {
   }
   
   console.log("✅ Created 30 vital sign records");
+}
+
+async function seedOTServicesAndProcedures() {
+  console.log("🛠️ Seeding OT services and procedures...");
+  // Services
+  const services = [
+    { name: "General Surgery", category: "MAJOR", department: "Surgery", basePrice: 5000, duration: 120 },
+    { name: "Orthopedic Surgery", category: "MAJOR", department: "Orthopedics", basePrice: 8000, duration: 150 },
+    { name: "ENT Surgery", category: "MINOR", department: "ENT", basePrice: 3000, duration: 60 },
+    { name: "Gynecologic Surgery", category: "MAJOR", department: "Gynecology", basePrice: 6000, duration: 120 },
+  ];
+  const createdServices: Record<string,string> = {};
+  for (const s of services) {
+    const svc = await prisma.oTService.upsert({
+      where: { name: s.name },
+      update: {},
+      create: { name: s.name, category: s.category, department: s.department, basePrice: s.basePrice, duration: s.duration, isActive: true },
+    });
+    createdServices[s.name] = svc.id;
+  }
+  // Procedures with billing defaults
+  const procedures = [
+    {
+      service: "General Surgery",
+      name: "Appendectomy",
+      code: "OT-GS-APP",
+      price: 12000,
+      duration: 90,
+      complexity: "MEDIUM",
+      anesthesia: "GENERAL",
+      billingDefaults: {
+        surgeonFee: 6000,
+        assistantFee: 2000,
+        anesthesiaFee: 1500,
+        otRoomRatePerHour: 2000,
+        defaultOtRoomHours: 1,
+        emergencySurcharge: 1000,
+        nightSurcharge: 1000,
+        weekendSurcharge: 500,
+      },
+    },
+    {
+      service: "Orthopedic Surgery",
+      name: "Open Reduction Internal Fixation (ORIF)",
+      code: "OT-ORTH-ORIF",
+      price: 35000,
+      duration: 180,
+      complexity: "HIGH",
+      anesthesia: "GENERAL",
+      billingDefaults: {
+        surgeonFee: 18000,
+        assistantFee: 6000,
+        anesthesiaFee: 4000,
+        otRoomRatePerHour: 3000,
+        defaultOtRoomHours: 3,
+        emergencySurcharge: 3000,
+        nightSurcharge: 2000,
+        weekendSurcharge: 1500,
+      },
+    },
+    {
+      service: "ENT Surgery",
+      name: "Tonsillectomy",
+      code: "OT-ENT-TONS",
+      price: 8000,
+      duration: 60,
+      complexity: "LOW",
+      anesthesia: "GENERAL",
+      billingDefaults: {
+        surgeonFee: 4000,
+        assistantFee: 1000,
+        anesthesiaFee: 1200,
+        otRoomRatePerHour: 1500,
+        defaultOtRoomHours: 1,
+        emergencySurcharge: 800,
+        nightSurcharge: 500,
+        weekendSurcharge: 500,
+      },
+    },
+  ];
+  for (const p of procedures) {
+    await prisma.oTProcedure.upsert({
+      where: { serviceId_name: { serviceId: createdServices[p.service], name: p.name } as any },
+      update: {},
+      create: {
+        serviceId: createdServices[p.service],
+        name: p.name,
+        code: p.code,
+        price: p.price,
+        duration: p.duration,
+        complexity: p.complexity,
+        anesthesia: p.anesthesia,
+        billingDefaults: p.billingDefaults as any,
+        isActive: true,
+      },
+    } as any);
+  }
+  console.log("✅ OT services/procedures seeded");
+}
+
+async function seedImagingServicesAndProcedures() {
+  console.log("🩻 Seeding Imaging services and procedures...");
+  const services = [
+    { name: "X-RAY", modality: "X-RAY", category: "ROUTINE", basePrice: 300, duration: 10 },
+    { name: "Ultrasound", modality: "ULTRASOUND", category: "ROUTINE", basePrice: 800, duration: 20 },
+    { name: "CT Scan", modality: "CT", category: "SPECIALIZED", basePrice: 2500, duration: 30 },
+    { name: "MRI", modality: "MRI", category: "SPECIALIZED", basePrice: 4000, duration: 45 },
+  ];
+  const created: Record<string,string> = {};
+  for (const s of services) {
+    const svc = await prisma.imagingService.upsert({
+      where: { name: s.name },
+      update: {},
+      create: { name: s.name, modality: s.modality, category: s.category, basePrice: s.basePrice, duration: s.duration, contrast: false, isActive: true },
+    });
+    created[s.name] = svc.id;
+  }
+  const procedures = [
+    {
+      service: "X-RAY",
+      name: "Chest X-Ray (PA)",
+      code: "XR-CH-PA",
+      price: 500,
+      duration: 10,
+      billingDefaults: {
+        radiologistFee: 200,
+        filmCdCharge: 100,
+        portableSurcharge: 150,
+        urgentSurcharge: 200,
+        contrastSurcharge: 0,
+        defaultContrastUsed: false,
+      },
+      preparation: "Remove metallic objects; Stand in PA position",
+    },
+    {
+      service: "Ultrasound",
+      name: "Abdominal Ultrasound",
+      code: "US-ABD",
+      price: 1500,
+      duration: 20,
+      billingDefaults: {
+        radiologistFee: 500,
+        filmCdCharge: 0,
+        portableSurcharge: 200,
+        urgentSurcharge: 300,
+        contrastSurcharge: 0,
+        defaultContrastUsed: false,
+      },
+      preparation: "Fasting 6 hours recommended",
+    },
+    {
+      service: "CT Scan",
+      name: "CT Brain (Plain)",
+      code: "CT-BRAIN-P",
+      price: 3000,
+      duration: 25,
+      billingDefaults: {
+        radiologistFee: 800,
+        filmCdCharge: 200,
+        portableSurcharge: 0,
+        urgentSurcharge: 500,
+        contrastSurcharge: 0,
+        defaultContrastUsed: false,
+      },
+      preparation: "Remove metal; Pregnancy check for females",
+    },
+    {
+      service: "MRI",
+      name: "MRI Brain (Plain+Contrast)",
+      code: "MRI-BRAIN-PC",
+      price: 6000,
+      duration: 45,
+      billingDefaults: {
+        radiologistFee: 1200,
+        filmCdCharge: 300,
+        portableSurcharge: 0,
+        urgentSurcharge: 800,
+        contrastSurcharge: 1500,
+        defaultContrastUsed: true,
+      },
+      preparation: "Screen for implants; Remove all metal; Fasting 4 hours",
+      contrastAgent: "Gadolinium",
+    },
+  ];
+  for (const p of procedures) {
+    await prisma.imagingProcedure.upsert({
+      where: { serviceId_name: { serviceId: created[p.service], name: p.name } as any },
+      update: {},
+      create: {
+        serviceId: created[p.service],
+        name: p.name,
+        code: p.code,
+        price: p.price,
+        duration: p.duration,
+        preparation: p.preparation || null,
+        contrastAgent: (p as any).contrastAgent || null,
+        billingDefaults: p.billingDefaults as any,
+        isActive: true,
+      },
+    } as any);
+  }
+  console.log("✅ Imaging services/procedures seeded");
 }
 
 // Main execution
