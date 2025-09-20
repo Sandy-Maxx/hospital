@@ -1027,3 +1027,53 @@ model ImagingProcedure {
 // BedStatus: AVAILABLE, OCCUPIED, MAINTENANCE, BLOCKED
 // AdmissionStatus: ACTIVE, DISCHARGED, TRANSFERRED
 // AdmissionType: EMERGENCY, PLANNED, REFERRAL
+
+// OT and Imaging Requests
+model OtRequest {
+  id              String   @id @default(cuid())
+  admissionId     String
+  patientId       String
+  doctorId        String
+  procedureId     String?  // from OTProcedure; null if custom
+  customName      String?
+  priority        String?  // EMERGENCY, HIGH, NORMAL, LOW
+  notes           String?
+  status          String   @default("PENDING") // PENDING, SCHEDULED, DONE, CANCELLED
+  scheduledAt     DateTime?
+  performedAt     DateTime?
+  performedById   String?
+  requestedBasePrice Float? // for custom requests; snapshot at completion to basePriceUsed
+  basePriceUsed   Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([admissionId, status])
+  @@index([patientId, status])
+  @@index([doctorId, status])
+  @@map("ot_requests")
+}
+
+model ImagingRequest {
+  id              String   @id @default(cuid())
+  admissionId     String
+  patientId       String
+  doctorId        String
+  procedureId     String?  // from ImagingProcedure; null if custom
+  customName      String?
+  contrastReq     Boolean  @default(false) // requested contrast
+  priority        String?
+  notes           String?
+  status          String   @default("PENDING")
+  scheduledAt     DateTime?
+  performedAt     DateTime?
+  performedById   String?
+  requestedBasePrice Float?
+  basePriceUsed   Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([admissionId, status])
+  @@index([patientId, status])
+  @@index([doctorId, status])
+  @@map("imaging_requests")
+}

@@ -110,6 +110,7 @@ export default function LabPage() {
           <p className="text-gray-600">Manage samples and lab reports</p>
         </div>
         <div className="flex items-center gap-2">
+          <a className="p-2 border rounded text-sm" href="/pharmacy-queue" title="Go to Pharmacy Queue">Pharmacy Queue</a>
           <select
             className="p-2 border rounded"
             value={filter}

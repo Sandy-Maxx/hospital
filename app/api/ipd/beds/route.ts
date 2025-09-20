@@ -18,7 +18,22 @@ export async function GET(request: NextRequest) {
     };
 
     if (wardId) where.wardId = wardId;
-    if (status) where.status = status;
+    if (status) {
+      // Robust filtering: treat OCCUPIED/AVAILABLE using admissions as ground truth
+      if (status === "AVAILABLE") {
+        where.status = "AVAILABLE";
+        // Must also have no ACTIVE admissions
+        (where as any).admissions = { none: { status: "ACTIVE" } };
+      } else if (status === "OCCUPIED") {
+        // Either explicitly OCCUPIED or has any ACTIVE admissions
+        (where as any).OR = [
+          { status: "OCCUPIED" },
+          { admissions: { some: { status: "ACTIVE" } } },
+        ];
+      } else {
+        where.status = status;
+      }
+    }
     if (bedType) {
       where.bedType = {
         name: bedType
@@ -80,22 +95,26 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    // Transform the data to include current admission info
-    const bedsWithStatus = beds.map(bed => ({
-      id: bed.id,
-      bedNumber: bed.bedNumber,
-      status: bed.status,
-      notes: bed.notes,
-      ward: bed.ward,
-      bedType: {
-        ...bed.bedType,
-        amenities: bed.bedType.amenities ? JSON.parse(bed.bedType.amenities) : []
-      },
-      currentAdmission: bed.admissions[0] || null,
-      isOccupied: bed.admissions.length > 0,
-      createdAt: bed.createdAt,
-      updatedAt: bed.updatedAt
-    }));
+    // Transform the data to include current admission info and normalize status
+    const bedsWithStatus = beds.map(bed => {
+      const hasActive = bed.admissions.length > 0;
+      const normalizedStatus = hasActive ? "OCCUPIED" : bed.status;
+      return {
+        id: bed.id,
+        bedNumber: bed.bedNumber,
+        status: normalizedStatus,
+        notes: bed.notes,
+        ward: bed.ward,
+        bedType: {
+          ...bed.bedType,
+          amenities: bed.bedType.amenities ? JSON.parse(bed.bedType.amenities) : []
+        },
+        currentAdmission: bed.admissions[0] || null,
+        isOccupied: hasActive,
+        createdAt: bed.createdAt,
+        updatedAt: bed.updatedAt
+      };
+    });
 
     return NextResponse.json({ beds: bedsWithStatus });
 
@@ -131,10 +150,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Enforce consistency: if there is an ACTIVE admission for this bed, keep status as OCCUPIED
+    const activeAdmission = await prisma.admission.findFirst({ where: { bedId, status: "ACTIVE" }, select: { id: true } });
+
+    const nextStatus = activeAdmission ? "OCCUPIED" : status;
+
     const updatedBed = await prisma.bed.update({
       where: { id: bedId },
       data: {
-        status,
+        status: nextStatus,
         notes: notes || null,
         updatedAt: new Date()
       },

@@ -264,6 +264,7 @@ export default function DoctorDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
+        <a href="/pharmacy-queue" className="text-sm px-3 py-2 border rounded" title="Open Pharmacy Queue">Pharmacy Queue</a>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Doctor Dashboard</h1>
           <p className="text-gray-600">

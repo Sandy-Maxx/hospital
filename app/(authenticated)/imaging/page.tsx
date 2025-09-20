@@ -19,6 +19,19 @@ export default function ImagingPage() {
   const [admissions, setAdmissions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
+  // Imaging Requests queue
+  const [imgRequests, setImgRequests] = useState<any[]>([]);
+  const [queueStatus, setQueueStatus] = useState<'PENDING'|'SCHEDULED'>('PENDING');
+  const loadImagingQueue = async () => {
+    try {
+      const r = await fetch(`/api/imaging/requests?status=${queueStatus}`);
+      if (r.ok) {
+        const d = await r.json();
+        setImgRequests(d.requests || []);
+      }
+    } catch {}
+  };
+
   // Lookups
   const [services, setServices] = useState<ImagingService[]>([]);
   const [procedures, setProcedures] = useState<ImagingProcedure[]>([]);
@@ -38,6 +51,7 @@ export default function ImagingPage() {
       try {
         setLoading(true);
         await loadLookups();
+        await loadImagingQueue();
         const res = await fetch('/api/ipd/admissions?status=ACTIVE');
         if (res.ok) {
           const d = await res.json();
@@ -47,6 +61,8 @@ export default function ImagingPage() {
       finally { setLoading(false); }
     })();
   }, []);
+
+  useEffect(() => { loadImagingQueue(); }, [queueStatus]);
 
   if (!session?.user) return null;
   if (!['ADMIN','DOCTOR','NURSE'].includes((session.user as any).role)) {
@@ -161,6 +177,31 @@ export default function ImagingPage() {
     } catch (e: any) { toast.error(e?.message || 'Failed to post charges'); }
   };
 
+  const scheduleRequest = async (reqId: string, minutesFromNow = 30) => {
+    try {
+      const when = new Date(Date.now() + minutesFromNow * 60 * 1000).toISOString();
+      const r = await fetch('/api/imaging/requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: reqId, status: 'SCHEDULED', scheduledAt: when }) });
+      if (r.ok) { toast.success('Scheduled'); await loadImagingQueue(); }
+      else { const e = await r.json().catch(()=>({})); toast.error(e.error || 'Failed to schedule'); }
+    } catch { toast.error('Failed to schedule'); }
+  };
+
+  const unscheduleRequest = async (reqId: string) => {
+    try {
+      const r = await fetch('/api/imaging/requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: reqId, status: 'PENDING', scheduledAt: null }) });
+      if (r.ok) { toast.success('Moved to Pending'); await loadImagingQueue(); }
+      else { const e = await r.json().catch(()=>({})); toast.error(e.error || 'Failed'); }
+    } catch { toast.error('Failed'); }
+  };
+
+  const completeRequest = async (reqId: string) => {
+    try {
+      const r = await fetch('/api/imaging/requests/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: reqId, performedById: (session?.user as any)?.id || null }) });
+      if (r.ok) { toast.success('Imaging request completed'); await loadImagingQueue(); }
+      else { const e = await r.json().catch(()=>({})); toast.error(e.error || 'Failed to complete request'); }
+    } catch { toast.error('Failed to complete request'); }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -172,6 +213,43 @@ export default function ImagingPage() {
           <Button variant="outline" onClick={loadLookups}><Settings className="w-4 h-4 mr-2"/>Refresh Lookups</Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center"><Scan className="w-5 h-5 mr-2"/>Imaging Queue</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-gray-600">View:</span>
+            <select className="p-2 border rounded" value={queueStatus} onChange={(e) => setQueueStatus(e.target.value as any)}>
+              <option value="PENDING">Pending</option>
+              <option value="SCHEDULED">Scheduled</option>
+            </select>
+          </div>
+          {imgRequests.length === 0 ? (
+            <div className="text-sm text-gray-500">No pending Imaging requests</div>
+          ) : (
+            <div className="space-y-2">
+              {imgRequests.map((req) => (
+                <div key={req.id} className="p-3 border rounded flex items-center justify-between">
+                  <div className="text-sm">
+                    <div className="font-medium">{req.customName || 'Configured Study'}</div>
+                    <div className="text-xs text-gray-600">Admission: {req.admissionId} • Priority: {req.priority || 'NORMAL'}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {queueStatus === 'PENDING' ? (
+                      <Button size="sm" variant="outline" onClick={() => scheduleRequest(req.id)}>Schedule (+30m)</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => unscheduleRequest(req.id)}>Move to Pending</Button>
+                    )}
+                    <Button size="sm" onClick={() => completeRequest(req.id)}>Mark Done (post base)</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-4">

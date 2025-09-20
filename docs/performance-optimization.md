@@ -792,7 +792,7 @@ module.exports = {
 
 ### Phase 2: Advanced Optimizations (2-4 weeks)
 
-- [ ] Migrate to PostgreSQL for better performance
+- [ ] Migrate to PostgreSQL for better performance (but for deelopment keep using existing sqlite infrastructure)
 - [ ] Implement Redis caching layer
 - [ ] Add virtual scrolling for large lists
 - [ ] Optimize bundle size with tree shaking
@@ -813,12 +813,5 @@ module.exports = {
 - [ ] Machine learning for predictive caching
 - [ ] Edge computing for global performance
 - [ ] Advanced PWA features
-
-## 2025 Optimizations Adopted
-
-- Added SSE-based queue stream; ensure event payloads are minimal and cache-friendly
-- Introduced lightweight /api/sessions/simple for public booking UI
-- Split printing components (TokenPrint, BillPrint) via dynamic import to reduce TTI
-- Indexed new relations (problem categories, assignments) in Prisma schema
 
 This performance optimization guide provides a comprehensive strategy for improving the Hospital Management System's speed, scalability, and user experience across all platforms and use cases.

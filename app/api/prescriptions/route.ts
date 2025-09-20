@@ -192,7 +192,8 @@ export async function PUT(request: NextRequest) {
 
     if (typeof body.symptoms === "string") data.symptoms = body.symptoms;
     if (typeof body.diagnosis === "string") data.diagnosis = body.diagnosis;
-    if (body.vitals) data.vitals = JSON.stringify(body.vitals);
+    // Only update vitals when explicitly provided (avoid unintended resets)
+    if (body.vitals !== undefined) data.vitals = JSON.stringify(body.vitals);
 
     // Merge notes while preserving IPD admission lines
     if (typeof body.notes === "string") {
@@ -204,9 +205,11 @@ export async function PUT(request: NextRequest) {
     }
 
     if (
-      body.medicines ||
-      body.labTests ||
-      body.therapies ||
+      body.medicines !== undefined ||
+      body.labTests !== undefined ||
+      body.therapies !== undefined ||
+      body.quickNotes !== undefined ||
+      body.soapNotes !== undefined ||
       body.status !== undefined
     ) {
       // Merge with existing medicines JSON to avoid clobbering when only status is sent
@@ -220,11 +223,11 @@ export async function PUT(request: NextRequest) {
       } catch {}
 
       const payload: any = { ...current };
-      if (body.medicines) payload.medicines = body.medicines;
-      if (body.labTests) payload.labTests = body.labTests;
-      if (body.therapies) payload.therapies = body.therapies;
-      if (body.quickNotes) payload.quickNotes = body.quickNotes;
-      if (body.soapNotes) payload.soapNotes = body.soapNotes;
+      if (body.medicines !== undefined) payload.medicines = body.medicines;
+      if (body.labTests !== undefined) payload.labTests = body.labTests;
+      if (body.therapies !== undefined) payload.therapies = body.therapies;
+      if (body.quickNotes !== undefined) payload.quickNotes = body.quickNotes;
+      if (body.soapNotes !== undefined) payload.soapNotes = body.soapNotes;
       if (body.status !== undefined) payload.status = body.status;
 
       data.medicines = JSON.stringify(payload);
