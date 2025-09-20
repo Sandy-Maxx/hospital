@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +31,7 @@ import {
   Bed,
   Scan,
 } from "lucide-react";
+import { featureForPath, hasFeature } from "@/lib/edition";
 
 interface SidebarProps {
   className?: string;
@@ -131,6 +132,38 @@ export function Sidebar({ className }: SidebarProps) {
   const userMenuItems =
     menuItems[session.user.role as keyof typeof menuItems] || [];
 
+  // Build a processed list that removes empty sections after applying feature gating
+  const processedMenuItems: MenuEntry[] = useMemo(() => {
+    const out: MenuEntry[] = [];
+    let i = 0;
+    while (i < userMenuItems.length) {
+      const item = userMenuItems[i] as MenuEntry;
+      if ((item as MenuSection).type === "section") {
+        const section = item as MenuSection;
+        const visibleLinks: MenuLink[] = [];
+        let j = i + 1;
+        while (j < userMenuItems.length && (userMenuItems[j] as any).type !== "section") {
+          const link = userMenuItems[j] as MenuLink;
+          const feature = featureForPath(link.href);
+          if (!feature || hasFeature(feature)) {
+            visibleLinks.push(link);
+          }
+          j++;
+        }
+        if (visibleLinks.length > 0) {
+          out.push(section, ...visibleLinks);
+        }
+        i = j;
+      } else {
+        const link = item as MenuLink;
+        const feature = featureForPath(link.href);
+        if (!feature || hasFeature(feature)) out.push(link);
+        i++;
+      }
+    }
+    return out;
+  }, [userMenuItems]);
+
   // Colorful icon palette per route for a modern look
   const colorByHref: Record<string, string> = {
     "/dashboard": "text-sky-600",
@@ -219,8 +252,8 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {userMenuItems.map((item, idx) => {
-          // Section header
+        {processedMenuItems.map((item, idx) => {
+          // Section header (rendered only if it has visible links below)
           if ((item as MenuSection).type === "section") {
             const section = item as MenuSection;
             return (

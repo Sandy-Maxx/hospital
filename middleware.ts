@@ -27,8 +27,9 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Exclude Next internals and static assets from middleware to avoid affecting public files
   matcher: [
-    "/((?!.+\\.\n(?:ico|png|jpg|jpeg|svg|webp|js|css|map)$).*)",
+    "/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|uploads/|icons?/).*)",
   ],
 };
 

@@ -77,6 +77,7 @@ interface PrescriptionFormProps {
   onCancel?: () => void;
   consultationData?: ConsultationData;
   existing?: any;
+  suppressRedirect?: boolean; // when true, do not redirect after save
 }
 
 // Common medicines database for autocomplete
@@ -196,6 +197,7 @@ export default function PrescriptionForm({
   onCancel,
   consultationData,
   existing,
+  suppressRedirect = false,
 }: PrescriptionFormProps) {
   const [medicines, setMedicines] = useState<Medicine[]>([
     {
@@ -543,10 +545,12 @@ export default function PrescriptionForm({
         }
 
         onSuccess?.(data.prescription);
-        // Always redirect to prescriptions page after save
-        try {
-          window.location.href = "/prescriptions";
-        } catch {}
+        // Redirect only when not suppressed (default behavior preserved)
+        if (!suppressRedirect) {
+          try {
+            window.location.href = "/prescriptions";
+          } catch {}
+        }
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to save prescription");

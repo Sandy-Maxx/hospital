@@ -800,6 +800,7 @@ export default function Queue() {
                 selectedPatient={docPatient}
                 onSuccess={() => setDocOpen(false)}
                 onCancel={() => setDocOpen(false)}
+                suppressRedirect={true}
                 consultationData={{
                   soapNotes: docSoapNotes,
                   quickNotes: docQuickNotes,

@@ -46,7 +46,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
     apiClient.syncQueued();
     const h = () => apiClient.syncQueued();
     window.addEventListener("online", h);
-    return () => window.removeEventListener("online", h);
+
+    // Listen to SW messages for background sync triggers
+    const onSwMessage = (e: MessageEvent) => {
+      if ((e?.data as any)?.type === 'SYNC_PENDING') {
+        apiClient.syncQueued();
+      }
+    };
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', onSwMessage);
+    }
+
+    return () => {
+      window.removeEventListener("online", h);
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener('message', onSwMessage);
+      }
+    };
   }, []);
 
   return (
