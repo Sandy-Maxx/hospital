@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import {
   Users,
   Calendar,
@@ -35,41 +36,53 @@ interface SidebarProps {
   className?: string;
 }
 
-const menuItems = {
+type MenuLink = { icon: LucideIcon; label: string; href: string };
+type MenuSection = { type: "section"; title: string };
+
+type MenuEntry = MenuLink | MenuSection;
+
+const menuItems: Record<string, MenuEntry[]> = {
   ADMIN: [
+    { type: "section", title: "Overview" },
     { icon: Home, label: "Dashboard", href: "/dashboard" },
+
+    { type: "section", title: "Administration" },
     { icon: Shield, label: "Admin Panel", href: "/admin" },
-    { icon: Users, label: "User Management", href: "/admin/users" },
-    {
-      icon: Clock,
-      label: "Doctor Availability",
-      href: "/admin/doctor-availability",
-    },
     { icon: Settings, label: "Hospital Settings", href: "/admin/settings" },
+    { icon: Users, label: "User Management", href: "/admin/users" },
+    { icon: Shield, label: "Role Management", href: "/admin/roles" },
+    { icon: Clock, label: "Doctor Availability", href: "/admin/doctor-availability" },
     { icon: QrCode, label: "Doctor QR", href: "/admin/doctor-qr" },
+
+    { type: "section", title: "Clinical" },
     { icon: UserPlus, label: "Patients", href: "/patients" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
+
+    { type: "section", title: "Departments" },
+    { icon: Bed, label: "IPD Management", href: "/ipd" },
+    { icon: FlaskConical, label: "Path Lab", href: "/lab" },
+    { icon: Scan, label: "Imaging", href: "/imaging" },
+    { icon: ClipboardList, label: "OT / Procedures", href: "/ot" },
+
+    { type: "section", title: "Pharmacy" },
     { icon: Pill, label: "Pharmacy", href: "/admin/pharmacy" },
+    { icon: Pill, label: "Pharmacy Queue", href: "/pharmacy-queue" },
+
+    { type: "section", title: "Finance & Analytics" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: BarChart2, label: "Reports", href: "/reports" },
     { icon: BarChart2, label: "OT/Imaging Report", href: "/reports/ot-imaging" },
-    { icon: Pill, label: "Pharmacy Queue", href: "/pharmacy-queue" },
+
+    { type: "section", title: "Marketing" },
     { icon: Megaphone, label: "Marketing", href: "/marketing" },
-    { icon: FlaskConical, label: "Path Lab", href: "/lab" },
-    { icon: Bed, label: "IPD Management", href: "/ipd" },
-    { icon: Scan, label: "Imaging", href: "/imaging" },
-    { icon: ClipboardList, label: "OT / Procedures", href: "/ot" },
-    { icon: Shield, label: "Role Management", href: "/admin/roles" },
+
+    { type: "section", title: "Account" },
     { icon: Users, label: "My Profile", href: "/profile" },
   ],
   DOCTOR: [
     { icon: Home, label: "Dashboard", href: "/dashboard" },
     { icon: Stethoscope, label: "Doctor Console", href: "/doctor" },
-    {
-      icon: Clock,
-      label: "My Availability",
-      href: "/admin/doctor-availability",
-    },
+    { icon: Clock, label: "My Availability", href: "/admin/doctor-availability" },
     { icon: UserPlus, label: "Patients", href: "/patients" },
     { icon: FileText, label: "Prescriptions", href: "/prescriptions" },
     { icon: ClipboardList, label: "Queue Management", href: "/queue" },
@@ -81,11 +94,7 @@ const menuItems = {
     { icon: Home, label: "Dashboard", href: "/dashboard" },
     { icon: UserPlus, label: "Patient Registration", href: "/patients/new" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
-    {
-      icon: Clock,
-      label: "Doctor Schedules",
-      href: "/admin/doctor-availability",
-    },
+    { icon: Clock, label: "Doctor Schedules", href: "/admin/doctor-availability" },
     { icon: ClipboardList, label: "Queue Management", href: "/queue" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: Users, label: "Patients", href: "/patients" },
@@ -210,10 +219,20 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {userMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          const color = colorByHref[item.href] || "text-gray-500";
+        {userMenuItems.map((item, idx) => {
+          // Section header
+          if ((item as MenuSection).type === "section") {
+            const section = item as MenuSection;
+            return (
+              <div key={`section-${section.title}-${idx}`} className={cn("px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-gray-500", isCollapsed && "hidden")}>{section.title}</div>
+            );
+          }
+
+          // Regular link
+          const link = item as MenuLink;
+          const Icon = link.icon;
+          const isActive = pathname === link.href;
+          const color = colorByHref[link.href] || "text-gray-500";
           const iconClasses = cn(
             "shrink-0",
             isCollapsed ? "w-7 h-7" : "w-6 h-6",
@@ -221,9 +240,9 @@ export function Sidebar({ className }: SidebarProps) {
           );
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              title={isCollapsed ? item.label : undefined}
+              key={link.href}
+              href={link.href}
+              title={isCollapsed ? link.label : undefined}
               className={cn(
                 "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 "min-h-[40px]",
@@ -235,7 +254,7 @@ export function Sidebar({ className }: SidebarProps) {
               <div className="flex items-center justify-center w-8 h-8">
                 <Icon className={iconClasses} />
               </div>
-              {!isCollapsed && <span>{item.label}</span>}
+              {!isCollapsed && <span>{link.label}</span>}
             </Link>
           );
         })}

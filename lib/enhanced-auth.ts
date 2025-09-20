@@ -11,25 +11,33 @@ const LEGACY_ROLE_PERMISSIONS: Record<LegacyRole, string[]> = {
   ADMIN: [
     "patients.manage", "appointments.manage", "bills.manage", "prescriptions.manage",
     "ipd.manage", "lab.manage", "users.manage", "settings.manage", 
-    "reports.manage", "roles.manage", "queue.update", "marketing.manage"
+    "reports.manage", "roles.manage", "queue.update", "marketing.manage",
+    // New modules
+    "imaging.manage", "ot.manage", "pharmacy.manage"
   ],
   DOCTOR: [
     "patients.read", "patients.update", "patients.create",
     "appointments.read", "appointments.update", "appointments.create", "appointments.assign",
     "prescriptions.manage", "queue.read", "queue.update",
     "ipd.read", "ipd.update", "ipd.admit", "ipd.discharge",
-    "lab.read", "reports.read"
+    "lab.read", "reports.read",
+    // Imaging/OT/Pharmacy access for doctors
+    "imaging.read", "imaging.create", "ot.read", "ot.create", "pharmacy.read"
   ],
   NURSE: [
     "patients.read", "patients.update",
     "appointments.read", "appointments.update",
     "prescriptions.read", "queue.read", "queue.update",
-    "ipd.read", "ipd.update", "lab.read"
+    "ipd.read", "ipd.update", "lab.read",
+    // Read access for operational modules
+    "imaging.read", "ot.read", "pharmacy.read"
   ],
   RECEPTIONIST: [
     "patients.read", "patients.create", "patients.update",
     "appointments.read", "appointments.create", "appointments.update",
-    "bills.read", "bills.create", "queue.read"
+    "bills.read", "bills.create", "queue.read",
+    // Read access for coordination
+    "imaging.read", "ot.read", "pharmacy.read"
   ],
   PATIENT: ["appointments.read"]
 };

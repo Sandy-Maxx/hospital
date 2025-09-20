@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import dynamic from "next/dynamic";
 import {
   Clock,
   User,
@@ -24,6 +26,17 @@ import { formatTime } from "@/lib/utils";
 import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api-client";
+
+// Load the same SOAP UI used in prescriptions page (with checkboxes, vitals, etc.)
+const ConsultationNotes = dynamic(
+  () => import("@/components/soap/consultation-notes"),
+  { ssr: false },
+);
+// Load the same PrescriptionForm used on /prescriptions
+const PrescriptionForm = dynamic(
+  () => import("@/components/prescriptions/prescription-form"),
+  { ssr: false },
+);
 
 interface QueueItem {
   id: string;
@@ -69,6 +82,29 @@ export default function Queue() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [updating, setUpdating] = useState<Set<string>>(new Set());
+
+  // Nurse SOAP modal state
+  const [soapOpen, setSoapOpen] = useState(false);
+  const [soapSaving, setSoapSaving] = useState(false);
+  const [soapAppointmentId, setSoapAppointmentId] = useState<string | null>(null);
+  const [soapPatient, setSoapPatient] = useState<{ id: string; name: string } | null>(null);
+  const [soapNotes, setSoapNotes] = useState({ subjective: "", objective: "", assessment: "", plan: "" });
+  const [quickNotes, setQuickNotes] = useState({
+    commonSymptoms: [] as string[],
+    vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+    commonDiagnoses: [] as string[],
+  });
+
+  // Doctor consultation modal state
+  const [docOpen, setDocOpen] = useState(false);
+  const [docAppointmentId, setDocAppointmentId] = useState<string | null>(null);
+  const [docPatient, setDocPatient] = useState<any | null>(null);
+  const [docSoapNotes, setDocSoapNotes] = useState({ subjective: "", objective: "", assessment: "", plan: "" });
+  const [docQuickNotes, setDocQuickNotes] = useState({
+    commonSymptoms: [] as string[],
+    vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+    commonDiagnoses: [] as string[],
+  });
 
   const fetchQueue = async (suppressLoading: boolean = false) => {
     try {
@@ -154,6 +190,91 @@ export default function Queue() {
       }
     } catch (error) {
       console.error("Error fetching doctors:", error);
+    }
+  };
+
+  const openSoapModal = async (item: QueueItem) => {
+    try {
+      setSoapAppointmentId(item.id);
+      setSoapPatient({ id: item.patient.id, name: `${item.patient.firstName} ${item.patient.lastName}` });
+      // Prefill from existing appointment notes
+      const res = await fetch(`/api/appointments/${item.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const rawNotes = data?.appointment?.notes;
+        if (rawNotes) {
+          try {
+            const parsed = JSON.parse(rawNotes);
+            if (parsed?.soapNotes) {
+              setSoapNotes({
+                subjective: parsed.soapNotes.subjective || "",
+                objective: parsed.soapNotes.objective || "",
+                assessment: parsed.soapNotes.assessment || "",
+                plan: parsed.soapNotes.plan || "",
+              });
+            } else {
+              setSoapNotes({ subjective: "", objective: "", assessment: "", plan: "" });
+            }
+            if (parsed?.quickNotes) {
+              setQuickNotes({
+                commonSymptoms: parsed.quickNotes.commonSymptoms || [],
+                vitalSigns: {
+                  temperature: parsed.quickNotes.vitalSigns?.temperature || "",
+                  bloodPressure: parsed.quickNotes.vitalSigns?.bloodPressure || "",
+                  pulse: parsed.quickNotes.vitalSigns?.pulse || "",
+                  respiratoryRate: parsed.quickNotes.vitalSigns?.respiratoryRate || "",
+                  oxygenSaturation: parsed.quickNotes.vitalSigns?.oxygenSaturation || "",
+                },
+                commonDiagnoses: parsed.quickNotes.commonDiagnoses || [],
+              });
+            } else {
+              setQuickNotes({
+                commonSymptoms: [],
+                vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+                commonDiagnoses: [],
+              });
+            }
+          } catch {
+            setSoapNotes({ subjective: "", objective: "", assessment: "", plan: "" });
+            setQuickNotes({
+              commonSymptoms: [],
+              vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+              commonDiagnoses: [],
+            });
+          }
+        } else {
+          setSoapNotes({ subjective: "", objective: "", assessment: "", plan: "" });
+          setQuickNotes({
+            commonSymptoms: [],
+            vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+            commonDiagnoses: [],
+          });
+        }
+      }
+    } catch {}
+    setSoapOpen(true);
+  };
+
+  const saveSoap = async () => {
+    if (!soapAppointmentId) return;
+    setSoapSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${soapAppointmentId}/soap`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soapNotes, quickNotes }),
+      });
+      if (res.ok) {
+        toast.success("SOAP saved");
+        setSoapOpen(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to save SOAP");
+      }
+    } catch {
+      toast.error("Failed to save SOAP");
+    } finally {
+      setSoapSaving(false);
     }
   };
 
@@ -353,7 +474,7 @@ export default function Queue() {
           <Button
             key="consultation"
             size="sm"
-            onClick={() => startConsultation(item.id, item.patient.id)}
+            onClick={() => openDoctorConsultation(item)}
           >
             Start Consultation
           </Button>,
@@ -383,6 +504,88 @@ export default function Queue() {
   const inConsultationCount = queueItems.filter(
     (item) => item.status === "IN_CONSULTATION",
   ).length;
+
+  // Doctor Start Consultation -> open modal with SOAP + PrescriptionForm
+  const openDoctorConsultation = async (item: QueueItem) => {
+    try {
+      // Update status first (optimistic UI already applied by getStatusActions if we want)
+      await updateStatus(item.id, "IN_CONSULTATION");
+      setDocAppointmentId(item.id);
+
+      // Fetch patient details for PrescriptionForm
+      try {
+        const pres = await fetch(`/api/patients/${item.patient.id}`);
+        if (pres.ok) {
+          const data = await pres.json();
+          const p = data.patient;
+          setDocPatient({
+            id: p.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            phone: p.phone || "",
+            age: p.dateOfBirth ? Math.max(0, Math.floor((Date.now() - new Date(p.dateOfBirth).getTime()) / (365.25*24*60*60*1000))) : 0,
+            gender: p.gender || "OTHER",
+          });
+        } else {
+          setDocPatient({ id: item.patient.id, firstName: item.patient.firstName, lastName: item.patient.lastName, phone: item.patient.phone || "", age: 0, gender: "OTHER" });
+        }
+      } catch {
+        setDocPatient({ id: item.patient.id, firstName: item.patient.firstName, lastName: item.patient.lastName, phone: item.patient.phone || "", age: 0, gender: "OTHER" });
+      }
+
+      // Prefill SOAP from appointment notes
+      try {
+        const res = await fetch(`/api/appointments/${item.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const rawNotes = data?.appointment?.notes;
+          if (rawNotes) {
+            const parsed = JSON.parse(rawNotes);
+            if (parsed?.soapNotes) {
+              setDocSoapNotes({
+                subjective: parsed.soapNotes.subjective || "",
+                objective: parsed.soapNotes.objective || "",
+                assessment: parsed.soapNotes.assessment || "",
+                plan: parsed.soapNotes.plan || "",
+              });
+            } else {
+              setDocSoapNotes({ subjective: "", objective: "", assessment: "", plan: "" });
+            }
+            if (parsed?.quickNotes) {
+              setDocQuickNotes({
+                commonSymptoms: parsed.quickNotes.commonSymptoms || [],
+                vitalSigns: {
+                  temperature: parsed.quickNotes.vitalSigns?.temperature || "",
+                  bloodPressure: parsed.quickNotes.vitalSigns?.bloodPressure || "",
+                  pulse: parsed.quickNotes.vitalSigns?.pulse || "",
+                  respiratoryRate: parsed.quickNotes.vitalSigns?.respiratoryRate || "",
+                  oxygenSaturation: parsed.quickNotes.vitalSigns?.oxygenSaturation || "",
+                },
+                commonDiagnoses: parsed.quickNotes.commonDiagnoses || [],
+              });
+            } else {
+              setDocQuickNotes({
+                commonSymptoms: [],
+                vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+                commonDiagnoses: [],
+              });
+            }
+          } else {
+            setDocSoapNotes({ subjective: "", objective: "", assessment: "", plan: "" });
+            setDocQuickNotes({
+              commonSymptoms: [],
+              vitalSigns: { temperature: "", bloodPressure: "", pulse: "", respiratoryRate: "", oxygenSaturation: "" },
+              commonDiagnoses: [],
+            });
+          }
+        }
+      } catch {}
+
+      setDocOpen(true);
+    } catch (e) {
+      toast.error("Failed to start consultation");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -520,11 +723,7 @@ export default function Queue() {
                             <Button
                               key={`soap-${item.id}`}
                               size="sm"
-                              onClick={() => {
-                                // Navigate to prescription page for SOAP entry
-                                const url = `/prescriptions?patientId=${item.patient.id}&appointmentId=${item.id}&soap=true`;
-                                window.location.href = url;
-                              }}
+                              onClick={() => openSoapModal(item)}
                             >
                               SOAP
                             </Button>
@@ -539,6 +738,78 @@ export default function Queue() {
           )}
         </CardContent>
       </Card>
+      {/* Nurse SOAP Modal */}
+      <Dialog open={soapOpen} onOpenChange={setSoapOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nurse SOAP Entry</DialogTitle>
+            <DialogDescription>
+              {soapPatient ? `For ${soapPatient.name}` : "Fill SOAP notes and vitals"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ConsultationNotes
+              soapNotes={soapNotes}
+              quickNotes={quickNotes}
+              onChangeSoap={setSoapNotes}
+              onChangeQuick={setQuickNotes}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSoapOpen(false)} disabled={soapSaving}>Cancel</Button>
+            <Button onClick={saveSoap} disabled={soapSaving} className="bg-blue-600 hover:bg-blue-700">
+              {soapSaving ? "Saving..." : "Save SOAP"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Doctor Consultation Modal */}
+      <Dialog open={docOpen} onOpenChange={setDocOpen}>
+        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Start Consultation</DialogTitle>
+            <DialogDescription>
+              {docPatient ? `For ${docPatient.firstName} ${docPatient.lastName}` : "Fill SOAP and Prescription"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* SOAP section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  Consultation Notes (SOAP)
+                </CardTitle>
+                <CardDescription>
+                  Review or update the SOAP notes before prescribing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ConsultationNotes
+                  soapNotes={docSoapNotes}
+                  quickNotes={docQuickNotes}
+                  onChangeSoap={setDocSoapNotes}
+                  onChangeQuick={setDocQuickNotes}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Prescription form re-used exactly as in prescriptions page */}
+            {docPatient && (
+              <PrescriptionForm
+                selectedPatient={docPatient}
+                onSuccess={() => setDocOpen(false)}
+                onCancel={() => setDocOpen(false)}
+                consultationData={{
+                  soapNotes: docSoapNotes,
+                  quickNotes: docQuickNotes,
+                  appointmentId: docAppointmentId,
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

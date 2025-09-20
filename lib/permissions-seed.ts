@@ -43,6 +43,42 @@ export const PERMISSIONS_SEED = [
   { module: "lab", action: "update", displayName: "Update Lab Tests", description: "Update test status and results" },
   { module: "lab", action: "manage", displayName: "Manage Laboratory", description: "Full laboratory management access" },
 
+  // Imaging Module
+  { module: "imaging", action: "create", displayName: "Create Imaging Requests", description: "Order imaging procedures for patients" },
+  { module: "imaging", action: "read", displayName: "View Imaging Orders & Results", description: "View imaging requests, schedules and results" },
+  { module: "imaging", action: "update", displayName: "Update Imaging Requests", description: "Update imaging request status and upload results" },
+  { module: "imaging", action: "manage", displayName: "Manage Imaging", description: "Full imaging management including services & procedures" },
+
+  // Operation Theatre (OT) Module
+  { module: "ot", action: "create", displayName: "Create OT Requests", description: "Schedule and create OT/procedure requests" },
+  { module: "ot", action: "read", displayName: "View OT Requests", description: "View OT schedules and procedure requests" },
+  { module: "ot", action: "update", displayName: "Update OT Requests", description: "Update OT request status and completion" },
+  { module: "ot", action: "manage", displayName: "Manage OT", description: "Full OT management including services & procedures" },
+
+  // Pharmacy Module (granular)
+  { module: "pharmacy", action: "create", displayName: "Create Pharmacy Records", description: "Create pharmacy entries and actions" },
+  { module: "pharmacy", action: "read", displayName: "View Pharmacy", description: "View pharmacy data and operations" },
+  { module: "pharmacy", action: "update", displayName: "Update Pharmacy Records", description: "Update pharmacy records and operations" },
+  { module: "pharmacy", action: "delete", displayName: "Delete Pharmacy Records", description: "Delete pharmacy records where allowed" },
+  { module: "pharmacy", action: "manage", displayName: "Manage Pharmacy", description: "Full pharmacy management access" },
+  // Pharmacy sub-features
+  { module: "pharmacy", action: "stock.read", displayName: "View Stock", description: "View medicine stock levels" },
+  { module: "pharmacy", action: "stock.update", displayName: "Update Stock", description: "Adjust and update stock levels" },
+  { module: "pharmacy", action: "stock.manage", displayName: "Manage Stock", description: "Full stock management access" },
+  { module: "pharmacy", action: "medicines.read", displayName: "View Medicines", description: "View medicines and details" },
+  { module: "pharmacy", action: "medicines.create", displayName: "Create Medicines", description: "Add new medicines" },
+  { module: "pharmacy", action: "medicines.update", displayName: "Update Medicines", description: "Edit medicine details" },
+  { module: "pharmacy", action: "medicines.delete", displayName: "Delete Medicines", description: "Remove medicines" },
+  { module: "pharmacy", action: "categories.read", displayName: "View Categories", description: "View medicine categories" },
+  { module: "pharmacy", action: "categories.create", displayName: "Create Categories", description: "Add new medicine categories" },
+  { module: "pharmacy", action: "categories.update", displayName: "Update Categories", description: "Edit medicine category details" },
+  { module: "pharmacy", action: "suppliers.read", displayName: "View Suppliers", description: "View suppliers list" },
+  { module: "pharmacy", action: "suppliers.create", displayName: "Create Suppliers", description: "Add new suppliers" },
+  { module: "pharmacy", action: "suppliers.update", displayName: "Update Suppliers", description: "Edit supplier details" },
+  { module: "pharmacy", action: "dispatch.read", displayName: "View Dispatch Queue", description: "View pharmacy dispatch queue" },
+  { module: "pharmacy", action: "dispatch.create", displayName: "Create Dispatch", description: "Create dispatch jobs" },
+  { module: "pharmacy", action: "dispatch.update", displayName: "Update Dispatch", description: "Update dispatch status" },
+
   // Users & Staff Module
   { module: "users", action: "create", displayName: "Create Users", description: "Add new staff members and users" },
   { module: "users", action: "read", displayName: "View Users", description: "View user profiles and information" },
