@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -137,25 +138,40 @@ export function BookAppointmentModal({
     });
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Book Appointment</CardTitle>
-              <CardDescription>
-                Schedule a new patient appointment
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <motion.div
+            className="absolute inset-0 bg-black/50"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+          {/* Panel */}
+          <motion.div
+            className="relative bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto top-1/2 -translate-y-1/2 shadow-xl"
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 36 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Book Appointment</CardTitle>
+                  <CardDescription>
+                    Schedule a new patient appointment
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
               {/* Patient Search */}
               <div>
                 <Label htmlFor="patientSearch">Search Patient *</Label>
@@ -278,7 +294,9 @@ export function BookAppointmentModal({
             </form>
           </CardContent>
         </Card>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

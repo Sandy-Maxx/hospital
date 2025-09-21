@@ -13,6 +13,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
       // Register service worker for PWA/offline support (prod only)
       navigator.serviceWorker
         .register("/sw.js")
+        .then(() => {
+          // Warm up app shell and key APIs for OPD + common mobile flows
+          navigator.serviceWorker.ready
+            .then((reg) => {
+              const today = new Date().toISOString().split("T")[0];
+              const queueApi = `/api/appointments?date=${today}&status=SCHEDULED,ARRIVED,WAITING,IN_CONSULTATION`;
+              const urls = [
+                "/",
+                "/dashboard",
+                "/queue",
+                "/patients",
+                "/patients/new",
+                "/appointments",
+                "/prescriptions",
+                "/pharmacy-queue",
+                "/auth/signin",
+                queueApi,
+                "/api/patients",
+                "/api/settings",
+              ];
+              try { reg.active?.postMessage({ type: "WARM_PAGE_CACHE", urls }); } catch {}
+            })
+            .catch(() => {});
+        })
         .catch(() => {
           // Ignore registration failures
         });
