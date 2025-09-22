@@ -86,7 +86,8 @@ interface StockItem {
 
 export default function PharmacyAdminPage() {
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [activeTab, setActiveTab] = useState<string>(isMobile ? "medicines" : "dashboard");
   const [loading, setLoading] = useState(true);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stocks, setStocks] = useState<StockItem[]>([]);
@@ -716,15 +717,17 @@ export default function PharmacyAdminPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <Breadcrumb 
-        items={[
-          { label: "Admin", href: "/admin" },
-          { label: "Pharmacy", href: "/admin/pharmacy" }
-        ]} 
-      />
+    <div className="container mx-auto p-6 space-y-6 overflow-x-hidden">
+      <div className="hidden md:block">
+        <Breadcrumb 
+          items={[
+            { label: "Admin", href: "/admin" },
+            { label: "Pharmacy", href: "/admin/pharmacy" }
+          ]} 
+        />
+      </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Pill className="w-8 h-8 mr-3 text-green-600" />
@@ -737,36 +740,36 @@ export default function PharmacyAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="dashboard">
+          <TabsList className="w-full overflow-x-auto whitespace-nowrap no-scrollbar [-ms-overflow-style:none] [scrollbar-width:thin]">
+          <TabsTrigger value="dashboard" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <BarChart3 className="w-4 h-4 mr-2" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger value="pos">
+          <TabsTrigger value="pos" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <CreditCard className="w-4 h-4 mr-2" />
             Counter Sale
           </TabsTrigger>
-          <TabsTrigger value="medicines">
+          <TabsTrigger value="medicines" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <Pill className="w-4 h-4 mr-2" />
             Medicines ({dashboardStats.totalMedicines})
           </TabsTrigger>
-          <TabsTrigger value="stock">
+          <TabsTrigger value="stock" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <Package className="w-4 h-4 mr-2" />
             Stock ({dashboardStats.totalStock.toLocaleString()})
           </TabsTrigger>
-          <TabsTrigger value="purchase">
+          <TabsTrigger value="purchase" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <Truck className="w-4 h-4 mr-2" />
             Purchase
           </TabsTrigger>
-          <TabsTrigger value="reports">
+          <TabsTrigger value="reports" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <ClipboardList className="w-4 h-4 mr-2" />
             Reports
           </TabsTrigger>
-          <TabsTrigger value="categories">
+          <TabsTrigger value="categories" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <FileText className="w-4 h-4 mr-2" />
             Categories
           </TabsTrigger>
-          <TabsTrigger value="gst">
+          <TabsTrigger value="gst" className="shrink-0 min-w-[33%] sm:min-w-fit">
             <IndianRupee className="w-4 h-4 mr-2" />
             GST Config
           </TabsTrigger>

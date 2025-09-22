@@ -53,3 +53,19 @@ Notes
 - No database migration is required to move between tiers.
 - The UI is gated via feature entitlements; server-side enforcement can be added selectively.
 - For enterprise deployments, consider enabling Offline and Multi-location, and set up monitoring.
+
+Offline availability
+- The app supports offline-first basics via a client-side IndexedDB cache (see lib/offline.ts):
+  - GET requests cache responses; reads prefer cache when offline.
+  - Mutations are queued while offline and synced automatically when back online.
+  - This ensures basic read/write continuity without network.
+- Implementation tips:
+  - Wrap fetch with a thin client (e.g., lib/offline.ts) that writes reads to cache and enqueues writes.
+  - Add a small online/offline indicator in the UI for transparency.
+  - Prefer idempotent server endpoints for robust replay.
+
+Pricing recommendations (India, typical ranges)
+- Basic: INR 10,000 – 15,000 / month
+- Advanced: INR 25,000 – 40,000 / month
+- Enterprise: INR 50,000+ / month (includes advanced integrations, priority support, optional services)
+- Adjust by client segment, add-ons (pay-per-use), and volume discounts as needed.

@@ -26,6 +26,38 @@ export function Header({ title }: HeaderProps) {
   const role = (session?.user as any)?.role || "ADMIN";
   const mobileItems = useMemo(() => getMobileMenuItems(role), [role]);
 
+  // Settings for hospital logo/name
+  const [settings, setSettings] = useState<{ name?: string; logo?: string } | null>(null);
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(async (res) => { if (res.ok) setSettings(await res.json()); })
+      .catch(() => {});
+  }, []);
+
+  // Color palette per route
+  const colorByHref: Record<string, string> = {
+    "/dashboard": "text-sky-600",
+    "/admin": "text-indigo-600",
+    "/admin/users": "text-purple-600",
+    "/admin/doctor-availability": "text-amber-600",
+    "/admin/settings": "text-gray-700",
+    "/patients": "text-emerald-600",
+    "/patients/new": "text-emerald-700",
+    "/appointments": "text-cyan-600",
+    "/admin/pharmacy": "text-green-600",
+    "/pharmacy-queue": "text-green-700",
+    "/billing": "text-rose-600",
+    "/reports": "text-violet-600",
+    "/reports/ot-imaging": "text-violet-700",
+    "/marketing": "text-fuchsia-600",
+    "/lab": "text-orange-600",
+    "/doctor": "text-emerald-700",
+    "/queue": "text-amber-700",
+    "/prescriptions": "text-pink-600",
+    "/ipd": "text-blue-600",
+    "/admin/roles": "text-purple-600",
+  };
+
   const loadNotifs = async () => {
     try {
       const res = await fetch("/api/notifications");
@@ -147,34 +179,55 @@ export function Header({ title }: HeaderProps) {
                   <p className="text-xs text-gray-500 capitalize">{session?.user?.role?.toLowerCase()}</p>
                 </div>
               </button>
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                  <div className="py-1">
-                    <Link className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" href="/profile">
-                      <UserCircle2 className="w-4 h-4 mr-2" /> My Profile
-                    </Link>
-                    {session?.user?.role === "ADMIN" && (
-                      <Link className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" href="/admin/settings">
-                        <Settings className="w-4 h-4 mr-2" /> Hospital Settings
+              <AnimatePresence>
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                  >
+                    <div className="py-1">
+                      <Link className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" href="/profile">
+                        <UserCircle2 className="w-4 h-4 mr-2" /> My Profile
                       </Link>
-                    )}
-                    <button className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50" onClick={() => signOut()}>
-                      <LogOut className="w-4 h-4 mr-2" /> Logout
-                    </button>
-                  </div>
-                </div>
-              )}
+                      {session?.user?.role === "ADMIN" && (
+                        <Link className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" href="/admin/settings">
+                          <Settings className="w-4 h-4 mr-2" /> Hospital Settings
+                        </Link>
+                      )}
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50" onClick={() => signOut()}>
+                        <LogOut className="w-4 h-4 mr-2" /> Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
       </header>
 
       {/* Mobile Drawer with full menu */}
-      <Drawer isOpen={navOpen} onClose={() => setNavOpen(false)} side="left" title="Navigation">
-        <div className="grid grid-cols-1">
+      <Drawer isOpen={navOpen} onClose={() => setNavOpen(false)} side="left" title={undefined}>
+        {/* Drawer header with hospital logo and user */}
+        <div className="px-3 pt-3 pb-2 flex items-center gap-3 border-b border-gray-200">
+          {settings?.logo ? (
+            <img src={settings.logo} alt="logo" className="w-9 h-9 object-contain rounded" />
+          ) : (
+            <div className="w-9 h-9 bg-primary-600 rounded-lg" />
+          )}
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">{settings?.name || "Hospital"}</div>
+            <div className="text-xs text-gray-500 truncate">{session?.user?.name} • {(session?.user?.role || "").toString().toLowerCase()}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 p-2">
           {mobileItems.map((item) => {
             const Icon = item.icon as any;
             const active = pathname === item.href;
+            const color = colorByHref[item.href] || "text-gray-500";
             return (
               <Link
                 key={item.href}
@@ -182,11 +235,17 @@ export function Header({ title }: HeaderProps) {
                 onClick={() => setNavOpen(false)}
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm ${active ? "bg-primary-50 text-primary-700" : "text-gray-700 hover:bg-gray-50"}`}
               >
-                <Icon className={`w-5 h-5 ${active ? "text-primary-600" : "text-gray-500"}`} />
+                <Icon className={`w-5 h-5 ${active ? "text-primary-600" : color}`} />
                 <span className="font-medium">{item.label}</span>
               </Link>
             );
           })}
+        </div>
+        {/* Drawer footer - always show logout */}
+        <div className="p-2 border-t">
+          <Button variant="outline" className="w-full" onClick={() => signOut()}>
+            <LogOut className="w-4 h-4 mr-2" /> Logout
+          </Button>
         </div>
       </Drawer>
 

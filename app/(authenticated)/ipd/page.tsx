@@ -303,6 +303,9 @@ export default function IPDPage() {
   const [selectedWard, setSelectedWard] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  // Mobile detection and tab state (declare before any conditional return)
+  const [isMobile, setIsMobile] = useState(false);
+  const [ipdTab, setIpdTab] = useState<string>('wards');
 
   const fetchIPDData = async () => {
     setLoading(true);
@@ -339,6 +342,9 @@ export default function IPDPage() {
   useEffect(() => {
     fetchIPDData();
   }, []);
+
+  useEffect(() => { if (typeof window !== 'undefined') setIsMobile(window.innerWidth < 768); }, []);
+  useEffect(() => { if (isMobile) setIpdTab('beds'); }, [isMobile]);
 
   // Listen for global refresh events (e.g., after allocating a bed from Admission Requests)
   useEffect(() => {
@@ -460,8 +466,9 @@ export default function IPDPage() {
     );
   }
 
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -543,7 +550,7 @@ export default function IPDPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="wards" className="w-full">
+      <Tabs value={ipdTab} onValueChange={setIpdTab} className="w-full">
         {/* Bed Details Dialog */}
         <Dialog open={bedDialog.open} onOpenChange={(o) => setBedDialog(prev => ({ ...prev, open: o }))}>
           <DialogContent className="max-w-2xl">
@@ -913,10 +920,10 @@ export default function IPDPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="wards" className="cursor-pointer">Ward Management</TabsTrigger>
-          <TabsTrigger value="beds" className="cursor-pointer">Bed Type</TabsTrigger>
-          <TabsTrigger value="requests" className="cursor-pointer">Admission Requests</TabsTrigger>
+        <TabsList className="w-full overflow-x-auto whitespace-nowrap no-scrollbar [-ms-overflow-style:none] [scrollbar-width:thin]">
+          <TabsTrigger value="wards" className="cursor-pointer shrink-0 min-w-[33%] sm:min-w-fit"><Bed className="w-4 h-4 mr-2"/>Ward Management</TabsTrigger>
+          <TabsTrigger value="beds" className="cursor-pointer shrink-0 min-w-[33%] sm:min-w-fit"><Activity className="w-4 h-4 mr-2"/>Bed Type</TabsTrigger>
+          <TabsTrigger value="requests" className="cursor-pointer shrink-0 min-w-[33%] sm:min-w-fit"><Users className="w-4 h-4 mr-2"/>Admission Requests</TabsTrigger>
         </TabsList>
 
         <TabsContent value="wards" className="space-y-4">
