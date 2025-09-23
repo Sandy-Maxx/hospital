@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import BottomSheet from "@/components/ui/bottom-sheet";
 import {
   Package,
   Pill,
@@ -35,6 +36,7 @@ import {
   Receipt,
   Archive,
   Scan,
+  MoreHorizontal,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Breadcrumb from "@/components/navigation/breadcrumb";
@@ -92,6 +94,58 @@ export default function PharmacyAdminPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [search, setSearch] = useState("");
+  const [medicineActionsOpen, setMedicineActionsOpen] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [stockActionsOpen, setStockActionsOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
+
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const colorByTab: Record<string, string> = {
+    dashboard: "text-sky-600",
+    pos: "text-rose-600",
+    medicines: "text-green-600",
+    stock: "text-emerald-600",
+    purchase: "text-indigo-600",
+    reports: "text-violet-600",
+    categories: "text-teal-600",
+    gst: "text-gray-700",
+  };
+
+  const TABS_META: { key: string; label: string; icon: any }[] = [
+    { key: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { key: "pos", label: "Counter Sale", icon: CreditCard },
+    { key: "medicines", label: "Medicines", icon: Pill },
+    { key: "stock", label: "Stock", icon: Package },
+    { key: "purchase", label: "Purchase", icon: Truck },
+    { key: "reports", label: "Reports", icon: ClipboardList },
+    { key: "categories", label: "Categories", icon: FileText },
+    { key: "gst", label: "GST Config", icon: IndianRupee },
+  ];
+
+  const centerActiveTab = () => {
+    const container = tabsContainerRef.current;
+    const el = tabRefs.current[activeTab];
+    if (!container || !el) return;
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const delta = (eRect.left + eRect.width / 2) - (cRect.left + cRect.width / 2);
+    container.scrollBy({ left: delta, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    // Next frame to ensure layout is measured
+    const id = requestAnimationFrame(centerActiveTab);
+    return () => cancelAnimationFrame(id);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onResize = () => centerActiveTab();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const [medicinesPagination, setMedicinesPagination] = useState({
     page: 1,
     limit: 50,
@@ -717,7 +771,7 @@ export default function PharmacyAdminPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6 overflow-x-hidden">
+    <div className="container mx-auto p-6 space-y-0 md:space-y-6 overflow-x-hidden">
       <div className="hidden md:block">
         <Breadcrumb 
           items={[
@@ -740,40 +794,39 @@ export default function PharmacyAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full overflow-x-auto whitespace-nowrap no-scrollbar [-ms-overflow-style:none] [scrollbar-width:thin]">
-          <TabsTrigger value="dashboard" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="pos" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Counter Sale
-          </TabsTrigger>
-          <TabsTrigger value="medicines" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <Pill className="w-4 h-4 mr-2" />
-            Medicines ({dashboardStats.totalMedicines})
-          </TabsTrigger>
-          <TabsTrigger value="stock" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <Package className="w-4 h-4 mr-2" />
-            Stock ({dashboardStats.totalStock.toLocaleString()})
-          </TabsTrigger>
-          <TabsTrigger value="purchase" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <Truck className="w-4 h-4 mr-2" />
-            Purchase
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <ClipboardList className="w-4 h-4 mr-2" />
-            Reports
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <FileText className="w-4 h-4 mr-2" />
-            Categories
-          </TabsTrigger>
-          <TabsTrigger value="gst" className="shrink-0 min-w-[33%] sm:min-w-fit">
-            <IndianRupee className="w-4 h-4 mr-2" />
-            GST Config
-          </TabsTrigger>
-        </TabsList>
+        {/* Custom tab nav styled like Doctor Console, scrollable and colored icons */}
+        <div ref={tabsContainerRef} className="w-full overflow-x-auto whitespace-nowrap no-scrollbar">
+          <nav className="-mb-px flex items-center space-x-4 border-b border-gray-200 px-1">
+            {TABS_META.map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.key;
+              const color = colorByTab[t.key] || "text-gray-700";
+              const display = t.key === "medicines"
+                ? `${t.label} (${dashboardStats.totalMedicines})`
+                : t.key === "stock"
+                ? `${t.label} (${dashboardStats.totalStock.toLocaleString()})`
+                : t.label;
+              return (
+                <button
+                  key={t.key}
+                  ref={(el) => { tabRefs.current[t.key] = el; }}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`shrink-0 py-2 px-2 border-b-2 text-sm font-medium transition-colors scroll-ml-3 ${
+                    active
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span className="inline-flex items-center">
+                    <Icon className={`w-4 h-4 mr-2 ${active ? "text-blue-600" : color}`} />
+                    {display}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
@@ -887,7 +940,7 @@ export default function PharmacyAdminPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                       <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <Input
@@ -1023,19 +1076,19 @@ export default function PharmacyAdminPage() {
 
         {/* Medicines Tab */}
         <TabsContent value="medicines" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2 w-full">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search medicines..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 w-64"
+                  className="pl-9 w-full sm:w-64"
                 />
               </div>
             </div>
-            <Button onClick={() => openMedicineDialog()}>
+            <Button onClick={() => openMedicineDialog()} className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Medicine
             </Button>
@@ -1057,7 +1110,7 @@ export default function PharmacyAdminPage() {
                 <div className="divide-y">
                   {medicines.map((medicine) => (
                     <div key={medicine.id} className="p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3">
                             <div>
@@ -1074,8 +1127,8 @@ export default function PharmacyAdminPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
+                        <div className="grid grid-cols-2 gap-3 w-full sm:w-auto sm:flex sm:items-center sm:space-x-4">
+                          <div className="text-left sm:text-right">
                             <p className="font-semibold text-gray-900">
                               {formatCurrency(medicine.purchasePrice)}
                             </p>
@@ -1090,7 +1143,7 @@ export default function PharmacyAdminPage() {
                             </p>
                           </div>
 
-                          <div className="text-center">
+                          <div className="text-left sm:text-center">
                             <p className="font-semibold text-gray-900">
                               {medicine.totalStock}
                             </p>
@@ -1099,13 +1152,13 @@ export default function PharmacyAdminPage() {
                             </Badge>
                           </div>
 
-                          <div className="text-center">
+                          <div className="text-left sm:text-center">
                             <Badge variant="outline">
                               GST {medicine.gstSlab.rate}%
                             </Badge>
                           </div>
 
-                          <div className="flex items-center space-x-2">
+                          <div className="hidden sm:flex items-center space-x-2">
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -1119,6 +1172,11 @@ export default function PharmacyAdminPage() {
                               onClick={() => handleMedicineDelete(medicine)}
                             >
                               <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="sm:hidden">
+                            <Button size="sm" variant="outline" onClick={() => { setSelectedMedicine(medicine); setMedicineActionsOpen(true); }} aria-label="Actions">
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
@@ -1142,27 +1200,27 @@ export default function PharmacyAdminPage() {
         {/* Stock Tab */}
         <TabsContent value="stock" className="space-y-4">
           <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="relative">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <Input
                     placeholder="Search stock..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 w-64"
+                    className="pl-9 w-full sm:w-64"
                   />
                 </div>
               </div>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Stock
               </Button>
             </div>
             
-            <div className="flex items-center space-x-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <Select value={medicineFilter} onValueChange={setMedicineFilter}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Filter by medicine" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1176,7 +1234,7 @@ export default function PharmacyAdminPage() {
               </Select>
               
               <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Filter by supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1190,7 +1248,7 @@ export default function PharmacyAdminPage() {
               </Select>
               
               <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as typeof stockFilter)}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1234,7 +1292,7 @@ export default function PharmacyAdminPage() {
                 <div className="divide-y">
                   {stocks.map((stock) => (
                     <div key={stock.id} className="p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3">
                             <div>
@@ -1251,22 +1309,22 @@ export default function PharmacyAdminPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                          <div className="text-center">
+                        <div className="grid grid-cols-2 gap-3 w-full sm:w-auto sm:flex sm:items-center sm:space-x-4">
+                          <div className="text-left sm:text-center">
                             <p className="font-semibold text-gray-900">
                               {stock.availableQuantity}
                             </p>
                             <p className="text-xs text-gray-500">Available</p>
                           </div>
 
-                          <div className="text-center">
+                          <div className="text-left sm:text-center">
                             <p className="font-semibold text-gray-900">
                               {stock.daysUntilExpiry} days
                             </p>
                             <p className="text-xs text-gray-500">Until expiry</p>
                           </div>
 
-                          <div className="text-center">
+                          <div className="text-left sm:text-center">
                             <Badge className={getStockStatusColor(stock.status)}>
                               {stock.status.replace("_", " ")}
                             </Badge>
@@ -1281,9 +1339,14 @@ export default function PharmacyAdminPage() {
                             )}
                           </div>
 
-                          <div className="flex items-center space-x-2">
+                          <div className="hidden sm:flex items-center space-x-2">
                             <Button size="sm" variant="outline">
                               <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="sm:hidden">
+                            <Button size="sm" variant="outline" onClick={() => { setSelectedStock(stock); setStockActionsOpen(true); }} aria-label="Actions">
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
@@ -1306,17 +1369,17 @@ export default function PharmacyAdminPage() {
 
         {/* Purchase Management Tab */}
         <TabsContent value="purchase" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h2 className="text-xl font-semibold">Purchase Management</h2>
               <p className="text-gray-600">Manage suppliers, purchase orders, and stock receipts</p>
             </div>
-            <div className="flex space-x-2">
-              <Button onClick={() => {}}>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button onClick={() => {}} className="w-full sm:w-auto whitespace-normal text-sm">
                 <Plus className="w-4 h-4 mr-2" />
                 New Purchase Order
               </Button>
-              <Button variant="outline" onClick={() => {}}>
+              <Button variant="outline" onClick={() => {}} className="w-full sm:w-auto whitespace-normal text-sm">
                 <Users className="w-4 h-4 mr-2" />
                 Manage Suppliers
               </Button>
@@ -1369,17 +1432,17 @@ export default function PharmacyAdminPage() {
 
         {/* Reports & Analytics Tab */}
         <TabsContent value="reports" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h2 className="text-xl font-semibold">Reports & Analytics</h2>
               <p className="text-gray-600">Business insights, sales reports, and inventory analytics</p>
             </div>
-            <div className="flex space-x-2">
-              <Button variant="outline">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <FileText className="w-4 h-4 mr-2" />
                 Export Report
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <Calendar className="w-4 h-4 mr-2" />
                 Date Range
               </Button>
@@ -1612,6 +1675,27 @@ export default function PharmacyAdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Mobile action sheet for Medicines */}
+        <BottomSheet isOpen={medicineActionsOpen} onClose={() => setMedicineActionsOpen(false)} title="Medicine Actions">
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => { setMedicineActionsOpen(false); if (selectedMedicine) openMedicineDialog(selectedMedicine); }}>
+              <Edit className="w-4 h-4 mr-2" /> Edit
+            </Button>
+            <Button variant="outline" onClick={() => { setMedicineActionsOpen(false); if (selectedMedicine) handleMedicineDelete(selectedMedicine); }}>
+              <Trash2 className="w-4 h-4 mr-2" /> Delete
+            </Button>
+          </div>
+        </BottomSheet>
+
+        {/* Mobile action sheet for Stock */}
+        <BottomSheet isOpen={stockActionsOpen} onClose={() => setStockActionsOpen(false)} title="Stock Actions">
+          <div className="grid grid-cols-1 gap-3">
+            <Button onClick={() => { setStockActionsOpen(false); /* implement stock edit when available */ }}>
+              <Edit className="w-4 h-4 mr-2" /> Edit
+            </Button>
+          </div>
+        </BottomSheet>
       </Tabs>
 
       {/* Medicine Form Dialog */}

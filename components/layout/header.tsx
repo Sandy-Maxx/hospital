@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Drawer from "@/components/ui/drawer";
 import { getMobileMenuItems } from "@/components/navigation/menu";
+import { featureForPath, hasFeature } from "@/lib/edition";
 import { usePathname } from "next/navigation";
 
 interface HeaderProps { title?: string; }
@@ -24,7 +25,13 @@ export function Header({ title }: HeaderProps) {
   const userRef = useRef<HTMLDivElement>(null);
 
   const role = (session?.user as any)?.role || "ADMIN";
-  const mobileItems = useMemo(() => getMobileMenuItems(role), [role]);
+  const mobileItems = useMemo(() => {
+    const items = getMobileMenuItems(role);
+    return items.filter((i) => {
+      const f = featureForPath(i.href);
+      return !f || hasFeature(f);
+    });
+  }, [role]);
 
   // Settings for hospital logo/name
   const [settings, setSettings] = useState<{ name?: string; logo?: string } | null>(null);

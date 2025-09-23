@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import BottomSheet from "@/components/ui/bottom-sheet";
 import { getMobileMenuItems } from "./menu";
+import { featureForPath, hasFeature } from "@/lib/edition";
 
 export default function MobileNavigation() {
   const { data: session } = useSession();
@@ -14,7 +15,13 @@ export default function MobileNavigation() {
   const role = (session?.user as any)?.role;
   if (!role) return null;
 
-  const allItems = useMemo(() => getMobileMenuItems(role), [role]);
+  const allItems = useMemo(() => {
+    const items = getMobileMenuItems(role);
+    return items.filter((i) => {
+      const f = featureForPath(i.href);
+      return !f || hasFeature(f);
+    });
+  }, [role]);
 
   const primary = useMemo(() => {
     const defaults = [

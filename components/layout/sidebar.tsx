@@ -32,6 +32,7 @@ import {
   Scan,
 } from "lucide-react";
 import { featureForPath, hasFeature } from "@/lib/edition";
+import { routeMeta } from "@/components/navigation/menu";
 
 interface SidebarProps {
   className?: string;
@@ -42,73 +43,84 @@ type MenuSection = { type: "section"; title: string };
 
 type MenuEntry = MenuLink | MenuSection;
 
-const menuItems: Record<string, MenuEntry[]> = {
-  ADMIN: [
-    { type: "section", title: "Overview" },
-    { icon: Home, label: "Dashboard", href: "/dashboard" },
+function getMenuItems(role: string): MenuEntry[] {
+  const from = (href: string): MenuLink | null => {
+    const meta = routeMeta[href];
+    if (!meta) return null;
+    return { icon: meta.icon as unknown as LucideIcon, label: meta.label, href };
+  };
 
-    { type: "section", title: "Administration" },
-    { icon: Shield, label: "Admin Panel", href: "/admin" },
-    { icon: Settings, label: "Hospital Settings", href: "/admin/settings" },
-    { icon: Users, label: "User Management", href: "/admin/users" },
-    { icon: Shield, label: "Role Management", href: "/admin/roles" },
-    { icon: Clock, label: "Doctor Availability", href: "/admin/doctor-availability" },
-    { icon: QrCode, label: "Doctor QR", href: "/admin/doctor-qr" },
+  if (role === "ADMIN") {
+    const out: MenuEntry[] = [];
+    out.push({ type: "section", title: "Overview" });
+    const overview = ["/dashboard"]; overview.forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Clinical" },
-    { icon: UserPlus, label: "Patients", href: "/patients" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
+    out.push({ type: "section", title: "Administration" });
+    ["/admin", "/admin/settings", "/admin/users", "/admin/roles", "/admin/doctor-availability", "/admin/doctor-qr"].forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Departments" },
-    { icon: Bed, label: "IPD Management", href: "/ipd" },
-    { icon: FlaskConical, label: "Path Lab", href: "/lab" },
-    { icon: Scan, label: "Imaging", href: "/imaging" },
-    { icon: ClipboardList, label: "OT / Procedures", href: "/ot" },
+    out.push({ type: "section", title: "Clinical" });
+    ["/patients", "/appointments"].forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Pharmacy" },
-    { icon: Pill, label: "Pharmacy", href: "/admin/pharmacy" },
-    { icon: Pill, label: "Pharmacy Queue", href: "/pharmacy-queue" },
+    out.push({ type: "section", title: "Departments" });
+    ["/ipd", "/lab", "/imaging", "/ot"].forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Finance & Analytics" },
-    { icon: CreditCard, label: "Billing", href: "/billing" },
-    { icon: BarChart2, label: "Reports", href: "/reports" },
-    { icon: BarChart2, label: "OT/Imaging Report", href: "/reports/ot-imaging" },
+    out.push({ type: "section", title: "Pharmacy" });
+    ["/admin/pharmacy", "/pharmacy-queue"].forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Marketing" },
-    { icon: Megaphone, label: "Marketing", href: "/marketing" },
+    out.push({ type: "section", title: "Finance & Analytics" });
+    ["/billing", "/reports", "/reports/ot-imaging"].forEach(h => { const x = from(h); if (x) out.push(x); });
 
-    { type: "section", title: "Account" },
-    { icon: Users, label: "My Profile", href: "/profile" },
-  ],
-  DOCTOR: [
-    { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: Stethoscope, label: "Doctor Console", href: "/doctor" },
-    { icon: Clock, label: "My Availability", href: "/admin/doctor-availability" },
-    { icon: UserPlus, label: "Patients", href: "/patients" },
-    { icon: FileText, label: "Prescriptions", href: "/prescriptions" },
-    { icon: ClipboardList, label: "Queue Management", href: "/queue" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: Bed, label: "IPD Management", href: "/ipd" },
-    { icon: Users, label: "My Profile", href: "/profile" },
-  ],
-  RECEPTIONIST: [
-    { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: UserPlus, label: "Patient Registration", href: "/patients/new" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: Clock, label: "Doctor Schedules", href: "/admin/doctor-availability" },
-    { icon: ClipboardList, label: "Queue Management", href: "/queue" },
-    { icon: CreditCard, label: "Billing", href: "/billing" },
-    { icon: Users, label: "Patients", href: "/patients" },
-    { icon: Users, label: "My Profile", href: "/profile" },
-  ],
-  NURSE: [
-    { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: ClipboardList, label: "Queue", href: "/queue" },
-    { icon: Users, label: "Patients", href: "/patients" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: Users, label: "My Profile", href: "/profile" },
-  ],
-};
+    out.push({ type: "section", title: "Marketing" });
+    ["/marketing"].forEach(h => { const x = from(h); if (x) out.push(x); });
+
+    out.push({ type: "section", title: "Account" });
+    ["/profile"].forEach(h => { const x = from(h); if (x) out.push(x); });
+
+    return out;
+  }
+
+  if (role === "DOCTOR") {
+    const hrefs = [
+      "/dashboard",
+      "/doctor",
+      "/admin/doctor-availability",
+      "/patients",
+      "/prescriptions",
+      "/queue",
+      "/appointments",
+      "/ipd",
+      "/profile",
+    ];
+    return hrefs.map(from).filter(Boolean) as MenuLink[];
+  }
+
+  if (role === "RECEPTIONIST") {
+    const hrefs = [
+      "/dashboard",
+      "/patients/new",
+      "/appointments",
+      "/admin/doctor-availability",
+      "/queue",
+      "/billing",
+      "/patients",
+      "/profile",
+    ];
+    return hrefs.map(from).filter(Boolean) as MenuLink[];
+  }
+
+  if (role === "NURSE") {
+    const hrefs = [
+      "/dashboard",
+      "/queue",
+      "/patients",
+      "/appointments",
+      "/profile",
+    ];
+    return hrefs.map(from).filter(Boolean) as MenuLink[];
+  }
+
+  return [];
+}
 
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -129,8 +141,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   if (!session?.user) return null;
 
-  const userMenuItems =
-    menuItems[session.user.role as keyof typeof menuItems] || [];
+  const userMenuItems: MenuEntry[] = useMemo(() => getMenuItems(session.user.role), [session.user.role]);
 
   // Build a processed list that removes empty sections after applying feature gating
   const processedMenuItems: MenuEntry[] = useMemo(() => {
