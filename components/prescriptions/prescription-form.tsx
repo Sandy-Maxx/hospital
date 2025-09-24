@@ -317,11 +317,54 @@ export default function PrescriptionForm({
   const [searchResults, setSearchResults] = useState<{
     [key: string]: string[];
   }>({});
+  const [pharmacyMedicines, setPharmacyMedicines] = useState<string[]>([]);
+  const [previousMedicines, setPreviousMedicines] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchLabTests();
+    fetchPharmacyMedicines();
+    fetchPreviousMedicines();
   }, []);
+
+  const fetchPharmacyMedicines = async () => {
+    try {
+      const response = await fetch("/api/pharmacy/medicines?limit=1000");
+      if (response.ok) {
+        const data = await response.json();
+        const medicineNames = data.medicines?.map((med: any) => med.name || med.brand || med.genericName).filter(Boolean) || [];
+        setPharmacyMedicines(medicineNames);
+      }
+    } catch (error) {
+      console.error("Error fetching pharmacy medicines:", error);
+    }
+  };
+
+  const fetchPreviousMedicines = async () => {
+    try {
+      const response = await fetch("/api/prescriptions?limit=100");
+      if (response.ok) {
+        const data = await response.json();
+        const allMedicines = new Set<string>();
+        
+        data.prescriptions?.forEach((prescription: any) => {
+          try {
+            const parsed = prescription.medicines ? JSON.parse(prescription.medicines) : {};
+            const medicines = parsed.medicines || parsed || [];
+            if (Array.isArray(medicines)) {
+              medicines.forEach((med: any) => {
+                if (med.name) allMedicines.add(med.name);
+              });
+            }
+          } catch {}
+        });
+        
+        setPreviousMedicines(Array.from(allMedicines));
+      }
+    } catch (error) {
+      console.error("Error fetching previous medicines:", error);
+    }
+  };
 
   const fetchLabTests = async () => {
     try {
@@ -381,9 +424,21 @@ export default function PrescriptionForm({
 
     // Handle autocomplete for medicine names
     if (field === "name" && value.length > 1) {
-      const filtered = COMMON_MEDICINES.filter((medicine) =>
-        medicine.toLowerCase().includes(value.toLowerCase()),
-      ).slice(0, 5);
+      // Combine all medicine sources for comprehensive suggestions
+      const allMedicines = [
+        ...COMMON_MEDICINES,
+        ...pharmacyMedicines,
+        ...previousMedicines,
+      ];
+      
+      // Remove duplicates and filter by search term
+      const uniqueMedicines = Array.from(new Set(allMedicines));
+      const filtered = uniqueMedicines
+        .filter((medicine) =>
+          medicine.toLowerCase().includes(value.toLowerCase())
+        )
+        .slice(0, 8); // Show more suggestions
+      
       setSearchResults({ ...searchResults, [id]: filtered });
     } else if (field === "name" && value.length <= 1) {
       const newResults = { ...searchResults };

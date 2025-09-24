@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
 import LedgerDialog from "@/components/ipd/ledger-dialog";
+import { hasFeature } from "@/lib/edition";
 
 interface BedType {
   id: string;
@@ -280,6 +281,22 @@ function AdmissionRequestsPanel() {
 
 export default function IPDPage() {
   const { data: session } = useSession();
+  
+  // Check if user has access to IPD feature
+  if (!hasFeature("ipd")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. IPD Management is not available in your current edition.
+          </p>
+          <p className="text-center text-gray-500 mt-2">
+            Please upgrade to ADVANCED or ENTERPRISE edition to access IPD features.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   const [wards, setWards] = useState<Ward[]>([]);
   const [beds, setBeds] = useState<BedInfo[]>([]);
   const [overallStats, setOverallStats] = useState({

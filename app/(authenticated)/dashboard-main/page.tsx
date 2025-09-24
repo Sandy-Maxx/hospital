@@ -73,20 +73,6 @@ export default function Dashboard() {
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showRevenueModal, setShowRevenueModal] = useState(false);
 
-  // Redirect SUPERADMIN to superadmin panel
-  useEffect(() => {
-    if (status === "loading") return;
-    
-    if (session) {
-      const userRole = (session.user as any)?.role;
-      
-      if (userRole === "SUPERADMIN") {
-        router.push("/superadmin");
-        return;
-      }
-    }
-  }, [session, status, router]);
-
   const fetchDashboard = async () => {
     const now = new Date();
     const startOfWeek = new Date(now);

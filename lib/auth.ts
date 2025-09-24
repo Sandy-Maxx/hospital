@@ -24,7 +24,31 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        if (!user || !user.isActive) {
+        if (!user) {
+          return null;
+        }
+
+        // Allow SUPERADMIN access even if not active (for emergency access)
+        if (user.role === "SUPERADMIN") {
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password,
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        }
+
+        // For other roles, check if user is active
+        if (!user.isActive) {
           return null;
         }
 

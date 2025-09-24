@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrescriptionNumber } from "@/lib/identifiers";
+import { hasFeature } from "@/lib/edition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +17,22 @@ interface ImagingProcedure { id: string; serviceId: string; name: string; price:
 
 export default function ImagingPage() {
   const { data: session } = useSession();
+  
+  // Check if user has access to Imaging feature
+  if (!hasFeature("imaging")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. Imaging Services are not available in your current edition.
+          </p>
+          <p className="text-center text-gray-500 mt-2">
+            Please upgrade to ADVANCED or ENTERPRISE edition to access Imaging features.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   const [loading, setLoading] = useState(true);
   const [admissions, setAdmissions] = useState<any[]>([]);
   const [search, setSearch] = useState("");

@@ -60,12 +60,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Prevent admins from creating superadmins
     const data = await request.json();
     const { name, email, password, role, department, specialization } = data;
+    
+    if (session.user.role === "ADMIN" && role === "SUPERADMIN") {
+      return NextResponse.json({ error: "Admins cannot create SuperAdmin users" }, { status: 403 });
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

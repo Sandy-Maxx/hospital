@@ -68,6 +68,7 @@ export default function MobileNavigation() {
     "/admin/users": "text-purple-600",
     "/admin/doctor-availability": "text-amber-600",
     "/ot": "text-teal-600",
+    "/superadmin": "text-red-600",
   };
 
   return (

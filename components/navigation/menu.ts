@@ -37,6 +37,7 @@ export const routeMeta: Record<string, RouteMeta> = {
   "/pharmacy-queue": { label: "Pharmacy Queue", icon: Pill },
   "/profile": { label: "My Profile", icon: Users },
   "/doctor": { label: "Doctor Console", icon: Users },
+  "/superadmin": { label: "Super Admin", icon: Shield },
 };
 
 export type MobileMenuItem = {
@@ -50,6 +51,29 @@ export function getMobileMenuItems(role: string): MobileMenuItem[] {
   const toItems = (hrefs: string[]) => hrefs
     .filter((h) => routeMeta[h])
     .map((h) => ({ href: h, label: routeMeta[h].label, icon: routeMeta[h].icon }));
+
+  if (role === "SUPERADMIN") {
+    return toItems([
+      ...commonHrefs,
+      "/patients",
+      "/queue",
+      "/billing",
+      "/reports",
+      "/marketing",
+      "/lab",
+      "/ipd",
+      "/imaging",
+      "/ot",
+      "/admin/pharmacy",
+      "/pharmacy-queue",
+      "/admin/roles",
+      "/admin/settings",
+      "/admin/doctor-qr",
+      "/admin/users",
+      "/superadmin",
+      "/profile",
+    ]);
+  }
 
   if (role === "ADMIN") {
     return toItems([
@@ -68,6 +92,7 @@ export function getMobileMenuItems(role: string): MobileMenuItem[] {
       "/admin/roles",
       "/admin/settings",
       "/admin/doctor-qr",
+      "/admin/users",
       "/profile",
     ]);
   }

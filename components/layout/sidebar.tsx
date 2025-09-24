@@ -155,9 +155,18 @@ export function Sidebar({ className }: SidebarProps) {
         let j = i + 1;
         while (j < userMenuItems.length && (userMenuItems[j] as any).type !== "section") {
           const link = userMenuItems[j] as MenuLink;
-          const feature = featureForPath(link.href);
-          if (!feature || hasFeature(feature)) {
-            visibleLinks.push(link);
+          try {
+            const feature = featureForPath(link.href);
+            if (!feature || hasFeature(feature)) {
+              visibleLinks.push(link);
+            }
+          } catch (error) {
+            console.error('Error checking feature for link:', link.href, error);
+            // Only include core links on error to avoid breaking basic functionality
+            const coreLinks = ['/dashboard', '/admin', '/patients', '/appointments', '/profile'];
+            if (coreLinks.includes(link.href)) {
+              visibleLinks.push(link);
+            }
           }
           j++;
         }
@@ -167,8 +176,19 @@ export function Sidebar({ className }: SidebarProps) {
         i = j;
       } else {
         const link = item as MenuLink;
-        const feature = featureForPath(link.href);
-        if (!feature || hasFeature(feature)) out.push(link);
+        try {
+          const feature = featureForPath(link.href);
+          if (!feature || hasFeature(feature)) {
+            out.push(link);
+          }
+        } catch (error) {
+          console.error('Error checking feature for link:', link.href, error);
+          // Only include core links on error to avoid breaking basic functionality
+          const coreLinks = ['/dashboard', '/admin', '/patients', '/appointments', '/profile'];
+          if (coreLinks.includes(link.href)) {
+            out.push(link);
+          }
+        }
         i++;
       }
     }

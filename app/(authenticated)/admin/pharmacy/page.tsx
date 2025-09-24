@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { formatDate } from "@/lib/utils";
+import { hasFeature } from "@/lib/edition";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -88,6 +90,23 @@ interface StockItem {
 
 export default function PharmacyAdminPage() {
   const { data: session } = useSession();
+
+  // Check if user has access to Pharmacy feature
+  if (!hasFeature("pharmacy")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. Pharmacy Management is not available in your current edition.
+          </p>
+          <p className="text-center text-gray-500 mt-2">
+            Please upgrade to ADVANCED or ENTERPRISE edition to access Pharmacy features.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const [activeTab, setActiveTab] = useState<string>(isMobile ? "medicines" : "dashboard");
   const [loading, setLoading] = useState(true);

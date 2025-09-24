@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import LabReportsUpload from "@/components/prescriptions/lab-reports-upload";
 import { formatPrescriptionNumber } from "@/lib/identifiers";
 import Breadcrumb from "@/components/navigation/breadcrumb";
+import { hasFeature } from "@/lib/edition";
 
 interface LabJob {
   id: string;
@@ -31,6 +32,22 @@ interface LabJob {
 
 export default function LabPage() {
   const { data: session } = useSession();
+  
+  // Check if user has access to Lab feature
+  if (!hasFeature("lab")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. Lab Management is not available in your current edition.
+          </p>
+          <p className="text-center text-gray-500 mt-2">
+            Please upgrade to ADVANCED or ENTERPRISE edition to access Lab features.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   const [jobs, setJobs] = useState<LabJob[]>([]);
   const [filter, setFilter] = useState<
     "ALL" | "PENDING" | "SAMPLED" | "UPLOADED"

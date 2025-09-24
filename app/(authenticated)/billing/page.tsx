@@ -31,6 +31,7 @@ import {
   IndianRupee,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { hasFeature } from "@/lib/edition";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dynamic from "next/dynamic";
 const BillForm = dynamic(() => import("@/components/billing/bill-form"), {
@@ -248,9 +249,10 @@ function BillsSection(props: {
   dispatchMap: Record<string, boolean>;
   setDispatchMap: (fn: any) => void;
   setLabUpload: (v: any) => void;
+  setPrintPrescription: (v: any) => void;
   fetchBills: () => void;
 }) {
-  const { loading, bills, billsCount, page, limit, totalPages, setPage, setLimit, updateBillStatus, updatingBills, setViewBill, setShowBillModal, setShowEditModal, dispatchMap, setDispatchMap, setLabUpload, fetchBills } = props;
+  const { loading, bills, billsCount, page, limit, totalPages, setPage, setLimit, updateBillStatus, updatingBills, setViewBill, setShowBillModal, setShowEditModal, dispatchMap, setDispatchMap, setLabUpload, setPrintPrescription, fetchBills } = props;
   return (
     <Card>
       <CardHeader>
@@ -330,28 +332,32 @@ function BillsSection(props: {
                     <div className="mt-4 flex flex-wrap justify-end gap-2">
                       <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50" onClick={() => { setViewBill(bill); setShowBillModal(true); }} title="View / Print Bill"><Eye className="w-4 h-4" /></button>
                       <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50" onClick={() => { setViewBill(bill); setShowEditModal(true); }} title="Edit Bill"><Pencil className="w-4 h-4" /></button>
-                      <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => {
-                        try {
-                          const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {};
-                          const tests = (meds.labTests || []).map((t: any) => ({ name: t.name }));
-                          setLabUpload({ id: bill.prescription?.id!, open: true, tests });
-                        } catch {
-                          setLabUpload({ id: bill.prescription?.id!, open: true, tests: [] });
-                        }
-                      }} disabled={!(bill.prescription && dispatchMap[bill.prescription.id])} title={!bill.prescription ? 'No linked prescription' : (!dispatchMap[bill.prescription.id] ? 'Send tests to lab before uploading reports' : 'Upload Lab Reports')}><Upload className="w-4 h-4" /></button>
-                      <button className={`p-2 border rounded-md ${bill.prescription && dispatchMap[bill.prescription.id] ? 'border-green-300 text-green-700 bg-green-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`} onClick={async () => {
-                        try {
-                          const presId = bill.prescription?.id;
-                          if (!presId) { toast.error('No linked prescription'); return; }
-                          const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {};
-                          const tests = (meds.labTests || []) as any[];
-                          if (!tests.length) { toast('No lab tests in this bill'); return; }
-                          const testNames = tests.map((t: any) => t.name).filter(Boolean);
-                          const res = await fetch('/api/lab/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: presId, tests: testNames }) });
-                          if (res.ok) { setDispatchMap((m: any) => ({ ...m, [presId]: true })); toast.success('Tests sent to Lab'); fetchBills(); } else { toast.error('Failed to send tests'); }
-                        } catch { toast.error('Unable to process tests'); }
-                      }} disabled={!bill.prescription || !!(bill.prescription && dispatchMap[bill.prescription.id])} title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : 'Send Tests to Lab'}><FlaskConical className="w-4 h-4" /></button>
-                      <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => { const presId = bill.prescription?.id; if (!presId) { toast.error('No linked prescription'); return; } /* moved to section-level modal */ }} title="View / Print Prescription" disabled={!bill.prescription?.id}><Download className="w-4 h-4" /></button>
+                      {hasFeature("lab") && (
+                        <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => {
+                          try {
+                            const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {};
+                            const tests = (meds.labTests || []).map((t: any) => ({ name: t.name }));
+                            setLabUpload({ id: bill.prescription?.id!, open: true, tests });
+                          } catch {
+                            setLabUpload({ id: bill.prescription?.id!, open: true, tests: [] });
+                          }
+                        }} disabled={!(bill.prescription && dispatchMap[bill.prescription.id])} title={!bill.prescription ? 'No linked prescription' : (!dispatchMap[bill.prescription.id] ? 'Send tests to lab before uploading reports' : 'Upload Lab Reports')}><Upload className="w-4 h-4" /></button>
+                      )}
+                      {hasFeature("lab") && (
+                        <button className={`p-2 border rounded-md ${bill.prescription && dispatchMap[bill.prescription.id] ? 'border-green-300 text-green-700 bg-green-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`} onClick={async () => {
+                          try {
+                            const presId = bill.prescription?.id;
+                            if (!presId) { toast.error('No linked prescription'); return; }
+                            const meds = bill.prescription?.medicines ? JSON.parse(bill.prescription.medicines) : {};
+                            const tests = (meds.labTests || []) as any[];
+                            if (!tests.length) { toast('No lab tests in this bill'); return; }
+                            const testNames = tests.map((t: any) => t.name).filter(Boolean);
+                            const res = await fetch('/api/lab/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prescriptionId: presId, tests: testNames }) });
+                            if (res.ok) { setDispatchMap((m: any) => ({ ...m, [presId]: true })); toast.success('Tests sent to Lab'); fetchBills(); } else { toast.error('Failed to send tests'); }
+                          } catch { toast.error('Unable to process tests'); }
+                        }} disabled={!bill.prescription || !!(bill.prescription && dispatchMap[bill.prescription.id])} title={bill.prescription && dispatchMap[bill.prescription.id] ? 'Already sent to Lab' : 'Send Tests to Lab'}><FlaskConical className="w-4 h-4" /></button>
+                      )}
+                      <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" onClick={() => { const presId = bill.prescription?.id; if (!presId) { toast.error('No linked prescription'); return; } setPrintPrescription({ id: presId, open: true }); }} title="View / Print Prescription" disabled={!bill.prescription?.id}><Download className="w-4 h-4" /></button>
                       <button className="p-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50" onClick={async () => { const ok = typeof window !== 'undefined' ? window.confirm('Delete this bill? This cannot be undone.') : true; if (!ok) return; try { const res = await fetch(`/api/bills?id=${bill.id}`, { method: 'DELETE' }); if (res.ok) { toast.success('Bill deleted'); fetchBills(); } else { toast.error('Failed to delete bill'); } } catch { toast.error('Failed to delete bill'); } }} title="Delete Bill"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ) : (
@@ -826,13 +832,15 @@ export default function Billing() {
             <Receipt className="w-4 h-4 mr-2" />
             Bills ({billsCount})
           </Button>
-          <Button
-            variant={activeTab === "ipd" ? "default" : "outline"}
-            onClick={() => setActiveTab("ipd")}
-          >
-            <BedDouble className="w-4 h-4 mr-2" />
-            IPD Admissions ({ipdRequests.length})
-          </Button>
+          {hasFeature("ipd") && (
+            <Button
+              variant={activeTab === "ipd" ? "default" : "outline"}
+              onClick={() => setActiveTab("ipd")}
+            >
+              <BedDouble className="w-4 h-4 mr-2" />
+              IPD Admissions ({ipdRequests.length})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -968,9 +976,10 @@ export default function Billing() {
           dispatchMap={dispatchMap}
           setDispatchMap={setDispatchMap as any}
           setLabUpload={setLabUpload as any}
+          setPrintPrescription={setPrintPrescription as any}
           fetchBills={fetchBills}
         />
-      ) : (
+      ) : hasFeature("ipd") ? (
         <IPDSection
           loading={loading}
           ipdRequests={ipdRequests}
@@ -993,6 +1002,17 @@ export default function Billing() {
           onViewLedger={(adm: any) => setLedger({ open: true, admissionId: adm.id })}
           runningMap={runningMap}
         />
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-red-600">
+              IPD features are not available in your current edition.
+            </p>
+            <p className="text-center text-gray-500 mt-2">
+              Please upgrade to ADVANCED or ENTERPRISE edition to access IPD billing features.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Collect Deposit Dialog */}

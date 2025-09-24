@@ -9,41 +9,58 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, Settings, FileText, Activity, UserPlus, Pill } from "lucide-react";
+import { Users, Settings, FileText, Activity, UserPlus, Pill, Bed, Scan, FlaskConical, ClipboardList } from "lucide-react";
 import Link from "next/link";
+import { hasFeature } from "@/lib/edition";
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
 
   const [activePatients, setActivePatients] = useState<number>(0);
+  const [totalStaff, setTotalStaff] = useState<number>(0);
 
   useEffect(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const params = new URLSearchParams({
-      date: todayStr,
-      status: "ARRIVED,WAITING,IN_CONSULTATION,SCHEDULED",
-      limit: "10000",
-    });
-    fetch(`/api/appointments?${params.toString()}`).then(async (res) => {
-      if (res.ok) {
-        const data = await res.json();
-        const unique = new Set(
-          (data.appointments || []).map((a: any) => a.patientId),
-        );
-        setActivePatients(unique.size);
+    const fetchData = async () => {
+      try {
+        // Fetch active patients
+        const todayStr = new Date().toISOString().split("T")[0];
+        const params = new URLSearchParams({
+          date: todayStr,
+          status: "ARRIVED,WAITING,IN_CONSULTATION,SCHEDULED",
+          limit: "10000",
+        });
+        const appointmentsRes = await fetch(`/api/appointments?${params.toString()}`);
+        if (appointmentsRes.ok) {
+          const data = await appointmentsRes.json();
+          const unique = new Set(
+            (data.appointments || []).map((a: any) => a.patientId),
+          );
+          setActivePatients(unique.size);
+        }
+
+        // Fetch total staff count
+        const staffRes = await fetch('/api/users');
+        if (staffRes.ok) {
+          const staffData = await staffRes.json();
+          setTotalStaff(staffData.length || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
       }
-    });
+    };
+
+    fetchData();
   }, []);
 
   const stats = [
     {
       title: "Total Staff",
-      value: "45",
-      change: "+3 this month",
+      value: String(totalStaff),
+      change: "Active users",
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      href: "/staff",
+      href: "/admin/users",
     },
     {
       title: "Active Patients",
@@ -55,7 +72,7 @@ export default function AdminDashboard() {
     },
     {
       title: "System Health",
-      value: "99.9%",
+      value: "Online",
       change: "All systems operational",
       icon: Activity,
       color: "text-emerald-600",
@@ -63,20 +80,22 @@ export default function AdminDashboard() {
     },
   ];
 
-  const quickActions = [
+  const allQuickActions = [
     {
       title: "Hospital Settings",
       description: "Configure hospital information and branding",
       icon: Settings,
       href: "/admin/settings",
       color: "bg-blue-500 hover:bg-blue-600",
+      feature: "settings",
     },
     {
       title: "Staff Management",
       description: "Manage staff members and permissions",
       icon: Users,
-      href: "/staff",
+      href: "/admin/users",
       color: "bg-green-500 hover:bg-green-600",
+      feature: "users",
     },
     {
       title: "Reports & Analytics",
@@ -84,6 +103,7 @@ export default function AdminDashboard() {
       icon: FileText,
       href: "/reports",
       color: "bg-purple-500 hover:bg-purple-600",
+      feature: "reports.basic",
     },
     {
       title: "Patient Management",
@@ -91,6 +111,7 @@ export default function AdminDashboard() {
       icon: UserPlus,
       href: "/patients",
       color: "bg-orange-500 hover:bg-orange-600",
+      feature: "patients",
     },
     {
       title: "Pharmacy Management",
@@ -98,8 +119,53 @@ export default function AdminDashboard() {
       icon: Pill,
       href: "/admin/pharmacy",
       color: "bg-green-500 hover:bg-green-600",
+      feature: "pharmacy",
+    },
+    {
+      title: "IPD Management",
+      description: "Manage in-patient department and bed allocation",
+      icon: Bed,
+      href: "/ipd",
+      color: "bg-red-500 hover:bg-red-600",
+      feature: "ipd",
+    },
+    {
+      title: "Lab Management",
+      description: "Manage pathology lab tests and results",
+      icon: FlaskConical,
+      href: "/lab",
+      color: "bg-yellow-500 hover:bg-yellow-600",
+      feature: "lab",
+    },
+    {
+      title: "Imaging Services",
+      description: "Manage radiology and imaging services",
+      icon: Scan,
+      href: "/imaging",
+      color: "bg-indigo-500 hover:bg-indigo-600",
+      feature: "imaging",
+    },
+    {
+      title: "OT Management",
+      description: "Manage operation theater and procedures",
+      icon: ClipboardList,
+      href: "/ot",
+      color: "bg-pink-500 hover:bg-pink-600",
+      feature: "ot",
     },
   ];
+
+  // Filter actions based on current edition
+  const quickActions = allQuickActions.filter(action => {
+    try {
+      return hasFeature(action.feature as any);
+    } catch (error) {
+      console.error('Error checking feature for admin action:', action.feature, error);
+      // Include basic features on error
+      const basicFeatures = ['settings', 'users', 'reports.basic', 'patients'];
+      return basicFeatures.includes(action.feature);
+    }
+  });
 
   if (session?.user?.role !== "ADMIN") {
     return (

@@ -323,11 +323,7 @@ function EditBillForm({
                           />
                         </td>
                         <td className="px-3 py-2 border text-right">
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
+                          <select
                             value={item.gstRate ?? ""}
                             onChange={(e) =>
                               updateBillItem(
@@ -336,7 +332,14 @@ function EditBillForm({
                                 e.target.value ? Number(e.target.value) : null,
                               )
                             }
-                          />
+                            className="w-full p-1 border border-gray-300 rounded text-sm text-right"
+                          >
+                            <option value="">No GST</option>
+                            <option value="0">0% - Exempt</option>
+                            <option value="5">5% - Medicines, Essential items</option>
+                            <option value="12">12% - Medical equipment</option>
+                            <option value="18">18% - Hospital services, Procedures</option>
+                          </select>
                         </td>
                         <td className="px-3 py-2 border text-center">
                           <Button

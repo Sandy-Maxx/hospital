@@ -31,7 +31,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "DOCTOR" | "NURSE" | "RECEPTIONIST";
+  role: "SUPERADMIN" | "ADMIN" | "DOCTOR" | "NURSE" | "RECEPTIONIST";
   isActive: boolean;
   status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   suspendedUntil?: string;
@@ -45,7 +45,7 @@ interface NewUser {
   name: string;
   email: string;
   password: string;
-  role: "ADMIN" | "DOCTOR" | "NURSE" | "RECEPTIONIST";
+  role: "SUPERADMIN" | "ADMIN" | "DOCTOR" | "NURSE" | "RECEPTIONIST";
   department?: string;
   specialization?: string;
 }
@@ -71,6 +71,11 @@ export default function UserManagement() {
   });
 
   const roles = [
+    {
+      value: "SUPERADMIN",
+      label: "Super Administrator",
+      color: "bg-red-100 text-red-800",
+    },
     {
       value: "ADMIN",
       label: "Administrator",
@@ -323,7 +328,7 @@ export default function UserManagement() {
     return roleConfig?.color || "bg-gray-100 text-gray-800";
   };
 
-  if (session?.user?.role !== "ADMIN") {
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPERADMIN") {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -579,17 +584,24 @@ export default function UserManagement() {
                     <select
                       id="edit-role"
                       value={editingUser.role}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        // Prevent admins from changing users to superadmins
+                        if (session?.user?.role !== "SUPERADMIN" && e.target.value === "SUPERADMIN") {
+                          return;
+                        }
                         setEditingUser((prev) =>
                           prev ? { ...prev, role: e.target.value as any } : null,
                         )
-                      }
+                      }}
                       className="w-full mt-1 p-3 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     >
                       {roles.map((role) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
+                        // Only show SUPERADMIN option to SUPERADMIN users
+                        (role.value !== "SUPERADMIN" || session?.user?.role === "SUPERADMIN") ? (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ) : null
                       ))}
                     </select>
                   </div>
@@ -881,9 +893,12 @@ export default function UserManagement() {
                       className="w-full mt-1 p-3 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                     >
                       {roles.map((role) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
+                        // Only show SUPERADMIN option to SUPERADMIN users
+                        (role.value !== "SUPERADMIN" || session?.user?.role === "SUPERADMIN") ? (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ) : null
                       ))}
                     </select>
                   </div>

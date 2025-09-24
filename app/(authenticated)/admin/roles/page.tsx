@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,7 @@ interface PermissionGroup {
 }
 
 export default function RoleManagementPage() {
+  const { data: session } = useSession();
   const [roles, setRoles] = useState<CustomRole[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
@@ -213,6 +215,18 @@ export default function RoleManagementPage() {
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
         </div>
       </div>
+    );
+  }
+
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. Administrator privileges required.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 

@@ -2,12 +2,37 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import MobileNavigation from "@/components/navigation/mobile-navigation";
+import DevHelper from "@/components/dev-helper";
+import DebugEdition from "@/components/debug-edition";
+import { refreshEditionCache, fetchCurrentEdition } from "@/lib/edition";
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+
+  // Refresh edition cache on layout mount to ensure latest edition is loaded
+  useEffect(() => {
+    const fetchLatestEdition = async () => {
+      try {
+        refreshEditionCache();
+        // Force fetch from API and sync cache
+        const apiEdition = await fetchCurrentEdition();
+        console.log('Synced edition from API:', apiEdition);
+        
+        // Force a re-render by triggering a small state change
+        setTimeout(() => {
+          window.dispatchEvent(new Event('edition-updated'));
+        }, 100);
+      } catch (error) {
+        console.error('Failed to fetch latest edition:', error);
+      }
+    };
+    
+    fetchLatestEdition();
+  }, []);
 
   if (status === "loading") {
     return (
@@ -33,6 +58,10 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           <MobileNavigation />
         </div>
       </div>
+      
+      {/* Development Tools */}
+      <DevHelper />
+      <DebugEdition />
     </div>
   );
 }

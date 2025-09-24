@@ -3,10 +3,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
+import { hasFeature } from "@/lib/edition";
 import { Button } from "@/components/ui/button";
 
 export default function PharmacyQueuePage() {
   const { data: session } = useSession();
+  
+  // Check if user has access to Pharmacy feature
+  if (!hasFeature("pharmacy")) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-red-600">
+            Access denied. Pharmacy Queue is not available in your current edition.
+          </p>
+          <p className="text-center text-gray-500 mt-2">
+            Please upgrade to ADVANCED or ENTERPRISE edition to access Pharmacy features.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   const [jobs, setJobs] = useState<any[]>([]);
   const [filter, setFilter] = useState<"ALL"|"PENDING"|"DISPATCHED"|"DISPENSED">("ALL");
 
