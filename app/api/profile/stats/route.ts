@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
 
+// Force dynamic behavior for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const profilesDir = path.join(process.cwd(), "data", "user-profiles");
 const appointmentsDir = path.join(process.cwd(), "data", "appointments");
 const prescriptionsDir = path.join(process.cwd(), "data", "prescriptions");

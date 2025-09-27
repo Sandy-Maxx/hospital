@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+
+// Force dynamic behavior for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import fs from "fs";
 import path from "path";
 

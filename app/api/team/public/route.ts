@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+// Force dynamic behavior for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const profilesDir = path.join(process.cwd(), "data", "user-profiles");
 
 interface PublicProfile {
