@@ -19,19 +19,19 @@ function readIconVersion() {
 }
 
 export const metadata: Metadata = {
-  title: "Hospital Management System",
-  description: "Complete hospital management solution for modern healthcare",
+  title: "Medicaring Hospital - Your Health, Our Priority",
+  description: "Medicaring Hospital in Pune - 15+ years of excellence in healthcare with state-of-the-art facilities and expert medical professionals",
   manifest: "/manifest.json",
   icons: {
     icon: `/favicon.ico?v=${readIconVersion()}`,
     shortcut: `/favicon.ico?v=${readIconVersion()}`,
     apple: "/icon.png",
   },
-  applicationName: "HMS",
+  applicationName: "Medicaring Hospital",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HMS"
+    title: "Medicaring Hospital"
   }
 };
 

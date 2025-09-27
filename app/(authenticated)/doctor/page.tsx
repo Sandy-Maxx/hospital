@@ -263,18 +263,12 @@ export default function DoctorDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <a href="/pharmacy-queue" className="text-sm px-3 py-2 border rounded" title="Open Pharmacy Queue">Pharmacy Queue</a>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Doctor Dashboard</h1>
-          <p className="text-gray-600">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Doctor Dashboard</h1>
+        <p className="text-gray-600">
             Welcome back, Dr. {session?.user?.name}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Stethoscope className="h-8 w-8 text-blue-600" />
-        </div>
-      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -399,6 +393,12 @@ export default function DoctorDashboard() {
           >
             Recent Consultations
           </button>
+          <a
+            href="/pharmacy-queue"
+            className="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm"
+          >
+            Pharmacy Queue
+          </a>
         </nav>
       </div>
 

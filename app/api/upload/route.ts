@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.formData();
     const file: File | null = data.get("file") as unknown as File;
+    const prefixRaw = (data.get("prefix") as string | null) || "";
+    const safePrefix = (prefixRaw || "").toString().trim().replace(/[^a-z0-9-_]/gi, "").toLowerCase();
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" });
@@ -32,10 +34,11 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create unique filename
+    // Create unique filename (backward compatible default: logo-)
     const timestamp = Date.now();
     const extension = file.name.split(".").pop();
-    const filename = `logo-${timestamp}.${extension}`;
+    const base = safePrefix ? `${safePrefix}-` : "logo-";
+    const filename = `${base}${timestamp}.${extension}`;
 
     // Save to public/uploads directory
     const path = join(process.cwd(), "public", "uploads", filename);

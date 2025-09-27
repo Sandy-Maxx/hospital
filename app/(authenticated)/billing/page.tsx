@@ -55,7 +55,6 @@ const LabReportsUpload = dynamic(
 const LedgerDialog = dynamic(() => import("@/components/ipd/ledger-dialog"), { ssr: false });
 import toast from "react-hot-toast";
 import { formatBillNumber, formatPrescriptionNumber } from "@/lib/identifiers";
-import Breadcrumb from "@/components/navigation/breadcrumb";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Subcomponents to simplify the main render
@@ -806,7 +805,6 @@ export default function Billing() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Billing", href: "/billing" }]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">

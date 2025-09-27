@@ -130,6 +130,7 @@ export function Sidebar({ className }: SidebarProps) {
     name?: string;
     logo?: string;
   } | null>(null);
+  const [editionRefresh, setEditionRefresh] = useState(0);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -137,6 +138,21 @@ export function Sidebar({ className }: SidebarProps) {
         if (res.ok) setSettings(await res.json());
       })
       .catch(() => {});
+  }, []);
+
+  // Listen for edition changes and force re-render
+  useEffect(() => {
+    const handleEditionChange = () => {
+      setEditionRefresh(prev => prev + 1);
+    };
+
+    window.addEventListener('edition-changed', handleEditionChange);
+    window.addEventListener('edition-updated', handleEditionChange);
+
+    return () => {
+      window.removeEventListener('edition-changed', handleEditionChange);
+      window.removeEventListener('edition-updated', handleEditionChange);
+    };
   }, []);
 
   if (!session?.user) return null;
@@ -193,7 +209,7 @@ export function Sidebar({ className }: SidebarProps) {
       }
     }
     return out;
-  }, [userMenuItems]);
+  }, [userMenuItems, editionRefresh]);
 
   // Colorful icon palette per route for a modern look
   const colorByHref: Record<string, string> = {

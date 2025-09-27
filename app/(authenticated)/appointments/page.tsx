@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import HospitalDateInput from "@/components/ui/hospital-date-input";
 import { Calendar, Clock, User, Phone, Plus } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/utils";
-import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api-client";
 
@@ -189,7 +188,6 @@ export default function Appointments() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Appointments", href: "/appointments" }]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">

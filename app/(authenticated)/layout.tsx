@@ -13,7 +13,7 @@ import { refreshEditionCache, fetchCurrentEdition } from "@/lib/edition";
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
 
-  // Refresh edition cache on layout mount to ensure latest edition is loaded
+  // Refresh edition cache on layout mount and when session changes
   useEffect(() => {
     const fetchLatestEdition = async () => {
       try {
@@ -31,8 +31,11 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       }
     };
     
-    fetchLatestEdition();
-  }, []);
+    // Fetch edition when session is available
+    if (session) {
+      fetchLatestEdition();
+    }
+  }, [session]); // Add session as dependency
 
   if (status === "loading") {
     return (

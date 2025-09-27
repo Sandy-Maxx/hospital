@@ -49,7 +49,7 @@ export function DialogContent({ className = "", children, ...props }: React.HTML
   return (
     <AnimatePresence>
       {ctx?.open ? (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true">
           <motion.div
             className="absolute inset-0 bg-black/40"
             onClick={() => ctx.setOpen(false)}
@@ -58,13 +58,13 @@ export function DialogContent({ className = "", children, ...props }: React.HTML
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className={`relative z-10 mx-auto my-8 max-w-lg rounded bg-white shadow-lg p-4 ${className}`}
+            className={`relative z-10 w-full rounded bg-white shadow-lg ${className}`}
             initial={{ y: 20, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            transition={{ type: "spring", stiffness: 300, damping: 26 }}
           >
-            <div {...props}>
+            <div className="h-full flex flex-col" {...props}>
               {children}
             </div>
           </motion.div>

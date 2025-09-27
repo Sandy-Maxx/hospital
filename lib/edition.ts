@@ -189,11 +189,24 @@ export function refreshEditionCache() {
 // Client-side function to fetch edition from API
 export async function fetchCurrentEdition(): Promise<Edition> {
   try {
-    const response = await fetch('/api/editions');
+    const response = await fetch('/api/editions', {
+      cache: 'no-store', // Ensure we always get fresh data
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
     if (response.ok) {
       const data = await response.json();
       // Force update the cached edition
       setEdition(data.edition);
+      
+      // Trigger a global event for components to refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('edition-changed', { 
+          detail: { edition: data.edition } 
+        }));
+      }
+      
       return data.edition;
     }
   } catch (error) {

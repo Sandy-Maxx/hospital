@@ -3,7 +3,7 @@
 import React from "react";
 import {
   Home, Calendar, Users, ClipboardList, Pill,
-  CreditCard, BarChart2, Megaphone, FlaskConical, Bed, Scan, Shield, Settings, QrCode
+  CreditCard, BarChart2, Megaphone, FlaskConical, Bed, Scan, Shield, Settings, QrCode, Globe
 } from "lucide-react";
 
 export type RouteMeta = {
@@ -31,6 +31,7 @@ export const routeMeta: Record<string, RouteMeta> = {
   "/admin/users": { label: "User Management", icon: Users },
   "/admin/roles": { label: "Role Management", icon: Shield },
   "/admin/settings": { label: "Hospital Settings", icon: Settings },
+  "/admin/landing-page": { label: "Landing Page", icon: Globe },
   "/admin/doctor-availability": { label: "Doctor Availability", icon: Calendar },
   "/admin/doctor-qr": { label: "Doctor QR", icon: QrCode },
   "/admin/pharmacy": { label: "Pharmacy", icon: Pill },

@@ -23,7 +23,6 @@ import {
   UserCheck,
 } from "lucide-react";
 import { formatTime } from "@/lib/utils";
-import Breadcrumb from "@/components/navigation/breadcrumb";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api-client";
 
@@ -589,7 +588,6 @@ export default function Queue() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Queue", href: "/queue" }]} />
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Clock className="w-8 h-8 mr-3 text-primary-600" />

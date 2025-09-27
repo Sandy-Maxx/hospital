@@ -29,6 +29,9 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import html2canvas from "html2canvas";
+import PublicHeader from "@/components/public/PublicHeader";
+import PublicFooter from "@/components/public/PublicFooter";
+import PublicFloatingCTA from "@/components/public/PublicFloatingCTA";
 
 interface Session {
   id: string;
@@ -314,9 +317,12 @@ function BookingPageInner() {
     });
   };
 
+  const isModal = searchParams.get("modal") === "1";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`${isModal ? 'min-h-0' : 'min-h-screen'} bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100`}>
+      {!isModal && <PublicHeader />}
+      <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 ${isModal ? 'py-4' : 'py-8 pt-20'}`}>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-3">
@@ -998,6 +1004,8 @@ function BookingPageInner() {
           </DialogContent>
         </Dialog>
       </div>
+      {!isModal && <PublicFooter />}
+      {!isModal && <PublicFloatingCTA />}
     </div>
   );
 }

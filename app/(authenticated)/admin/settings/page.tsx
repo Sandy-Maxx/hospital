@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, List, Building2, Bed, Activity } from "lucide-react";
+import { Settings, List, Building2, Bed, Activity, Globe } from "lucide-react";
 import { hasFeature } from "@/lib/edition";
 
 export default function SettingsHubPage() {
@@ -13,6 +13,13 @@ export default function SettingsHubPage() {
       description: "Configure hospital information, branding, business hours, sessions, and advanced options.",
       icon: Building2,
       href: "/admin/settings/configure",
+      feature: "settings",
+    },
+    {
+      title: "Landing & About Pages",
+      description: "Configure the public website landing page (hero slider, animations) and the About page content.",
+      icon: Globe,
+      href: "/admin/landing-page",
       feature: "settings",
     },
     {

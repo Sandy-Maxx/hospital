@@ -13,7 +13,7 @@ export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   if (!items || items.length === 0) return null;
   return (
     <nav
-      className="flex items-center space-x-2 text-sm text-gray-600 mb-4"
+      className="flex items-center space-x-2 text-sm text-gray-700 mb-4 bg-gray-50 px-4 py-2 rounded-lg border"
       aria-label="Breadcrumb"
     >
       {items.map((item, index) => (
@@ -24,7 +24,7 @@ export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
             className={
               index === items.length - 1
                 ? "text-gray-900 font-medium"
-                : "hover:text-blue-600"
+                : "text-gray-700 hover:text-blue-600"
             }
             aria-current={index === items.length - 1 ? "page" : undefined}
           >

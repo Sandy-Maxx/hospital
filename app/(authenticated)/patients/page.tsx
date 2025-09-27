@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatDate, calculateAge } from "@/lib/utils";
 import toast from "react-hot-toast";
-import Breadcrumb from "@/components/navigation/breadcrumb";
 import { apiClient } from "@/lib/api-client";
 
 interface Patient {
@@ -158,7 +157,6 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Patients", href: "/patients" }]} />
       
       <div className="flex justify-between items-center">
         <div>
