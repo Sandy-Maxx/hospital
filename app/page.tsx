@@ -336,7 +336,8 @@ export default function LandingPage() {
               {/* Trust Badge */}
               <div className="text-center mb-4 sm:mb-6">
                 <span className="text-white/90 text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-                  ★ Trusted Healthcare Since 2010 - 15+ Years Excellence
+                  <span className="block sm:inline">★ Trusted Healthcare Since 2010</span>
+                  <span className="block sm:inline sm:ml-1">- 15+ Years Excellence</span>
                 </span>
               </div>
               
@@ -1005,7 +1006,7 @@ export default function LandingPage() {
               {[...Array(4)].map((_, setIndex) => (
                 <div key={setIndex} className="flex gap-6 shrink-0">
                   {testimonials.map((testimonial, i) => (
-                    <div key={`${setIndex}-${i}`} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 w-80 shrink-0 shadow-xl hover:bg-white/15 transition-all duration-300">
+                    <div key={`${setIndex}-${i}`} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 w-64 sm:w-80 shrink-0 shadow-xl hover:bg-white/15 transition-all duration-300">
                       <div className="flex justify-center mb-3">
                         {[...Array(5)].map((_, starIndex) => (
                           <span key={starIndex} className="text-yellow-300 text-sm">★</span>
@@ -1070,6 +1071,17 @@ export default function LandingPage() {
       {/* Booking modal */}
       <Dialog open={openBook} onOpenChange={(v) => { setOpenBook(v); if (v) setIframeLoaded(false); }}>
         <DialogContent className="relative max-w-4xl w-[96vw] h-[90vh] sm:h-[88vh] p-0 overflow-hidden rounded-2xl">
+          {/* Close Button */}
+          <button 
+            onClick={() => setOpenBook(false)}
+            className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+            aria-label="Close modal"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
           {!iframeLoaded && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
