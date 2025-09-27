@@ -206,6 +206,17 @@ const sessionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    // Test database connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError: any) {
+      console.error('[SESSIONS API] Database connection failed:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed', details: dbError.message },
+        { status: 503 }
+      );
+    }
+    
     // Allow public access for fetching sessions (no auth required for GET)
     // Only restrict POST/PUT/DELETE operations
     const { searchParams } = new URL(request.url);
@@ -357,10 +368,36 @@ export async function GET(request: NextRequest) {
       success: true,
       sessions,
     });
-  } catch (error) {
-    console.error("Error fetching sessions:", error);
+  } catch (error: any) {
+    console.error("[SESSIONS API] Error fetching sessions:", {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+      url: request.url,
+      searchParams: new URL(request.url).searchParams.toString()
+    });
+    
+    // More specific error messages
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Database constraint violation", details: error.message },
+        { status: 400 },
+      );
+    }
+    
+    if (error.code === 'P1001') {
+      return NextResponse.json(
+        { error: "Database connection failed", details: error.message },
+        { status: 503 },
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Failed to fetch sessions" },
+      { 
+        error: "Failed to fetch sessions", 
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      },
       { status: 500 },
     );
   }

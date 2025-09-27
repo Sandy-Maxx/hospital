@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Medicaring Hospital"
+  },
+  other: {
+    'mobile-web-app-capable': 'yes'
   }
 };
 

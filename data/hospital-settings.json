@@ -1,7 +1,7 @@
 {
   "name": "MediCare",
   "tagline": "Your Health, Our Priority, your life",
-  "logo": "/uploads/logo-1758987916652.jpg",
+  "logo": "/api/placeholder-image?type=logo&width=200&height=80",
   "primaryColor": "#3b24eb",
   "secondaryColor": "#5f1eae",
   "phone": "7087467976",
@@ -95,6 +95,6 @@
       "endTime": "17:00"
     }
   },
-  "favicon": "/uploads/favicon-1758987919955.jpg",
-  "pwaIcon": "/uploads/pwaIcon-1758987922844.jpg"
+  "favicon": "/api/placeholder-image?type=favicon&width=32&height=32",
+  "pwaIcon": "/api/placeholder-image?type=icon&width=192&height=192"
 }
