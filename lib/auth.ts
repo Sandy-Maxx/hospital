@@ -15,58 +15,70 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("[AUTH] Missing credentials");
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
 
-        if (!user) {
-          return null;
-        }
+          if (!user) {
+            console.log(`[AUTH] User not found: ${credentials.email}`);
+            return null;
+          }
 
-        // Allow SUPERADMIN access even if not active (for emergency access)
-        if (user.role === "SUPERADMIN") {
+          // Allow SUPERADMIN access even if not active (for emergency access)
+          if (user.role === "SUPERADMIN") {
+            const isPasswordValid = await bcrypt.compare(
+              credentials.password,
+              user.password,
+            );
+
+            if (!isPasswordValid) {
+              console.log(`[AUTH] Invalid password for SUPERADMIN: ${credentials.email}`);
+              return null;
+            }
+
+            console.log(`[AUTH] SUPERADMIN login successful: ${credentials.email}`);
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+            };
+          }
+
+          // For other roles, check if user is active
+          if (!user.isActive) {
+            console.log(`[AUTH] Inactive user attempted login: ${credentials.email}`);
+            return null;
+          }
+
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password,
           );
 
           if (!isPasswordValid) {
+            console.log(`[AUTH] Invalid password for user: ${credentials.email}`);
             return null;
           }
 
+          console.log(`[AUTH] Login successful: ${credentials.email}`);
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
           };
-        }
-
-        // For other roles, check if user is active
-        if (!user.isActive) {
+        } catch (error) {
+          console.error("[AUTH] Database error:", error);
           return null;
         }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password,
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       },
     }),
   ],

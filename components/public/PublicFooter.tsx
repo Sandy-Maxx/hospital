@@ -86,8 +86,8 @@ export default function PublicFooter() {
             <div className="flex flex-col items-center justify-center space-y-3">
               <span>© {new Date().getFullYear()} {settings.name || "Medicaring Hospital"}. All rights reserved.</span>
               
-              {/* Prominent Under Development Badge */}
-              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-black px-6 py-3 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20">
+              {/* Prominent Under Development Badge - Hidden on Mobile */}
+              <div className="hidden md:block bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-black px-6 py-3 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20">
                 <div className="flex flex-col items-center space-y-1">
                   <div className="flex items-center space-x-2">
                     <span className="text-lg">🚧</span>

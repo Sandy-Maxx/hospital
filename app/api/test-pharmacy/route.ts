@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Force dynamic behavior for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Test API to debug pharmacy setup
 export async function GET(request: NextRequest) {
   try {
+    // Prevent execution during build time
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({
+        status: "skipped",
+        message: "Test skipped during build time"
+      });
+    }
+    
     console.log("🧪 Testing pharmacy setup...");
     
     // Test database connection

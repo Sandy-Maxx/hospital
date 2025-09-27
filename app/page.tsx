@@ -1012,26 +1012,29 @@ export default function LandingPage() {
             <p className="text-lg text-blue-100">Real experiences from patients who trust us</p>
           </div>
 
-          {/* Mobile: 2 Cards Grid | Desktop: Scrolling Carousel */}
+          {/* Mobile: Horizontal Carousel with 2 Cards Visible | Desktop: Scrolling Carousel */}
           <div className="relative">
-            {/* Mobile Grid Layout */}
+            {/* Mobile Carousel Layout */}
             <div className="block md:hidden px-4">
-              <div className="grid grid-cols-2 gap-3 overflow-x-auto scrollbar-hide" 
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-4" 
                    style={{ scrollSnapType: 'x mandatory' }}>
                 {testimonials.map((testimonial, i) => (
-                  <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-xl hover:bg-white/15 transition-all duration-300" 
-                       style={{ scrollSnapAlign: 'start' }}>
+                  <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 shadow-xl hover:bg-white/15 transition-all duration-300 flex-shrink-0" 
+                       style={{ 
+                         scrollSnapAlign: 'start',
+                         width: 'calc(50% - 0.375rem)' // 2 cards visible with gap
+                       }}>
                     <div className="flex justify-center mb-2">
                       {[...Array(5)].map((_, starIndex) => (
-                        <span key={starIndex} className="text-yellow-300 text-xs">★</span>
+                        <span key={starIndex} className="text-yellow-300 text-sm">★</span>
                       ))}
                     </div>
-                    <blockquote className="text-white text-xs leading-relaxed mb-3 text-center line-clamp-3">
+                    <blockquote className="text-white text-sm leading-relaxed mb-3 text-center line-clamp-3">
                       "{testimonial.content}"
                     </blockquote>
                     <div className="text-center">
-                      <div className="font-semibold text-white text-xs">{testimonial.name}</div>
-                      <div className="text-blue-200/80 text-[10px]">{testimonial.role}</div>
+                      <div className="font-semibold text-white text-sm">{testimonial.name}</div>
+                      <div className="text-blue-200/80 text-xs">{testimonial.role}</div>
                     </div>
                   </div>
                 ))}
@@ -1070,36 +1073,86 @@ export default function LandingPage() {
       {/* Contact Strip - Compact */}
       <section className="py-4 bg-gradient-to-r from-blue-600/90 to-indigo-700/90 backdrop-blur-sm border-t border-white/20 overflow-hidden">
         <div className="relative">
-          <div className="animate-scroll-right hover:pause-animation flex whitespace-nowrap">
-            {[...Array(5)].map((_, repeatIndex) => (
-              <div key={repeatIndex} className="flex items-center space-x-8 px-6 shrink-0">
-                <div className="flex items-center space-x-3 text-white/95">
+          {/* Mobile: Centered Grid Layout */}
+          <div className="block md:hidden">
+            <div className="flex flex-col items-center space-y-3 px-4">
+              <div className="flex flex-wrap justify-center gap-4">
+                <div className="flex items-center space-x-2 text-white/95">
                   <Phone className="w-4 h-4" />
                   <span className="font-medium text-sm">{settings.phone}</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/95">
+                <div className="flex items-center space-x-2 text-white/95">
                   <Mail className="w-4 h-4" />
                   <span className="font-medium text-sm">{settings.email}</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/95">
+              </div>
+              <div className="flex flex-wrap justify-center gap-4">
+                <div className="flex items-center space-x-2 text-white/95">
                   <MapPin className="w-4 h-4" />
                   <span className="font-medium text-sm">{settings.address}</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/95">
+              </div>
+              <div className="flex flex-wrap justify-center gap-4">
+                <div className="flex items-center space-x-2 text-white/95">
                   <Calendar className="w-4 h-4" />
                   <span className="font-medium text-sm">24/7 Emergency Care</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/95">
+                <div className="flex items-center space-x-2 text-white/95">
                   <Shield className="w-4 h-4" />
                   <span className="font-medium text-sm">NABH Accredited</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/95">
-                  <Stethoscope className="w-4 h-4" />
-                  <span className="font-medium text-sm">15+ Years Experience</span>
-                </div>
               </div>
-            ))}
+            </div>
           </div>
+          
+          {/* Desktop: Scrolling Layout */}
+          <div className="hidden md:block">
+            <div className="animate-scroll-right hover:pause-animation flex whitespace-nowrap">
+              {[...Array(5)].map((_, repeatIndex) => (
+                <div key={repeatIndex} className="flex items-center space-x-8 px-6 shrink-0">
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <Phone className="w-4 h-4" />
+                    <span className="font-medium text-sm">{settings.phone}</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <Mail className="w-4 h-4" />
+                    <span className="font-medium text-sm">{settings.email}</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-medium text-sm">{settings.address}</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium text-sm">24/7 Emergency Care</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <Shield className="w-4 h-4" />
+                    <span className="font-medium text-sm">NABH Accredited</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-white/95">
+                    <Stethoscope className="w-4 h-4" />
+                    <span className="font-medium text-sm">15+ Years Experience</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Elite ArchWeb Studio Badge Strip - Mobile Only */}
+      <section className="block md:hidden py-3 bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 border-t border-white/20">
+        <div className="flex items-center justify-center px-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">🚧</span>
+            <span className="font-bold text-black text-xs">UNDER DEVELOPMENT</span>
+            <span className="text-sm">🚧</span>
+          </div>
+        </div>
+        <div className="text-center mt-1">
+          <div className="text-black font-semibold text-xs">Elite ArchWeb Studio</div>
+          <div className="text-black font-medium text-xs">📞 7087467976</div>
         </div>
       </section>
 

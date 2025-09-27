@@ -6,6 +6,10 @@ import { withAuth } from "@/lib/authz";
 import fs from "fs";
 import path from "path";
 
+// Force dynamic behavior for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Load hospital settings to get session templates
 function loadHospitalSettings() {
   try {
