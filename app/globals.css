@@ -2,9 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbar on elements with .no-scrollbar */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+/* Hide scrollbar on elements with .no-scrollbar or .scrollbar-hide */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+.no-scrollbar,
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
 
 /* Custom animations for medical timeline */
 @keyframes fade-in-up {

@@ -83,11 +83,22 @@ export default function PublicFooter() {
               {settings.socialMedia?.twitter && (<Link href={settings.socialMedia.twitter} className="hover:text-white transition-colors duration-200">X</Link>)}
               {settings.socialMedia?.linkedin && (<Link href={settings.socialMedia.linkedin} className="hover:text-white transition-colors duration-200">LinkedIn</Link>)}
             </div>
-            <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="flex flex-col items-center justify-center space-y-3">
               <span>© {new Date().getFullYear()} {settings.name || "Medicaring Hospital"}. All rights reserved.</span>
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 text-center">
-                <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-3 py-1 rounded-full text-xs font-semibold">🚧 Under Development by Elite ArchWeb Studio</span>
-                <span className="text-blue-300/80 text-xs">Contact: 7087467976</span>
+              
+              {/* Prominent Under Development Badge */}
+              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-black px-6 py-3 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20">
+                <div className="flex flex-col items-center space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">🚧</span>
+                    <span className="font-bold text-sm">UNDER DEVELOPMENT</span>
+                    <span className="text-lg">🚧</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-xs">Crafted by Elite ArchWeb Studio</div>
+                    <div className="font-medium text-xs mt-1">📞 Contact: 7087467976</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

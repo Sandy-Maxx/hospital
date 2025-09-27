@@ -50,18 +50,22 @@ export default function PublicHeader() {
         </nav>
 
         <button className="md:hidden p-2 rounded hover:bg-blue-700/40 transition-all duration-200" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
-          {mobileOpen ? <X className="w-6 h-6 text-white" /> : <Menu className="w-6 h-6 text-white" />}
+          <div className="relative w-6 h-6">
+            <Menu className={`w-6 h-6 text-white absolute transition-all duration-300 transform ${mobileOpen ? 'rotate-90 opacity-0 scale-75' : 'rotate-0 opacity-100 scale-100'}`} />
+            <X className={`w-6 h-6 text-white absolute transition-all duration-300 transform ${mobileOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-75'}`} />
+          </div>
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="md:hidden border-t border-blue-700/30 bg-gradient-to-r from-blue-900/95 to-teal-700/95 backdrop-blur-md px-4 py-3 space-y-2">
+      {/* Mobile Menu with Animation */}
+      <div className={`md:hidden border-t border-blue-700/30 bg-gradient-to-r from-blue-900/95 to-teal-700/95 backdrop-blur-md overflow-hidden transition-all duration-300 ${mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="px-4 py-3 space-y-2">
           <Link href="/" className="block py-2 text-white/90 hover:text-white transition-colors" onClick={() => setMobileOpen(false)}>Home</Link>
           <Link href="/about" className="block py-2 text-white/90 hover:text-white transition-colors" onClick={() => setMobileOpen(false)}>About</Link>
           <Link href="/book-appointment" className="block py-2 text-white/90 hover:text-white transition-colors" onClick={() => setMobileOpen(false)}>Book Appointment</Link>
           <Link href="/auth/signin" className="block py-2 text-white/90 hover:text-white transition-colors" onClick={() => setMobileOpen(false)}>Login</Link>
         </div>
-      )}
+      </div>
     </header>
   );
 }

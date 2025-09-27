@@ -96,7 +96,7 @@ export default function LandingPage() {
     tagline: "Your Health, Our Priority",
     primaryColor: "#2563eb",
     secondaryColor: "#1e40af",
-    phone: "+91 98765 43210",
+    phone: "7087467976",
     email: "info@medicaring.com",
     address: "123 Medicaring Complex, Baner Road, Pune, Maharashtra 411045",
     vision:
@@ -183,27 +183,27 @@ export default function LandingPage() {
   useEffect(() => {
     const testimonials = [
       {
-        name: "Sarah Johnson",
+        name: "Dr. Rajesh Sharma",
         role: "Heart Surgery Patient",
-        content: "The cardiac team at this hospital saved my life. Their expertise and compassionate care made all the difference during my recovery.",
+        content: "The cardiac team saved my life with expertise and compassion. Their advanced care made all the difference in my recovery.",
         rating: 5
       },
       {
-        name: "Michael Chen",
+        name: "Priya Patel",
         role: "Emergency Care Patient",
-        content: "When I had my accident, the emergency team was incredibly fast and professional. I'm grateful for their quick response and excellent care.",
+        content: "When I had my accident, the emergency team was incredibly fast and professional. Grateful for their quick response.",
         rating: 5
       },
       {
-        name: "Emily Rodriguez",
+        name: "Anita Mehta",
         role: "Maternity Patient",
-        content: "Having my baby here was an amazing experience. The maternity ward staff made me feel safe and supported throughout the entire process.",
+        content: "Having my baby here was amazing. The maternity staff made me feel safe and supported throughout the process.",
         rating: 5
       },
       {
-        name: "David Thompson",
+        name: "Vikram Singh",
         role: "Orthopedic Patient",
-        content: "The orthopedic surgery team helped me get back on my feet after my injury. Their advanced techniques and rehabilitation program were exceptional.",
+        content: "Knee replacement surgery was excellent. The team helped me get back to my active lifestyle. Highly recommend!",
         rating: 5
       }
     ];
@@ -267,27 +267,39 @@ export default function LandingPage() {
 
   const testimonials = [
     {
-      name: "Sarah Johnson",
+      name: "Dr. Rajesh Sharma",
       role: "Heart Surgery Patient",
-      content: "The cardiac team at this hospital saved my life. Their expertise and compassionate care made all the difference during my recovery.",
+      content: "The cardiac team saved my life with expertise and compassion. Their advanced care made all the difference in my recovery.",
       rating: 5
     },
     {
-      name: "Michael Chen",
+      name: "Priya Patel",
       role: "Emergency Care Patient",
-      content: "When I had my accident, the emergency team was incredibly fast and professional. I'm grateful for their quick response and excellent care.",
+      content: "When I had my accident, the emergency team was incredibly fast and professional. Grateful for their quick response.",
       rating: 5
     },
     {
-      name: "Emily Rodriguez",
+      name: "Anita Mehta",
       role: "Maternity Patient",
-      content: "Having my baby here was an amazing experience. The maternity ward staff made me feel safe and supported throughout the entire process.",
+      content: "Having my baby here was amazing. The maternity staff made me feel safe and supported throughout the process.",
       rating: 5
     },
     {
-      name: "David Thompson",
+      name: "Vikram Singh",
       role: "Orthopedic Patient",
-      content: "The orthopedic surgery team helped me get back on my feet after my injury. Their advanced techniques and rehabilitation program were exceptional.",
+      content: "Knee replacement surgery was excellent. The team helped me get back to my active lifestyle. Highly recommend!",
+      rating: 5
+    },
+    {
+      name: "Sunita Gupta",
+      role: "Diabetes Care Patient",
+      content: "Comprehensive diabetes management program changed my life. The doctors are knowledgeable and caring.",
+      rating: 5
+    },
+    {
+      name: "Amit Kumar",
+      role: "Cancer Survivor",
+      content: "The oncology team gave me hope during difficult times. Their treatment and support were exceptional.",
       rating: 5
     }
   ];
@@ -323,7 +335,7 @@ export default function LandingPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-12 sm:pt-20">
           {/* Floating Glass Elements */}
           <div className="absolute top-10 right-10 w-32 h-32 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 animate-float hidden lg:block" />
           <div className="absolute top-40 left-20 w-24 h-24 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 animate-float-delayed hidden lg:block" />
@@ -1000,29 +1012,56 @@ export default function LandingPage() {
             <p className="text-lg text-blue-100">Real experiences from patients who trust us</p>
           </div>
 
-          {/* Compact Scrolling Testimonials */}
-          <div className="relative overflow-hidden">
-            <div className="animate-scroll-left hover:pause-animation flex gap-6">
-              {[...Array(4)].map((_, setIndex) => (
-                <div key={setIndex} className="flex gap-6 shrink-0">
-                  {testimonials.map((testimonial, i) => (
-                    <div key={`${setIndex}-${i}`} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 w-64 sm:w-80 shrink-0 shadow-xl hover:bg-white/15 transition-all duration-300">
-                      <div className="flex justify-center mb-3">
-                        {[...Array(5)].map((_, starIndex) => (
-                          <span key={starIndex} className="text-yellow-300 text-sm">★</span>
-                        ))}
-                      </div>
-                      <blockquote className="text-white text-sm leading-relaxed mb-4 text-center line-clamp-3">
-                        "{testimonial.content}"
-                      </blockquote>
-                      <div className="text-center">
-                        <div className="font-semibold text-white text-sm">{testimonial.name}</div>
-                        <div className="text-blue-200/80 text-xs">{testimonial.role}</div>
-                      </div>
+          {/* Mobile: 2 Cards Grid | Desktop: Scrolling Carousel */}
+          <div className="relative">
+            {/* Mobile Grid Layout */}
+            <div className="block md:hidden px-4">
+              <div className="grid grid-cols-2 gap-3 overflow-x-auto scrollbar-hide" 
+                   style={{ scrollSnapType: 'x mandatory' }}>
+                {testimonials.map((testimonial, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-xl hover:bg-white/15 transition-all duration-300" 
+                       style={{ scrollSnapAlign: 'start' }}>
+                    <div className="flex justify-center mb-2">
+                      {[...Array(5)].map((_, starIndex) => (
+                        <span key={starIndex} className="text-yellow-300 text-xs">★</span>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))}
+                    <blockquote className="text-white text-xs leading-relaxed mb-3 text-center line-clamp-3">
+                      "{testimonial.content}"
+                    </blockquote>
+                    <div className="text-center">
+                      <div className="font-semibold text-white text-xs">{testimonial.name}</div>
+                      <div className="text-blue-200/80 text-[10px]">{testimonial.role}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Desktop Scrolling Layout */}
+            <div className="hidden md:block overflow-hidden">
+              <div className="animate-scroll-left hover:pause-animation flex gap-6">
+                {[...Array(3)].map((_, setIndex) => (
+                  <div key={setIndex} className="flex gap-6 shrink-0">
+                    {testimonials.map((testimonial, i) => (
+                      <div key={`${setIndex}-${i}`} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 w-80 shrink-0 shadow-xl hover:bg-white/15 transition-all duration-300">
+                        <div className="flex justify-center mb-3">
+                          {[...Array(5)].map((_, starIndex) => (
+                            <span key={starIndex} className="text-yellow-300 text-sm">★</span>
+                          ))}
+                        </div>
+                        <blockquote className="text-white text-sm leading-relaxed mb-4 text-center line-clamp-3">
+                          "{testimonial.content}"
+                        </blockquote>
+                        <div className="text-center">
+                          <div className="font-semibold text-white text-sm">{testimonial.name}</div>
+                          <div className="text-blue-200/80 text-xs">{testimonial.role}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
