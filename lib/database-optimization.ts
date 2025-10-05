@@ -13,11 +13,26 @@ class OptimizedPrismaClient extends PrismaClient {
 
     const dbUrl = process.env.DATABASE_URL
     if (dbUrl) {
+      const buildUrlWithParams = (url: string) => {
+        try {
+          const u = new URL(url)
+          // Ensure optimal params without duplicating '?' or keys
+          u.searchParams.set('connection_limit', '20')
+          u.searchParams.set('pool_timeout', '20')
+          u.searchParams.set('socket_timeout', '60')
+          return u.toString()
+        } catch {
+          // Fallback for non-standard URL parsing cases
+          const separator = url.includes('?') ? '&' : '?'
+          return `${url}${separator}connection_limit=20&pool_timeout=20&socket_timeout=60`
+        }
+      }
+
       baseConfig.datasources = {
         db: {
           url:
             process.env.NODE_ENV === 'production'
-              ? `${dbUrl}?connection_limit=20&pool_timeout=20&socket_timeout=60`
+              ? buildUrlWithParams(dbUrl)
               : dbUrl,
         },
       }
